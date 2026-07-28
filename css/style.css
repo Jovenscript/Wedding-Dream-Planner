@@ -902,3 +902,16 @@ html.cloud-wait::after {
   animation: cw-spin .8s linear infinite;
 }
 @keyframes cw-spin { to { transform: rotate(360deg); } }
+
+/* Ferramentas "escondidas" no rodapé — o + revela o botão de setup completo */
+.secret-tools { max-width: 1040px; margin: 26px auto 0; padding: 0 20px; text-align: center; }
+.secret-plus {
+  width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+  border: 1px solid var(--olive-mist); background: transparent; color: var(--ink-faint);
+  font-size: 15px; line-height: 1; transition: all var(--transition); opacity: .5;
+}
+.secret-plus:hover { opacity: 1; color: var(--olive); border-color: var(--olive-light); transform: rotate(90deg); }
+.secret-panel { margin-top: 12px; display: inline-flex; flex-direction: column; align-items: center; gap: 6px;
+  animation: fadeInUp .25s ease; }
+.secret-hint { font-size: 11px; color: var(--ink-faint); max-width: 360px; }
+@keyframes fadeInUp { from { opacity:0; transform: translateY(6px);} to {opacity:1; transform:none;} }

@@ -316,6 +316,18 @@ el('fund-add').addEventListener('click', addFundFromForm);
       const ok=await confirmDialog('Carregar exemplos', 'Adiciona itens típicos de casamento e custos de referência (com estimativas inteligentes). Seus dados atuais são mantidos. Convidados não são alterados.', {danger:false, confirmText:'Carregar'});
       if(!ok) return; loadExampleData(); renderAll(); toast('Exemplos carregados','ok');
     });
+    // Ferramentas escondidas do rodapé
+    const stog=el('secret-toggle'), span=el('secret-panel');
+    if(stog) stog.addEventListener('click', ()=>{ span.hidden=!span.hidden; stog.textContent=span.hidden?'＋':'－'; });
+    const imp=el('implant-all');
+    if(imp) imp.addEventListener('click', async ()=>{
+      const has = state.guests.length || state.items.length || state.varCosts.length;
+      const ok=await confirmDialog('Implementar tudo', has
+        ? 'Isto SUBSTITUI convidados, itens e custos atuais pelos dados completos do casamento (137 convidados, orçamento e custos inteligentes). Aportes não são alterados. Deseja continuar?'
+        : 'Preenche o app com os dados completos do casamento: 137 convidados por família, orçamento (fotógrafo pago, DJ pelo irmão…) e custos inteligentes. Continuar?',
+        {danger:has, confirmText:'Implementar'});
+      if(!ok) return; implantarTudo(); renderAll(); switchView('convidados'); toast('Tudo pronto! Convidados, orçamento e custos carregados','ok');
+    });
     const evName=el('event-name');
     if(evName){ evName.value=(state.settings.eventName||''); 
       evName.addEventListener('input', ()=>{ state.settings.eventName=evName.value.trim(); applyEventName(); save(); }); }

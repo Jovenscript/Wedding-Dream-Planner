@@ -67,6 +67,54 @@ function seedGuestNames(){ return [
   ['Fornecedor 3','Fornecedores','confirmado'],['Fornecedor 4','Fornecedores','confirmado'],
   ['Fornecedor 5','Fornecedores','confirmado'],['Fornecedor 6','Fornecedores','confirmado']
 ]; }
+/* ═══════════ "Implementar tudo" — monta o casamento inteiro de uma vez ═══════════
+   Junta tudo que o Marlon já passou: os 137 convidados (por família),
+   o orçamento real (fotógrafo pago, DJ pelo irmão…) e os custos por convidado
+   com as regras inteligentes. Não semeia em cima do que já existe: substitui
+   o conteúdo, então use depois de um "Reset total" (ou aceite a limpeza). */
+function buildFullSetup(){
+  // 1) Convidados (reaproveita a lista central, já agrupada por família)
+  const guests = seedGuestNames().map(([name,group,status])=>normGuest({name, group:group||'', status:status||'pendente'}));
+
+  // 2) Custos por convidado (variáveis inteligentes + fixos do evento)
+  const varCosts = [
+    normVar({name:'Comida (por convidado)', category:'Alimentação', mode:'var',  unit:'Pessoa',  unitValue:65, perGuest:1,   audience:'todos',     useMargin:false, sync:true, notes:'R$ 65 por pessoa da lista — varia com confirmações/cancelamentos.'}),
+    normVar({name:'Chopp',                  category:'Bebidas',     mode:'var',  unit:'Litro',   unitValue:23, perGuest:1,   audience:'bebem',     useMargin:true,  sync:true, notes:'Só adultos que bebem · margem de segurança configurável.'}),
+    normVar({name:'Refrigerante (lata)',    category:'Bebidas',     mode:'var',  unit:'Lata',    unitValue:8,  perGuest:2,   audience:'nao-bebem', useMargin:true,  sync:true, notes:'Menores + quem não bebe álcool.'}),
+    normVar({name:'Água (garrafa)',         category:'Bebidas',     mode:'var',  unit:'Garrafa', unitValue:5,  perGuest:1,   audience:'todos',     useMargin:true,  sync:true, notes:'Todos da lista.'}),
+    normVar({name:'Bolo',                   category:'Doces & Bolo',mode:'var',  unit:'Quilo',   unitValue:0,  perGuest:0.1, audience:'todos',     useMargin:true,  sync:true, notes:'Referência 100 g/pessoa — informe o preço por quilo.'}),
+    normVar({name:'Docinhos',               category:'Doces & Bolo',mode:'var',  unit:'Unidade', unitValue:0,  perGuest:7,   audience:'todos',     useMargin:true,  sync:true, notes:'Referência 7 por pessoa — informe o preço por unidade.'}),
+    normVar({name:'Garçom',                 category:'Serviços',    mode:'fixo', unit:'Unidade', unitValue:270,qty:4, sync:true, notes:'R$ 1.080 = 4 garçons de R$ 270. Mude a quantidade e o total recalcula.'}),
+    normVar({name:'Zeladora dos banheiros', category:'Serviços',    mode:'fixo', unit:'Unidade', unitValue:300,qty:1, sync:true, notes:'Valor por unidade.'}),
+    normVar({name:'ECAD',                   category:'Outros',      mode:'fixo', unit:'Unidade', unitValue:800,qty:1, sync:true, notes:'Taxa fixa.'})
+  ];
+
+  // 3) Itens fixos do orçamento (fotógrafo pago; DJ pago pelo irmão; demais a preencher)
+  const NI=(o)=>Object.assign({id:uid(), total:0, paid:0, paidExt:0, sponsor:'', paidAt:null}, o);
+  const items = [
+    NI({name:'Cerimonialista', category:'Serviços'}),
+    NI({name:'Decoração',      category:'Estrutura'}),
+    NI({name:'DJ',             category:'Serviços', sponsor:'Irmão'}),
+    NI({name:'Fotógrafo',      category:'Serviços', total:2890, paid:2890, paidAt:Date.now()}),
+    NI({name:'Vestido',        category:'Trajes'}),
+    NI({name:'Igreja',         category:'Cerimônia'})
+  ];
+
+  return { guests, varCosts, items };
+}
+/* Aplica o pacote acima ao estado e sincroniza (nuvem inclusa via save()). */
+function implantarTudo(){
+  const pack=buildFullSetup();
+  state.items=pack.items;
+  state.varCosts=pack.varCosts;
+  state.guests=pack.guests;
+  state.funds=[];               // aportes você cadastra conforme entra dinheiro
+  state.settings.eventName = state.settings.eventName || 'Casamento Carol & Marlon';
+  state.settings.smart = Object.assign({margin:10, hours:6, basis:'lista'}, state.settings.smart||{});
+  logHist('ajuste', `Configuração completa aplicada — ${pack.guests.length} convidados, ${pack.items.length} itens, ${pack.varCosts.length} custos`, 0);
+  save();
+}
+
 function seedGuests(list, settings){
   if(settings.seedGuests) return list;
   settings.seedGuests=true;
