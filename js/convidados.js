@@ -108,31 +108,46 @@ async function copyText(txt,okMsg){ try{ await navigator.clipboard.writeText(txt
    É a fonte que alimenta todas as estimativas de consumo — acompanhantes
    herdam a faixa etária e o "bebe álcool" do titular. */
 function guestStats(){
-  let conf=0,pend=0,nao=0,drinkers=0,kids=0,teens=0;
+  let conf=0,pend=0,nao=0;
+  const mk=()=>({people:0,drinkers:0,kids:0,teens:0});
+  const C=mk(), P=mk();   // C = confirmados · P = pendentes (ainda contam no planejamento)
   state.guests.forEach(g=>{
     const n=1+(g.companions||0);
-    if(g.status==='confirmado'){
-      conf+=n;
-      if(g.ageGroup==='crianca') kids+=n;
-      else if(g.ageGroup==='adolescente') teens+=n;
-      else if(g.drinks!==false) drinkers+=n;
-    }
-    else if(g.status==='nao') nao+=n; else pend+=n;
+    if(g.status==='nao'){ nao+=n; return; }          // cancelou → sai da conta na hora
+    const b = g.status==='confirmado' ? C : P;
+    b.people+=n;
+    if(g.ageGroup==='crianca') b.kids+=n;
+    else if(g.ageGroup==='adolescente') b.teens+=n;
+    else if(g.drinks!==false) b.drinkers+=n;         // acompanhantes herdam o perfil do titular
+    if(g.status==='confirmado') conf+=n; else pend+=n;
   });
-  const minors=kids+teens;
-  return { conf, pend, nao, total: conf+pend+nao, entries: state.guests.length,
-           drinkers, nonDrinkers: Math.max(0, conf-drinkers), minors, kids, teens, adults: Math.max(0, conf-minors) };
+  /* BASE DE PLANEJAMENTO das estimativas (p*):
+     'lista' (padrão) → todo mundo exceto quem marcou "não irá"; os números
+     começam cheios e DIMINUEM a cada cancelamento.
+     'confirmados' → só quem confirmou; começa em zero e sobe. */
+  const useAll = smartCfg().basis !== 'confirmados';
+  const S = useAll ? {people:C.people+P.people, drinkers:C.drinkers+P.drinkers, kids:C.kids+P.kids, teens:C.teens+P.teens} : C;
+  const pMinors=S.kids+S.teens;
+  return {
+    conf, pend, nao, total: conf+pend+nao, entries: state.guests.length, basisAll: useAll,
+    // planejamento (alimenta chope, refri, água, comida, bolo, docinhos):
+    pPeople:S.people, pDrinkers:S.drinkers, pNonDrinkers:Math.max(0,S.people-S.drinkers),
+    pKids:S.kids, pTeens:S.teens, pMinors, pAdults:Math.max(0,S.people-pMinors),
+    // confirmados (KPIs de confirmação):
+    drinkers:C.drinkers, nonDrinkers:Math.max(0,conf-C.drinkers),
+    kids:C.kids, teens:C.teens, minors:C.kids+C.teens, adults:Math.max(0,conf-C.kids-C.teens)
+  };
 }
-function smartCfg(){ const s=(state.settings&&state.settings.smart)||{}; return { margin: isFinite(Number(s.margin))?Math.max(0,Math.min(100,Number(s.margin))):10, hours: isFinite(Number(s.hours))?Math.max(1,Number(s.hours)):6 }; }
-function audienceCount(st, aud){ return aud==='bebem'?st.drinkers : aud==='nao-bebem'?st.nonDrinkers : st.conf; }
+function smartCfg(){ const s=(state.settings&&state.settings.smart)||{}; return { margin: isFinite(Number(s.margin))?Math.max(0,Math.min(100,Number(s.margin))):10, hours: isFinite(Number(s.hours))?Math.max(1,Number(s.hours)):6, basis: s.basis==='confirmados'?'confirmados':'lista' }; }
+function audienceCount(st, aud){ return aud==='bebem'?(st.pDrinkers??st.drinkers) : aud==='nao-bebem'?(st.pNonDrinkers??st.nonDrinkers) : (st.pPeople??st.conf); }
 const AUD_LABEL={ 'todos':'todos os confirmados', 'bebem':'adultos que consomem álcool', 'nao-bebem':'menores + adultos que não consomem álcool' };
 const UNIT_CEIL=['Lata','Garrafa','Unidade','Caixa'];
 function varCalc(v, stats){
-  const st = (typeof stats==='number') ? {conf:stats, drinkers:stats, nonDrinkers:0} : stats;
+  const st = (typeof stats==='number') ? {conf:stats, pPeople:stats, pDrinkers:stats, pNonDrinkers:0} : stats;
   if(v.mode==='fixo'){
     const qty=Math.max(1,Math.round(v.qty||1));
     const total=round2(qty*(v.unitValue||0));
-    return { qty, base:qty, target:0, marginPct:0, total, per: st.conf>0?round2(total/st.conf):0 };
+    return { qty, base:qty, target:0, marginPct:0, total, per: (st.pPeople??st.conf)>0?round2(total/(st.pPeople??st.conf)):0 };
   }
   const target=audienceCount(st, v.audience||'todos');
   const base=round2(target*(v.perGuest||0));
@@ -140,7 +155,7 @@ function varCalc(v, stats){
   let qty=base*(1+marginPct/100);
   qty = UNIT_CEIL.includes(v.unit) ? Math.ceil(qty-1e-9) : round2(qty);
   const total=round2(qty*(v.unitValue||0));
-  return { qty, base, target, marginPct, total, per: st.conf>0?round2(total/st.conf):0 };
+  return { qty, base, target, marginPct, total, per: (st.pPeople??st.conf)>0?round2(total/(st.pPeople??st.conf)):0 };
 }
 /* Narrativa geral: junta o perfil dos confirmados com TODAS as estimativas,
    no formato pedido ("Foram considerados X adultos, Y crianças..."). */
@@ -149,7 +164,8 @@ function explainAll(){
   const varsOn=state.varCosts.filter(v=>v.mode!=='fixo');
   const fq=n=>String(n).replace('.',',');
   const parts=varsOn.map(v=>{ const c=varCalc(v,s); return `${fq(c.qty)} ${unitAbbr(v.unit)} de ${v.name}`; });
-  const intro=`Foram considerados <strong>${s.adults} adultos</strong>, <strong>${s.kids} crianças</strong> e <strong>${s.teens} adolescentes</strong> confirmados (${s.conf} pessoas, incluindo acompanhantes). Desses, <strong>${s.drinkers} adultos</strong> informaram consumir bebida alcoólica e ${s.nonDrinkers} pessoas não consomem. Com base nos consumos configurados e na margem de segurança de ${fq(smartCfg().margin)}%, as estimativas atuais são:`;
+  const baseTxt = s.basisAll ? 'toda a lista (exceto quem marcou “não irá”)' : 'somente os confirmados';
+  const intro=`Base de planejamento: <strong>${baseTxt}</strong> — <strong>${s.pAdults} adultos</strong>, <strong>${s.pKids} crianças</strong> e <strong>${s.pTeens} adolescentes</strong> (${s.pPeople} pessoas, incluindo acompanhantes). Dessas, <strong>${s.pDrinkers}</strong> consomem bebida alcoólica e ${s.pNonDrinkers} não consomem. Com os consumos configurados e margem de ${fq(smartCfg().margin)}%, as estimativas são (cancelamentos reduzem tudo na hora):`;
   const rows=state.varCosts.map(v=>{ const c=varCalc(v,s); const fixo=v.mode==='fixo';
     return `<tr><th>${escapeHtml(v.name)}</th><td>${fixo?`${c.qty} × ${toBRL(v.unitValue)}`:`${fq(c.qty)} ${escapeHtml(unitAbbr(v.unit))} <span style="color:var(--ink-faint)">(${AUD_LABEL[v.audience||'todos']})</span>`}</td><td style="text-align:right;white-space:nowrap">${(v.unitValue>0||fixo)?toBRL(c.total):'—'}</td></tr>`; }).join('');
   const table=`<div class="prev-scroll"><table class="prev-table"><thead><tr><th>Item</th><th>Estimativa</th><th style="text-align:right">Valor</th></tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -163,7 +179,8 @@ function explainVar(id){
     paras=`Custo fixo do evento: não depende da quantidade de convidados. São ${c.qty} × ${toBRL(v.unitValue)}.`;
     rows=[['Fórmula',`${c.qty} × ${toBRL(v.unitValue)} = ${toBRL(c.total)}`],['Quantidade',`${c.qty} ${escapeHtml(v.unit.toLowerCase())}(s)`],['Custo de cada um',toBRL(v.unitValue)],['Total',toBRL(c.total)],['Impacto por convidado', s.conf>0?toBRL(c.per):'—']];
   } else {
-    paras=`Foram considerados ${s.conf} convidado(s) confirmados (incluindo acompanhantes). Desses, ${s.drinkers} consomem bebida alcoólica e ${s.nonDrinkers} não consomem (${s.minors} menores). Este item é calculado para <strong>${AUD_LABEL[v.audience||'todos']}</strong> — ${c.target} pessoa(s) — usando o consumo médio configurado${c.marginPct?` e uma margem de segurança de ${fq(c.marginPct)}% para reduzir o risco de faltar`:''}.`;
+    const baseTxt = s.basisAll ? `toda a lista, exceto quem marcou “não irá” (confirmados + pendentes)` : `somente os confirmados`;
+    paras=`A base de planejamento atual é <strong>${baseTxt}</strong>: ${s.pPeople} pessoa(s), incluindo acompanhantes. Dessas, ${s.pDrinkers} consomem bebida alcoólica e ${s.pNonDrinkers} não consomem (${s.pMinors} menores). Este item é calculado para <strong>${AUD_LABEL[v.audience||'todos']}</strong> — ${c.target} pessoa(s) — usando o consumo médio configurado${c.marginPct?` e uma margem de segurança de ${fq(c.marginPct)}% para reduzir o risco de faltar`:''}. Cada “não irá” reduz os números na hora.`;
     rows=[
       ['Público', `${AUD_LABEL[v.audience||'todos']} → ${c.target} pessoa(s)`],
       ['Consumo médio', `${fq(v.perGuest)} ${ab}/pessoa (editável)`],
@@ -318,9 +335,9 @@ function renderGuestView(c){
   const s=guestStats();
   el('gk-total').textContent=s.total; el('gk-conf').textContent=s.conf; el('gk-pend').textContent=s.pend; el('gk-nao').textContent=s.nao;
   el('gk-conf-sub').textContent = s.conf>0 ? `${s.drinkers} bebem · ${s.nonDrinkers} não bebem` : '';
-  el('g-smart-line').innerHTML = s.conf>0
-    ? `Base atual: <strong>${s.adults} adultos</strong> (${s.drinkers} bebem), <strong>${s.teens} adolescentes</strong> e <strong>${s.kids} crianças</strong> confirmados — incluindo acompanhantes e fornecedores. As estimativas de chope, refrigerante, água, docinhos e bolo abaixo já refletem esses números.`
-    : 'Confirme convidados para ver as estimativas ganharem vida — tudo começa zerado e recalcula sozinho a cada confirmação.';
+  el('g-smart-line').innerHTML = s.pPeople>0
+    ? `Planejando para <strong>${s.pPeople} pessoas</strong> ${s.basisAll?'(toda a lista, menos quem marcou “não irá”)':'(somente confirmados)'}: <strong>${s.pAdults} adultos</strong> (${s.pDrinkers} bebem), <strong>${s.pTeens} adolescentes</strong> e <strong>${s.pKids} crianças</strong> — incluindo acompanhantes. ${s.basisAll?'Cada cancelamento reduz chope, refrigerante, água, comida, bolo e docinhos automaticamente.':'Cada confirmação soma nas estimativas automaticamente.'}`
+    : 'Adicione pessoas à lista para ver as estimativas — tudo recalcula sozinho a cada mudança.';
   const pct=s.total>0?clamp(s.conf/s.total*100,0,100):0;
   el('g-bar').style.width=pct+'%';
   el('g-bar-legend').textContent=`${pct.toFixed(0)}% confirmado (${s.conf} de ${s.total})`;
@@ -391,7 +408,7 @@ function renderGuestView(c){
   renderVarList(s, c);
 }
 function renderVarList(gsx, c){
-  const people=gsx.conf;
+  const people=gsx.pPeople??gsx.conf;
   const list=el('vc-list'); list.innerHTML='';
   if(!state.varCosts.length){ list.innerHTML=`<div class="empty">Nenhum custo por convidado ainda. Cadastre alimentação, bebidas, doces, lembranças… e veja tudo calculado sozinho.</div>`; return; }
   const fmtQ=n=>String(n).replace('.',',');
@@ -561,7 +578,8 @@ function initConvidadosUI(){
   vp.addEventListener('blur',  ()=>{ const n=parseMoneyToNumber(vp.value); vp.dataset.raw=String(n); vp.value=n?toBRL(n):''; });
   ['vc-name','vc-per','vc-qty'].forEach(id=>el(id).addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addVarFromForm(); } }));
   el('vc-mode').addEventListener('change',()=>{ const fixo=el('vc-mode').value==='fixo'; el('vc-per').style.display=fixo?'none':''; el('vc-qty').style.display=fixo?'':'none'; });
-  const sm=el('smart-margin'), sh=el('smart-hours'); const cfg0=smartCfg(); sm.value=cfg0.margin; sh.value=cfg0.hours;
+  const sm=el('smart-margin'), sh=el('smart-hours'), sb=el('smart-basis'); const cfg0=smartCfg(); sm.value=cfg0.margin; sh.value=cfg0.hours; sb.value=cfg0.basis;
+  sb.addEventListener('change',()=>{ state.settings.smart=state.settings.smart||{}; state.settings.smart.basis=sb.value; save(); renderAll(); toast(sb.value==='lista'?'Planejando pela lista inteira — cancelamentos reduzem as estimativas':'Planejando só pelos confirmados'); });
   sm.addEventListener('change',()=>{ state.settings.smart=state.settings.smart||{}; state.settings.smart.margin=Math.max(0,Math.min(100,Number(sm.value)||0)); sm.value=state.settings.smart.margin; save(); renderAll(); toast('Margem atualizada — estimativas recalculadas'); });
   sh.addEventListener('change',()=>{ state.settings.smart=state.settings.smart||{}; state.settings.smart.hours=Math.max(1,Math.min(24,Number(sh.value)||6)); sh.value=state.settings.smart.hours; save(); });
 

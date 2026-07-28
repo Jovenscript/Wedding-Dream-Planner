@@ -25,7 +25,7 @@ function seedItems(){ return DEFAULT_ITEMS.map(d=>({id:uid(), name:d.name, categ
    As sementes (itens padrão, custos de referência, lista de convidados)
    deixam de rodar no boot; ficam disponíveis apenas como ações manuais
    (ex.: botão "Carregar exemplos" / "Restaurar padrão"). */
-function blankState(){ const settings={showOver:true, strict:true, smart:{margin:10, hours:6}, seedItems:true, seedGuests:true, seedEventCosts:true, seedSmartV2:true}; return { items:[], funds:[], history:[], guests:[], varCosts:[], settings }; }
+function blankState(){ const settings={showOver:true, strict:true, smart:{margin:10, hours:6, basis:'lista'}, seedItems:true, seedGuests:true, seedEventCosts:true, seedSmartV2:true}; return { items:[], funds:[], history:[], guests:[], varCosts:[], settings }; }
 function normFund(f){ return { id:f.id||uid(), name:f.name||'Aporte', type:f.type||'Outros', amount:Math.max(0,round2(f.amount)), date:f.date||todayISO() }; }
 
 // Migração idempotente: aceita array antigo, {items,...} antigo ou o formato novo.
@@ -58,7 +58,7 @@ function migrate(raw){
   varCosts = varCosts.filter(v=>v&&typeof v==='object').map(normVar);
   // Estados antigos que ainda não tinham perfis/margem nos custos ganham os campos novos, sem ADICIONAR itens.
   if(!settings.seedSmartV2){ upgradeSmartSeeds(varCosts, {}); settings.seedSmartV2=true; }
-  settings.smart = Object.assign({margin:10, hours:6}, (settings.smart&&typeof settings.smart==='object')?settings.smart:{});
+  settings.smart = Object.assign({margin:10, hours:6, basis:'lista'}, (settings.smart&&typeof settings.smart==='object')?settings.smart:{});
   const empty = normItems.length===0 && outFunds.length===0 && history.length===0 && guests.length===0 && varCosts.length===0;
   if(empty) return { state:blankState(), migrated:[] };
   return { state:{ items:normItems, funds:outFunds, history, guests, varCosts, settings }, migrated };
