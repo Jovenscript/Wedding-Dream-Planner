@@ -915,3 +915,10 @@ html.cloud-wait::after {
   animation: fadeInUp .25s ease; }
 .secret-hint { font-size: 11px; color: var(--ink-faint); max-width: 360px; }
 @keyframes fadeInUp { from { opacity:0; transform: translateY(6px);} to {opacity:1; transform:none;} }
+
+/* Toggle rápido "bebe cerveja/chope" na linha do convidado */
+.beer-toggle { margin-left: 6px; width: 30px; height: 30px; border-radius: var(--radius-sm);
+  border: 1px solid var(--olive-mist); background: var(--ivory-deep); cursor: pointer;
+  font-size: 14px; line-height: 1; filter: grayscale(1) opacity(.45); transition: all var(--transition); vertical-align: middle; }
+.beer-toggle:hover { border-color: var(--gold); transform: translateY(-1px); }
+.beer-toggle.on { filter: none; background: var(--gold-light); border-color: var(--gold); box-shadow: 0 2px 8px rgba(201,168,76,.25); }

@@ -15,10 +15,10 @@ const G_STATUS={ confirmado:{label:'Confirmado',cls:'ok',ord:0}, pendente:{label
 const DEFAULT_INVITE='Oi, {nome}! 💌 Queremos você com a gente no nosso evento. Em breve enviamos todos os detalhes. Um abraço!';
 
 function normStatus(s){ s=String(s||'').toLowerCase().trim(); if(s.startsWith('conf')||s==='sim'||s==='ok') return 'confirmado'; if(s.startsWith('n')) return 'nao'; return 'pendente'; }
-function normAge(a){ a=String(a||'').toLowerCase(); if(a.startsWith('crian')) return 'crianca'; if(a.startsWith('adol')||a.startsWith('menor')) return 'adolescente'; return 'adulto'; }
+function normAge(a){ a=String(a||'').toLowerCase(); if(a.startsWith('beb')||a.startsWith('baby')||a.startsWith('colo')) return 'bebe'; if(a.startsWith('crian')) return 'crianca'; if(a.startsWith('adol')||a.startsWith('menor')) return 'adolescente'; return 'adulto'; }
 function normDrinks(d, age){ if(typeof d==='boolean') return age==='adulto'?d:false; const s=String(d||'').toLowerCase().trim(); if(age!=='adulto') return false; if(['sim','s','true','1','x','yes'].includes(s)) return true; if(['nao','não','n','false','0','no'].includes(s)) return false; return true; }
 function normGuest(g){ g=g||{}; const ageGroup=normAge(g.ageGroup); return { id:g.id||uid(), name:String(g.name||'').trim()||'Convidado', phone:String(g.phone||'').trim(), whats:String(g.whats||g.phone||'').trim(), email:String(g.email||'').trim(), group:String(g.group||'').trim(), companions:Math.max(0,Math.min(20,Math.round(Number(g.companions)||0))), ageGroup, drinks:normDrinks(g.drinks, ageGroup), status:normStatus(g.status), notes:String(g.notes||'').trim() }; }
-function normVar(v){ v=v||{}; const mode=(v.mode==='fixo')?'fixo':'var'; const aud=['todos','bebem','nao-bebem'].includes(v.audience)?v.audience:'todos'; return { id:v.id||uid(), name:String(v.name||'').trim()||'Item', category:String(v.category||'Outros').trim(), mode, unit:String(v.unit||'Pessoa').trim(), unitValue:Math.max(0,round2(v.unitValue)), perGuest:Math.max(0,Number(String(v.perGuest??'').toString().replace(',','.'))||0), qty:Math.max(1,Math.round(Number(v.qty)||1)), audience:aud, useMargin:!!v.useMargin, notes:String(v.notes||'').trim(), sync:!!v.sync }; }
+function normVar(v){ v=v||{}; const mode=(v.mode==='fixo')?'fixo':'var'; const aud=['todos','bebem','nao-bebem','sem-bebe'].includes(v.audience)?v.audience:'todos'; return { id:v.id||uid(), name:String(v.name||'').trim()||'Item', category:String(v.category||'Outros').trim(), mode, unit:String(v.unit||'Pessoa').trim(), unitValue:Math.max(0,round2(v.unitValue)), perGuest:Math.max(0,Number(String(v.perGuest??'').toString().replace(',','.'))||0), qty:Math.max(1,Math.round(Number(v.qty)||1)), audience:aud, useMargin:!!v.useMargin, notes:String(v.notes||'').trim(), sync:!!v.sync }; }
 
 /* Custos padrão do evento (sugeridos uma única vez; edite/apague à vontade) */
 /* Referências de consumo (eventos de ~5-7h, valores médios de buffets e fornecedores;
@@ -185,16 +185,17 @@ async function copyText(txt,okMsg){ try{ await navigator.clipboard.writeText(txt
    herdam a faixa etária e o "bebe álcool" do titular. */
 function guestStats(){
   let conf=0,pend=0,nao=0;
-  const mk=()=>({people:0,drinkers:0,kids:0,teens:0});
+  const mk=()=>({people:0,drinkers:0,kids:0,teens:0,babies:0,adults:0});
   const C=mk(), P=mk();   // C = confirmados · P = pendentes (ainda contam no planejamento)
   state.guests.forEach(g=>{
     const n=1+(g.companions||0);
     if(g.status==='nao'){ nao+=n; return; }          // cancelou → sai da conta na hora
     const b = g.status==='confirmado' ? C : P;
     b.people+=n;
-    if(g.ageGroup==='crianca') b.kids+=n;
+    if(g.ageGroup==='bebe') b.babies+=n;
+    else if(g.ageGroup==='crianca') b.kids+=n;
     else if(g.ageGroup==='adolescente') b.teens+=n;
-    else if(g.drinks!==false) b.drinkers+=n;         // acompanhantes herdam o perfil do titular
+    else { b.adults+=n; if(g.drinks!==false) b.drinkers+=n; }   // adulto: bebe álcool? (acompanhantes herdam)
     if(g.status==='confirmado') conf+=n; else pend+=n;
   });
   /* BASE DE PLANEJAMENTO das estimativas (p*):
@@ -202,21 +203,23 @@ function guestStats(){
      começam cheios e DIMINUEM a cada cancelamento.
      'confirmados' → só quem confirmou; começa em zero e sobe. */
   const useAll = smartCfg().basis !== 'confirmados';
-  const S = useAll ? {people:C.people+P.people, drinkers:C.drinkers+P.drinkers, kids:C.kids+P.kids, teens:C.teens+P.teens} : C;
-  const pMinors=S.kids+S.teens;
+  const add=(a,b)=>({people:a.people+b.people,drinkers:a.drinkers+b.drinkers,kids:a.kids+b.kids,teens:a.teens+b.teens,babies:a.babies+b.babies,adults:a.adults+b.adults});
+  const S = useAll ? add(C,P) : C;
+  const pMinors=S.kids+S.teens+S.babies;
   return {
     conf, pend, nao, total: conf+pend+nao, entries: state.guests.length, basisAll: useAll,
     // planejamento (alimenta chope, refri, água, comida, bolo, docinhos):
     pPeople:S.people, pDrinkers:S.drinkers, pNonDrinkers:Math.max(0,S.people-S.drinkers),
-    pKids:S.kids, pTeens:S.teens, pMinors, pAdults:Math.max(0,S.people-pMinors),
+    pKids:S.kids, pTeens:S.teens, pBabies:S.babies, pMinors, pAdults:S.adults,
+    pNoBabies: Math.max(0, S.people-S.babies),
     // confirmados (KPIs de confirmação):
-    drinkers:C.drinkers, nonDrinkers:Math.max(0,conf-C.drinkers),
-    kids:C.kids, teens:C.teens, minors:C.kids+C.teens, adults:Math.max(0,conf-C.kids-C.teens)
+    drinkers:C.drinkers, nonDrinkers:Math.max(0,conf-C.drinkers-C.babies),
+    kids:C.kids, teens:C.teens, babies:C.babies, minors:C.kids+C.teens+C.babies, adults:C.adults
   };
 }
 function smartCfg(){ const s=(state.settings&&state.settings.smart)||{}; return { margin: isFinite(Number(s.margin))?Math.max(0,Math.min(100,Number(s.margin))):10, hours: isFinite(Number(s.hours))?Math.max(1,Number(s.hours)):6, basis: s.basis==='confirmados'?'confirmados':'lista' }; }
-function audienceCount(st, aud){ return aud==='bebem'?(st.pDrinkers??st.drinkers) : aud==='nao-bebem'?(st.pNonDrinkers??st.nonDrinkers) : (st.pPeople??st.conf); }
-const AUD_LABEL={ 'todos':'todos os confirmados', 'bebem':'adultos que consomem álcool', 'nao-bebem':'menores + adultos que não consomem álcool' };
+function audienceCount(st, aud){ return aud==='bebem'?(st.pDrinkers??st.drinkers) : aud==='nao-bebem'?(st.pNonDrinkers??st.nonDrinkers) : aud==='sem-bebe'?(st.pNoBabies??st.pPeople??st.conf) : (st.pPeople??st.conf); }
+const AUD_LABEL={ 'todos':'todas as pessoas', 'bebem':'adultos que bebem cerveja/chope', 'nao-bebem':'quem não bebe álcool (crianças, adolescentes e adultos que não bebem)', 'sem-bebe':'todos, menos bebês' };
 const UNIT_CEIL=['Lata','Garrafa','Unidade','Caixa'];
 function varCalc(v, stats){
   const st = (typeof stats==='number') ? {conf:stats, pPeople:stats, pDrinkers:stats, pNonDrinkers:0} : stats;
@@ -449,7 +452,9 @@ function renderGuestView(c){
     const tr=document.createElement('tr');
     const wnum=waNumber(g.whats||g.phone);
     const tdName=document.createElement('td');
-    const prof=[]; if(g.ageGroup==='crianca') prof.push('Criança'); else if(g.ageGroup==='adolescente') prof.push('Adolescente'); else if(g.drinks===false) prof.push('Não bebe álcool');
+    const AGEL={bebe:'Bebê',crianca:'Criança',adolescente:'Adolescente',adulto:'Adulto'};
+    const prof=[]; if(g.ageGroup&&g.ageGroup!=='adulto') prof.push(AGEL[g.ageGroup]);
+    if(g.ageGroup==='adulto') prof.push(g.drinks?'🍺 bebe':'não bebe álcool');
     const subTxt=[...prof, g.notes].filter(Boolean).join(' · ');
     tdName.innerHTML=`<button class="linklike" style="all:unset;cursor:pointer;font-weight:600;color:var(--ink)" title="Editar convidado">${escapeHtml(g.name)}</button>${subTxt?`<div class="g-sub">${escapeHtml(subTxt)}</div>`:''}`;
     tdName.querySelector('button').addEventListener('click',()=>editGuest(g.id));
@@ -467,7 +472,16 @@ function renderGuestView(c){
     [['pendente','Pendente'],['confirmado','Confirmado'],['nao','Não irá']].forEach(([v,l])=>{ const o=document.createElement('option'); o.value=v; o.textContent=l; sel.appendChild(o); });
     sel.value=g.status;
     sel.addEventListener('change',()=>{ g.status=sel.value; logHist('ajuste',`Confirmação — ${g.name}: ${G_STATUS[g.status].label}`,0); save(); renderAll(); });
-    tdS.appendChild(sel); tr.appendChild(tdS);
+    tdS.appendChild(sel);
+    if(g.ageGroup==='adulto'){
+      const bw=document.createElement('button'); bw.type='button';
+      bw.className='beer-toggle'+(g.drinks?' on':'');
+      bw.textContent='🍺'; bw.title=g.drinks?'Bebe cerveja/chope (clique para alternar)':'Não bebe álcool (clique para alternar)';
+      bw.setAttribute('aria-label',(g.drinks?'Bebe':'Não bebe')+' — '+g.name);
+      bw.addEventListener('click',()=>{ g.drinks=!g.drinks; logHist('ajuste',`${g.name}: ${g.drinks?'bebe':'não bebe'} álcool`,0); save(); renderAll(); });
+      tdS.appendChild(bw);
+    }
+    tr.appendChild(tdS);
 
     const tdAct=document.createElement('td'); const acts=document.createElement('div'); acts.className='row-actions';
     const wa=document.createElement('a'); wa.className='wa-btn'+(wnum?'':' is-disabled');
@@ -535,7 +549,7 @@ function loadXLSX(){
   return __xlsxLoading;
 }
 function guestRowsForExport(){
-  const AGE={adulto:'Adulto',adolescente:'Adolescente',crianca:'Criança'};
+  const AGE={adulto:'Adulto',adolescente:'Adolescente',crianca:'Criança',bebe:'Bebê'};
   return state.guests.map(g=>({ 'Nome':g.name, 'Telefone':g.phone, 'WhatsApp':g.whats, 'E-mail':g.email, 'Grupo':g.group, 'Acompanhantes':g.companions, 'Faixa etária':AGE[g.ageGroup]||'Adulto', 'Bebe álcool':g.drinks?'Sim':'Não', 'Status':G_STATUS[g.status].label, 'Observações':g.notes }));
 }
 async function exportGuestsXLSX(){
