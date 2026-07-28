@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<!-- ═══════════════════════════════════════════════════════════════════
+     login.html — porta de entrada do SaaS
+     Autenticação por e-mail/senha (Firebase). Já logado → index.html.
+     Modo local (config vazia) → botão de entrada direta.
+     ═══════════════════════════════════════════════════════════════════ -->
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Planner do Casamento — Orçamento</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css" />
+  <script src="js/config.js"></script>
+  <style>body{background:var(--ivory)} .auth-overlay{display:flex;position:fixed;background:radial-gradient(1200px 600px at 50% -10%, var(--olive-mist), var(--ivory))}</style>
+</head>
+<body>
+  <div class="auth-overlay show" role="main">
+    <div class="auth-card">
+      <p class="eyebrow" style="font-size:11px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:6px">✦ Planner do Casamento ✦</p>
+      <h3 id="auth-title">Bem-vindo(a)</h3>
+      <p class="sub" id="auth-sub">Entre com sua conta para acessar o planejamento — cada casal vê apenas os próprios dados.</p>
+      <div class="fld"><label class="field-label" for="auth-mail">E-mail</label><input id="auth-mail" class="name-input" type="email" autocomplete="email" placeholder="voce@email.com" /></div>
+      <div class="fld"><label class="field-label" for="auth-pass">Senha</label><input id="auth-pass" class="name-input" type="password" autocomplete="current-password" placeholder="••••••••" /></div>
+      <div class="actions-col">
+        <button id="auth-login">Entrar</button>
+        <button id="auth-signup" class="secondary">Criar conta</button>
+      </div>
+      <div class="auth-links">
+        <a id="auth-forgot">Esqueci minha senha</a>
+        <a id="auth-local">Usar sem conta (só neste aparelho)</a>
+      </div>
+      <div class="auth-msg" id="auth-msg"></div>
+    </div>
+  </div>
+  <script src="js/auth.js"></script>
+</body>
+</html>

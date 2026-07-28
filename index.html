@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<!-- ═══════════════════════════════════════════════════════════════════
+     PLANNER DO CASAMENTO · Carol & Marlon — index.html (o aplicativo)
+     Vistas Orçamento e Convidados na mesma página (troca instantânea de
+     abas, sem recarregar). Com a nuvem ativa (js/config.js), quem não
+     estiver logado é redirecionado para login.html pelo firebase-sync.js.
+     Ordem dos scripts = ordem de dependência (comentada lá embaixo).
+     ═══════════════════════════════════════════════════════════════════ -->
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Planner do Casamento — Orçamento</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css" />
+  <script src="js/config.js"></script>
+  <script>/* Nuvem ativa? Esconde o app até o firebase-sync decidir (logado → mostra; deslogado → login.html). */
+    if(window.FIREBASE_CONFIG) document.documentElement.classList.add('cloud-wait');</script>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+
+  <header class="site-header">
+    <p class="eyebrow">✦ Planner do Casamento ✦</p>
+    <h1>Orçamento <em>&amp; Pagamentos</em></h1>
+    <p class="sub">Controle valores, acompanhe o que já foi pago e o que falta. Tudo salvo no seu navegador.</p>
+  </header>
+
+  <nav class="nav" aria-label="Navegação">
+    <a class="tab" href="#convidados" data-view="convidados">Convidados</a>
+    <a class="tab active" href="#orcamento" data-view="orcamento" aria-current="page">Orçamento</a>
+  </nav>
+
+  <div class="auth-bar" id="auth-bar" aria-live="polite">
+    <span class="cloud-dot" id="cloud-dot" aria-hidden="true"></span>
+    <span id="auth-email"></span>
+    <button class="ghost btn-sm" id="auth-logout">Sair</button>
+  </div>
+
+  <main class="container">
+    <div class="view" id="view-orcamento">
+
+    <!-- PAINEL FINANCEIRO -->
+    <section class="card" aria-labelledby="painel">
+      <div class="card-header">
+        <h2 id="painel">Painel Financeiro</h2>
+        <div class="header-rule"></div>
+        <button id="btn-pdf" class="header-action" title="Gerar relatório financeiro em PDF">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg>
+          <span class="ha-txt">Relatório PDF</span>
+        </button>
+      </div>
+      <div class="dash-grid">
+        <div class="dash-main">
+          <div class="summary">
+            <div class="kpi"><div class="label">Total do casamento</div><div class="value" id="k-total">—</div></div>
+            <div class="kpi"><div class="label">Já pago</div><div class="value" id="k-paid">—</div></div>
+            <div class="kpi"><div class="label">Falta pagar</div><div class="value" id="k-pending">—</div></div>
+            <div class="kpi"><div class="label">Saldo disponível</div><div class="value" id="k-saldo">—</div></div>
+          </div>
+          <div class="summary three">
+            <div class="kpi"><div class="label">Recursos totais</div><div class="value" id="k-funds">—</div></div>
+            <div class="kpi"><div class="label">Falta arrecadar</div><div class="value" id="k-falta">—</div></div>
+            <div class="kpi"><div class="label">Sobra de recursos</div><div class="value" id="k-surplus">—</div></div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label"><span>Progresso dos pagamentos</span><span id="bar-pago-legend">0% pago</span></div>
+            <div class="bar"><span id="bar-pago"></span></div>
+          </div>
+          <div class="progress-wrap" style="padding-top:4px">
+            <div class="progress-label"><span>Orçamento garantido pelos recursos</span><span id="bar-gar-legend">0% garantido</span></div>
+            <div class="bar"><span id="bar-gar" class="bar-gold"></span></div>
+          </div>
+        </div>
+        <div class="donut-wrap">
+          <div class="donut" id="donut" style="--p1:0;--p2:0">
+            <div class="center"><span class="big" id="donut-big">0%</span><span class="small" id="donut-small">pago</span></div>
+          </div>
+          <div class="legend">
+            <div class="row"><span class="dot" style="background:var(--olive)"></span>Pago<span class="val" id="leg-pago">—</span></div>
+            <div class="row"><span class="dot" style="background:var(--gold-light)"></span>Coberto por recursos<span class="val" id="leg-res">—</span></div>
+            <div class="row"><span class="dot" style="background:var(--olive-mist)"></span>Falta arrecadar<span class="val" id="leg-falta">—</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RECURSOS & APORTES -->
+    <section class="card" aria-labelledby="recursos">
+      <div class="card-header">
+        <h2 id="recursos">Recursos &amp; Aportes</h2>
+        <div class="header-rule"></div>
+      </div>
+      <div class="saldo-hero">
+        <div class="label" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)">Saldo disponível para pagar</div>
+        <div class="amt" id="saldo-amt">—</div>
+        <div class="f-date" id="saldo-sub" style="margin-top:3px">—</div>
+      </div>
+      <div class="fund-form">
+        <span class="input-icon" style="min-width:220px;flex:1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>
+          <input id="fund-name" class="name-input" type="text" placeholder="Descrição (ex.: Dinheiro guardado, 13º, pais)" style="width:100%" />
+        </span>
+        <select id="fund-type" class="field" aria-label="Tipo do aporte">
+          <option>Guardado</option>
+          <option>A receber</option>
+          <option>Investimento</option>
+          <option>Economia mensal</option>
+          <option>Presente</option>
+          <option>Outros</option>
+        </select>
+        <input id="fund-amount" class="money" inputmode="decimal" placeholder="R$ 0,00" style="max-width:150px" aria-label="Valor do aporte" />
+        <input id="fund-date" class="field" type="date" aria-label="Data do aporte" />
+        <button id="fund-add">Adicionar aporte +</button>
+      </div>
+      <div class="fund-list" id="fund-list"></div>
+      <p class="tip">Cadastre tudo que vai bancar o casamento — dinheiro guardado, valores a receber, investimentos, economia mensal e presentes. A soma vira o saldo disponível, e cada pagamento desconta dele automaticamente.</p>
+    </section>
+
+    <!-- ITENS -->
+    <section class="card" aria-labelledby="itens">
+      <div class="card-header">
+        <h2 id="itens">Itens do Casamento</h2>
+        <div class="header-rule"></div>
+      </div>
+      <div class="actions">
+        <div style="display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <span class="input-icon" style="min-width:240px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+            <input id="new-name" class="name-input" type="text" placeholder="Nome do novo item (ex.: Bem-casados)" style="width:100%" />
+          </span>
+          <button id="add">Adicionar +</button>
+        </div>
+        <div style="display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button id="reset" class="secondary">Restaurar padrão</button>
+          <button id="clear" class="danger">Zerar valores</button>
+        </div>
+      </div>
+      <div class="toolbar">
+        <label class="import-label">
+          ↑ Importar JSON
+          <input id="import" type="file" accept="application/json" style="display:none" />
+        </label>
+        <button id="export" class="ghost">↓ Exportar dados (JSON)</button>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th style="min-width:220px">Item</th>
+            <th>Categoria</th>
+            <th style="min-width:150px">Valor total</th>
+            <th style="min-width:130px">Pago</th>
+            <th>Falta</th>
+            <th>Status</th>
+            <th style="min-width:170px;text-align:right">Ação</th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <p class="tip">Clique em “Pagar” para registrar quanto pagou — o valor sai do saldo disponível e a data fica no histórico. Ajuste o total clicando no valor. Use “Estornar” para desfazer um pagamento.</p>
+    </section>
+
+    <!-- HISTÓRICO -->
+    <section class="card" aria-labelledby="historico">
+      <div class="card-header">
+        <h2 id="historico">Histórico Financeiro</h2>
+        <div class="header-rule"></div>
+      </div>
+      <div class="hist-filters">
+        <button class="chip active" data-kind="all">Tudo</button>
+        <button class="chip" data-kind="aporte">Aportes</button>
+        <button class="chip" data-kind="pagamento">Pagamentos</button>
+        <button class="chip" data-kind="estorno">Estornos</button>
+        <button class="chip" data-kind="ajuste">Ajustes</button>
+        <button class="chip" data-kind="exclusao">Exclusões</button>
+      </div>
+      <div class="hist-list" id="hist-list"></div>
+    </section>
+
+    <!-- CONFIGURAÇÕES -->
+    <section class="card" aria-labelledby="sobre">
+      <div class="card-header">
+        <h2 id="sobre">Configurações</h2>
+        <div class="header-rule"></div>
+      </div>
+      <div class="settings-grid">
+        <label class="setting-item">
+          <input type="checkbox" id="show-over" />
+          <span class="setting-label">Mostrar coluna "Falta" como zero quando pago supera o total</span>
+        </label>
+        <label class="setting-item">
+          <input type="checkbox" id="strict-nonnegative" checked />
+          <span class="setting-label">Impedir valor "Pago" maior que "Total" por item</span>
+        </label>
+      </div>
+    </section>
+
+    </div>
+
+    <!-- ═══════════ VISTA: CONVIDADOS ═══════════ -->
+    <div class="view" id="view-convidados" hidden>
+
+      <!-- PAINEL DE CONVIDADOS -->
+      <section class="card" aria-labelledby="g-painel">
+        <div class="card-header">
+          <h2 id="g-painel">Painel de Convidados</h2>
+          <div class="header-rule"></div>
+          <button id="btn-explain" class="header-action" title="Como as estimativas foram calculadas">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+            <span class="ha-txt">Ver detalhes do cálculo</span>
+          </button>
+        </div>
+        <div class="summary">
+          <div class="kpi"><div class="label">Pessoas na lista</div><div class="value" id="gk-total">—</div></div>
+          <div class="kpi"><div class="label">Confirmados</div><div class="value" id="gk-conf">—</div><div class="g-sub" id="gk-conf-sub"></div></div>
+          <div class="kpi"><div class="label">Pendentes</div><div class="value" id="gk-pend">—</div></div>
+          <div class="kpi"><div class="label">Não irão</div><div class="value" id="gk-nao">—</div></div>
+        </div>
+        <div class="summary">
+          <div class="kpi"><div class="label">Alimentação (estim.)</div><div class="value" id="gk-food">—</div></div>
+          <div class="kpi"><div class="label">Bebidas (estim.)</div><div class="value" id="gk-drink">—</div></div>
+          <div class="kpi"><div class="label">Outros itens</div><div class="value" id="gk-other">—</div></div>
+          <div class="kpi"><div class="label">Total do evento</div><div class="value" id="gk-var">—</div><div class="g-sub" id="gk-var-sub">—</div></div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Confirmações</span><span id="g-bar-legend">0% confirmado</span></div>
+          <div class="bar"><span id="g-bar"></span></div>
+        </div>
+        <p class="tip" id="g-smart-line">Confirme convidados para ver as estimativas ganharem vida — tudo começa zerado e recalcula sozinho a cada confirmação.</p>
+      </section>
+
+      <!-- LISTA DE CONVIDADOS -->
+      <section class="card" aria-labelledby="g-lista">
+        <div class="card-header">
+          <h2 id="g-lista">Convidados</h2>
+          <div class="header-rule"></div>
+        </div>
+
+        <div class="g-filters">
+          <span class="search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <input id="g-search" class="name-input" type="text" placeholder="Buscar por nome, grupo, telefone…" aria-label="Buscar convidado" />
+          </span>
+          <span class="chips" role="group" aria-label="Filtrar por status">
+            <button class="chip active" data-gstatus="all">Todos</button>
+            <button class="chip" data-gstatus="confirmado">Confirmados</button>
+            <button class="chip" data-gstatus="pendente">Pendentes</button>
+            <button class="chip" data-gstatus="nao">Não irão</button>
+          </span>
+          <select id="g-group-filter" class="field" aria-label="Filtrar por grupo"><option value="all">Todos os grupos</option></select>
+          <select id="g-sort" class="field" aria-label="Ordenar por">
+            <option value="name">Ordenar: Nome</option>
+            <option value="status">Ordenar: Confirmação</option>
+            <option value="group">Ordenar: Grupo</option>
+          </select>
+        </div>
+
+        <div class="g-form">
+          <span class="input-icon" style="flex:1;min-width:200px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+            <input id="g-name" class="name-input" type="text" placeholder="Nome do convidado" style="width:100%" />
+          </span>
+          <input id="g-phone" class="name-input" type="tel" inputmode="tel" placeholder="WhatsApp (ex.: 47 99999-0000)" style="max-width:210px" aria-label="Telefone / WhatsApp" />
+          <input id="g-group" class="name-input" type="text" placeholder="Família ou grupo" style="max-width:170px" list="g-group-list" aria-label="Família ou grupo" />
+          <datalist id="g-group-list"></datalist>
+          <input id="g-comp" class="field" type="number" min="0" max="20" step="1" value="0" style="max-width:110px" aria-label="Acompanhantes" title="Acompanhantes" />
+          <select id="g-age" class="field" aria-label="Faixa etária" title="Faixa etária (bebida alcoólica só conta para adultos)">
+            <option value="adulto">Adulto</option>
+            <option value="adolescente">Adolescente</option>
+            <option value="crianca">Criança</option>
+          </select>
+          <select id="g-status" class="field" aria-label="Status">
+            <option value="pendente">Pendente</option>
+            <option value="confirmado">Confirmado</option>
+            <option value="nao">Não irá</option>
+          </select>
+          <button id="g-add">Adicionar +</button>
+        </div>
+
+        <div class="toolbar">
+          <label class="import-label">
+            ↑ Importar Excel (.xlsx)
+            <input id="g-import" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none" />
+          </label>
+          <button id="g-export-xlsx" class="ghost">↓ Exportar Excel</button>
+          <button id="g-export-csv" class="ghost">↓ Exportar CSV</button>
+          <button id="g-msg" class="secondary">✎ Mensagem de convite</button>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr>
+              <th style="min-width:200px">Convidado</th>
+              <th style="min-width:170px">Contato</th>
+              <th>Grupo</th>
+              <th>Acomp.</th>
+              <th style="min-width:130px">Status</th>
+              <th style="min-width:210px">Ações</th>
+            </tr></thead>
+            <tbody id="g-tbody"></tbody>
+          </table>
+        </div>
+        <p class="tip">Toque no <strong>nome</strong> para editar tudo — e-mail, observações, <strong>faixa etária</strong> e <strong>se consome álcool</strong> (isso alimenta as estimativas de bebidas). Acompanhantes herdam o perfil do titular. O botão verde abre o WhatsApp; os ícones copiam telefone ou convite.</p>
+      </section>
+
+      <!-- CUSTOS POR CONVIDADO -->
+      <section class="card" aria-labelledby="g-custos">
+        <div class="card-header">
+          <h2 id="g-custos">Custos do Evento</h2>
+          <div class="header-rule"></div>
+        </div>
+        <div class="g-filters" style="padding-bottom:0">
+          <span style="display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-muted)">Margem de segurança
+            <input id="smart-margin" class="field slim" type="number" min="0" max="100" step="1" style="width:70px" aria-label="Margem de segurança em porcento" /> %</span>
+          <span style="display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-muted)">Duração do evento
+            <input id="smart-hours" class="field slim" type="number" min="1" max="24" step="1" style="width:64px" aria-label="Duração do evento em horas" /> h</span>
+          <span style="font-size:11.5px;color:var(--ink-faint)">A margem entra nos itens marcados; consumos médios ficam em cada item (Editar).</span>
+        </div>
+        <div class="fund-form">
+          <span class="input-icon" style="flex:1;min-width:190px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            <input id="vc-name" class="name-input" type="text" placeholder="Item (ex.: Chope, Jantar, Lembrancinha)" style="width:100%" />
+          </span>
+          <select id="vc-mode" class="field" aria-label="Tipo de custo" title="Variável: multiplica pelos convidados confirmados. Fixo: quantidade × valor.">
+            <option value="var">Variável (por pessoa)</option>
+            <option value="fixo">Fixo (do evento)</option>
+          </select>
+          <select id="vc-cat" class="field" aria-label="Categoria">
+            <option>Alimentação</option>
+            <option>Bebidas</option>
+            <option>Doces &amp; Bolo</option>
+            <option>Descartáveis</option>
+            <option>Lembranças</option>
+            <option>Serviços</option>
+            <option>Estrutura</option>
+            <option>Outros</option>
+          </select>
+          <select id="vc-unit" class="field" aria-label="Unidade">
+            <option>Pessoa</option>
+            <option>Litro</option>
+            <option>Garrafa</option>
+            <option>Lata</option>
+            <option>Unidade</option>
+            <option>Quilo</option>
+            <option>Caixa</option>
+          </select>
+          <input id="vc-price" class="money" inputmode="decimal" placeholder="R$ por unidade" style="max-width:140px" aria-label="Valor unitário" />
+          <input id="vc-per" class="field" type="number" min="0" step="0.01" placeholder="Consumo/pessoa" style="max-width:140px" aria-label="Consumo médio por pessoa" title="Consumo médio por pessoa (ex.: 0,2 litro)" />
+          <input id="vc-qty" class="field" type="number" min="1" step="1" value="1" placeholder="Quantidade" style="max-width:120px;display:none" aria-label="Quantidade" title="Quantidade (ex.: 3 garçons)" />
+          <button id="vc-add">Adicionar +</button>
+        </div>
+        <div class="fund-list" id="vc-list"></div>
+        <p class="tip"><strong>Variável</strong> multiplica pelos confirmados: chope a R$ 23,00/L com 0,5 L por pessoa e 100 confirmados → 50 L e R$ 1.150,00, sozinho. <strong>Fixo</strong> multiplica pela quantidade: 3 garçons × R$ 220,00 → R$ 660,00. Ligue <strong>“No orçamento”</strong> para virar item automático na aba Orçamento — variáveis acompanham cada confirmação.</p>
+      </section>
+
+    </div>
+
+    <div class="brand">
+      <span class="ring" aria-hidden="true"></span>
+      Planner do Casamento — Feito com amor
+      <span class="ring" aria-hidden="true"></span>
+    </div>
+  </main>
+
+  <div class="modal-backdrop" id="modal-backdrop" aria-hidden="true"></div>
+  <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+
+  <!-- Ordem de carga (dependências):
+       config → utils → state → ui → orcamento → pdf → convidados → app (boot) → firebase-sync -->
+  <script src="js/utils.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/orcamento.js"></script>
+  <script src="js/pdf.js"></script>
+  <script src="js/convidados.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/firebase-sync.js"></script>
+</body>
+</html>
