@@ -50,7 +50,7 @@ function migrate(raw){
       const f = normFund({name:it.name, type:'Outros', amount:p, date:it.paidAt||todayISO()});
       outFunds.push(f); migrated.push(f);
     } else {
-      normItems.push({ id:it.id||uid(), name:it.name||'Item', category:it.category||'Outros', total:t, paid:p, paidAt:it.paidAt||null });
+      normItems.push({ id:it.id||uid(), name:it.name||'Item', category:it.category||'Outros', total:t, paid:p, paidExt:Math.max(0,round2(it.paidExt)), sponsor:String(it.sponsor||'').trim(), paidAt:it.paidAt||null });
     }
   });
   history = (history||[]).filter(h=>h&&typeof h==='object').map(h=>({ id:h.id||uid(), ts:h.ts||Date.now(), kind:h.kind||'ajuste', desc:h.desc||'', delta:round2(h.delta) }));
@@ -75,12 +75,13 @@ let state  = null;
 function initState(){ __boot = loadState(); state = __boot.state; }
 function save(){ try{ localStorage.setItem(STORE, JSON.stringify(state)); }catch{} if(window.__cloudSave) window.__cloudSave(); }
 
-/* Zera todos os dados desta conta (itens, aportes, convidados, custos e
-   histórico), preservando apenas as preferências. Sincroniza com a nuvem. */
-function resetAllData(){
-  state.items=[]; state.funds=[]; state.guests=[]; state.varCosts=[]; state.history=[];
-  logHist('ajuste','Sistema zerado — recomeço do planejamento',0);
-  save();
+/* RESET TOTAL (fábrica): apaga TUDO — dados, preferências, nome do evento
+   e o localStorage inteiro do app (v3 e o antigo v2). Se a nuvem estiver
+   ativa, o vazio é sincronizado antes de recarregar a página. */
+function resetTotal(){
+  state = blankState();
+  try{ localStorage.removeItem(STORE); localStorage.removeItem('@wedding_planner_v2'); }catch{}
+  save();  // repersiste o estado de fábrica e empurra para a nuvem (se logado)
 }
 /* Carrega, sob demanda, os exemplos/modelos (itens padrão de casamento e
    custos de referência com estimativas inteligentes). Não toca em convidados. */
@@ -119,15 +120,18 @@ async function editFund(id){
 /* ═══════════ Cálculo central (fonte única de verdade) ═══════════ */
 function compute(){
   const totalExpense = state.items.reduce((a,it)=>a+(it.total||0),0);
-  const totalPaid    = state.items.reduce((a,it)=>a+(it.paid||0),0);
+  const paidOwn      = state.items.reduce((a,it)=>a+(it.paid||0),0);     // pago com o NOSSO saldo (aportes)
+  const paidExt      = state.items.reduce((a,it)=>a+(it.paidExt||0),0);  // pago por TERCEIROS (ex.: DJ pago pelo irmão)
+  const totalPaid    = round2(paidOwn + paidExt);                        // pago no total (progresso do evento)
   const totalFunds   = state.funds.reduce((a,f)=>a+(f.amount||0),0);
-  const pending      = Math.max(0, totalExpense - totalPaid);
-  const saldo        = round2(totalFunds - totalPaid);           // disponível (pode ser negativo)
-  const faltaArrecadar = Math.max(0, round2(totalExpense - totalFunds));
-  const surplus      = Math.max(0, round2(totalFunds - totalExpense));
+  const pending      = Math.max(0, round2(totalExpense - totalPaid));
+  const saldo        = round2(totalFunds - paidOwn);                     // só o que saiu do nosso caixa desconta
+  const coverage     = round2(totalFunds + paidExt);                     // dinheiro nosso + o que terceiros já cobriram
+  const faltaArrecadar = Math.max(0, round2(totalExpense - coverage));
+  const surplus      = Math.max(0, round2(coverage - totalExpense));
   const pctPago      = totalExpense>0 ? clamp(totalPaid/totalExpense*100,0,100) : 0;
-  const pctGarantido = totalExpense>0 ? clamp(totalFunds/totalExpense*100,0,100) : 0;
+  const pctGarantido = totalExpense>0 ? clamp(coverage/totalExpense*100,0,100) : 0;
   const coveredUnpaid= clamp(Math.min(Math.max(0,saldo), pending), 0, pending);
   const uncovered    = Math.max(0, round2(pending - coveredUnpaid));
-  return { totalExpense, totalPaid, totalFunds, pending, saldo, faltaArrecadar, surplus, pctPago, pctGarantido, coveredUnpaid, uncovered };
+  return { totalExpense, totalPaid, paidOwn, paidExt, totalFunds, pending, saldo, faltaArrecadar, surplus, pctPago, pctGarantido, coveredUnpaid, uncovered };
 }

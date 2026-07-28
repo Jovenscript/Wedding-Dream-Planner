@@ -37,35 +37,47 @@ async function removeFund(id){
 async function payItem(id){
   const it=state.items.find(x=>x.id===id); if(!it) return;
   const c=compute();
-  const remaining=Math.max(0, round2((it.total||0)-(it.paid||0)));
+  const remaining=Math.max(0, round2((it.total||0)-(it.paid||0)-(it.paidExt||0)));
   if(remaining<=0){ toast('Este item já está quitado.'); return; }
+  const SRC_SALDO='Saldo dos aportes (desconta do caixa)', SRC_EXT='Terceiro — presente/família (não mexe no caixa)';
   const res=await modal({
     title:`Pagar — ${it.name}`,
-    fields:[{key:'amount', label:'Valor a pagar', type:'money', value:remaining}],
-    note:`Este pagamento usa o saldo dos seus aportes.\nFalta neste item: ${toBRL(remaining)}   ·   Saldo disponível em caixa: ${toBRL(c.saldo)}`,
+    fields:[
+      {key:'amount', label:'Valor a pagar', type:'money', value:remaining},
+      {key:'source', label:'De onde sai o dinheiro?', type:'select', options:[SRC_SALDO, SRC_EXT], value:it.sponsor?SRC_EXT:SRC_SALDO},
+      {key:'sponsor', label:'Quem pagou? (se terceiro — ex.: Irmão)', value:it.sponsor||''}
+    ],
+    note:`Falta neste item: ${toBRL(remaining)}   ·   Saldo disponível em caixa: ${toBRL(c.saldo)}`,
     confirmText:'Registrar pagamento',
-    dynamicNote:(v)=>{ const a=parseMoneyToNumber(v.amount); if(a>0 && a>c.saldo){ const falta=round2(a-Math.max(0,c.saldo)); return {warn:true, text:`Saldo insuficiente: faltam ${toBRL(falta)} de saldo para este pagamento (disponível ${toBRL(Math.max(0,c.saldo))}). Você pode pagar ${toBRL(Math.max(0,Math.min(c.saldo,remaining)))} agora e complementar depois com um novo aporte.`}; } return null; },
+    dynamicNote:(v)=>{ if(v.source===SRC_EXT) return {warn:false, text:'Pagamento de terceiro: entra no progresso do evento, mas não desconta do seu saldo.'}; const a=parseMoneyToNumber(v.amount); if(a>0 && a>c.saldo){ const falta=round2(a-Math.max(0,c.saldo)); return {warn:true, text:`Saldo insuficiente: faltam ${toBRL(falta)} de saldo para este pagamento (disponível ${toBRL(Math.max(0,c.saldo))}). Você pode pagar ${toBRL(Math.max(0,Math.min(c.saldo,remaining)))} agora e complementar depois com um novo aporte.`}; } return null; },
     validate:(v)=>{ const a=parseMoneyToNumber(v.amount); if(a<=0) return 'Informe um valor maior que zero.'; if(state.settings.strict && a>remaining+0.001) return `O valor não pode passar do que falta neste item (${toBRL(remaining)}).`; return null; }
   });
   if(!res) return;
   let a=parseMoneyToNumber(res.amount);
   if(state.settings.strict) a=Math.min(a, remaining);
   a=round2(a);
-  it.paid=round2((it.paid||0)+a);
-  if(state.settings.strict && it.paid>it.total) it.paid=it.total;
-  it.paidAt=Date.now();
-  logHist('pagamento', `Pagamento — ${it.name} (saldo dos aportes → despesa)`, -a);
+  const ext = res.source===SRC_EXT;
+  if(ext){
+    it.paidExt=round2((it.paidExt||0)+a);
+    it.sponsor=(res.sponsor||'').trim()||it.sponsor||'Terceiro';
+    logHist('pagamento', `Pagamento — ${it.name} (pago por ${it.sponsor}, sem usar o saldo)`, 0);
+  } else {
+    it.paid=round2((it.paid||0)+a);
+    if(state.settings.strict && round2((it.paid||0)+(it.paidExt||0))>it.total) it.paid=round2(it.total-(it.paidExt||0));
+    logHist('pagamento', `Pagamento — ${it.name} (saldo dos aportes → despesa)`, -a);
+  }
   save(); renderAll();
-  const now=Math.max(0, round2((it.total||0)-(it.paid||0)));
+  const now=Math.max(0, round2((it.total||0)-(it.paid||0)-(it.paidExt||0)));
   toast(now<=0 ? `${it.name} quitado ✓` : `Pago ${toBRL(a)} · falta ${toBRL(now)}`, 'ok');
 }
 async function estornoItem(id){
   const it=state.items.find(x=>x.id===id); if(!it) return;
-  const amt=it.paid||0; if(amt<=0) return;
-  const ok=await confirmDialog('Cancelar pagamento', `Estornar ${toBRL(amt)} de “${it.name}”? O valor volta para o saldo disponível.`, {confirmText:'Estornar'});
+  const own=it.paid||0, ext=it.paidExt||0, amt=round2(own+ext); if(amt<=0) return;
+  const msg = ext>0 ? `Estornar ${toBRL(amt)} de “${it.name}”? ${toBRL(own)} voltam ao saldo; ${toBRL(ext)} eram de terceiros e apenas saem do registro.` : `Estornar ${toBRL(amt)} de “${it.name}”? O valor volta para o saldo disponível.`;
+  const ok=await confirmDialog('Cancelar pagamento', msg, {confirmText:'Estornar'});
   if(!ok) return;
-  it.paid=0; it.paidAt=null;
-  logHist('estorno', `Pagamento cancelado — ${it.name}`, +amt);
+  it.paid=0; it.paidExt=0; it.paidAt=null;
+  logHist('estorno', `Pagamento cancelado — ${it.name}`+(ext>0?` (${toBRL(ext)} eram de terceiros)`:''), +own);
   save(); renderAll(); toast('Pagamento estornado');
 }
 async function removeItem(id){
@@ -136,7 +148,7 @@ function renderFunds(c){
 }
 
 function statusOf(it){
-  const t=it.total||0, p=it.paid||0;
+  const t=it.total||0, p=round2((it.paid||0)+(it.paidExt||0));
   if(t>0 && p>=t) return {cls:'ok',    label:'Quitado'};
   if(p>0)         return {cls:'warn',  label:'Pago parcial'};
   if(t>0)         return {cls:'warn',  label:'Em aberto'};
@@ -147,7 +159,7 @@ function renderItems(c){
   const tbody=el('tbody'); tbody.innerHTML='';
   if(!state.items.length){ tbody.innerHTML=`<tr><td colspan="7"><div class="empty">Nenhum item. Adicione fornecedores e serviços no campo acima.</div></td></tr>`; return; }
   state.items.forEach(it=>{
-    const t=it.total||0, p=it.paid||0;
+    const t=it.total||0, p=round2((it.paid||0)+(it.paidExt||0));
     const remaining=Math.max(0, round2(t-p));
     const quit=(t>0 && p>=t);
     const row=document.createElement('tr'); if(quit) row.className='quitado';
@@ -165,7 +177,8 @@ function renderItems(c){
 
     const tdPaid=document.createElement('td');
     let tag=''; if(quit) tag='<span class="paid-tag full">Quitado</span>'; else if(p>0) tag='<span class="paid-tag partial">Pago parcial</span>';
-    tdPaid.innerHTML=`<span class="money-falta">${toBRL(p)}</span>${tag}`;
+    const spTag = (it.sponsor||(it.paidExt||0)>0) ? `<span class="pill" title="Pagamento de terceiro — não usa o seu saldo" style="margin-left:6px;background:var(--gold-light);color:var(--olive-dark)">paga: ${escapeHtml(it.sponsor||'terceiro')}</span>` : '';
+    tdPaid.innerHTML=`<span class="money-falta">${toBRL(p)}</span>${tag}${spTag}`;
     row.appendChild(tdPaid);
 
     const tdLeft=document.createElement('td');
@@ -307,7 +320,7 @@ el('fund-add').addEventListener('click', addFundFromForm);
     if(evName){ evName.value=(state.settings.eventName||''); 
       evName.addEventListener('input', ()=>{ state.settings.eventName=evName.value.trim(); applyEventName(); save(); }); }
     el('reset-all').addEventListener('click', async ()=>{
-      const ok=await confirmDialog('Recomeçar do zero', 'Isto apaga TODOS os itens, aportes, convidados, custos e histórico desta conta. As preferências são mantidas. Não dá para desfazer — exporte um backup antes se quiser guardar. Deseja continuar?', {danger:true, confirmText:'Zerar tudo'});
-      if(!ok) return; resetAllData(); renderAll(); toast('Tudo zerado — bom recomeço!','ok');
+      const ok=await confirmDialog('Reset TOTAL do sistema', 'Isto apaga ABSOLUTAMENTE TUDO: itens, aportes, convidados, custos, histórico, configurações, nome do evento e o armazenamento local do navegador. Se estiver logado, a nuvem também fica vazia. Não dá para desfazer — exporte um backup (JSON) antes se quiser guardar. Deseja continuar?', {danger:true, confirmText:'Apagar tudo'});
+      if(!ok) return; resetTotal(); toast('Sistema restaurado de fábrica','ok'); setTimeout(()=>location.reload(), 900);
     });
 } /* fim initOrcamentoUI */
