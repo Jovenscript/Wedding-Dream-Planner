@@ -39,34 +39,145 @@ function seedEventList(){ return [
    (flag settings.seedGuests) e somente se a lista estiver vazia — quem já
    importou a planilha não ganha duplicados. Fornecedores entram como
    CONFIRMADOS porque estarão no evento e consomem alimentação/bebidas. */
+/* Lista inicial de convidados (planilha do Marlon): nome, família,
+   faixa etária, se bebe álcool, telefone e (opcional) status.
+   Ordem preservada = organizada família por família. */
 function seedGuestNames(){ return [
-  ['CAROLINE','Noivos','confirmado'],['MARLON','Noivos','confirmado'],
-  ['Ilton'],['Sonia'],['Daniele'],['Ezequiel'],['Sofia'],['Sérgio'],['Márcia Eing'],['Suelen'],
-  ['Matheus Siqueira'],['Vinicius'],['Giovani'],['Wagner'],['Zé'],['Vilma'],['Antônio Arthur (Tunico)'],
-  ['Denise','Família Denise'],['Marido Denise','Família Denise'],
-  ['Helena'],['Danilo'],['Juliete'],['Gustavo'],['Ana Júlia'],['Rosa Gutowski'],['Índio'],['Bruno'],
-  ['Milena'],['Jeferson'],
-  ['Mariane','Família Mariane'],['Filho 1 Mariane','Família Mariane'],['Filho 2 Mariane','Família Mariane'],
-  ['Madalena'],['Eduardo'],['Jaqueline'],['Edlucia'],['Leonora'],['João'],['Ronaldo'],['Sônia Olivato'],
-  ['Rafael'],['Natália'],['Vitória'],
-  ['Reginaldo Tessaro','Família Tessaro'],['Márcia Fanhani'],['Giovana'],['Gersino'],['Rodrigo'],['Érica'],
-  ['Mauro'],['Lourdes'],['Gilberto'],['Carla'],['Amanda Tesky'],['Bianca'],
-  ['Mário Tessaro','Família Tessaro'],['Maria Zulato'],['Eliandro'],['Moacir'],['Olívia'],['Maria'],['Amador'],
-  ['Ana Tessaro','Família Tessaro'],['Valter'],['Carine'],['Marciano'],['Sarah'],['Lucas'],['Cleide'],
-  ['Betinho'],['Julia'],['Goreti'],['Vanderlei'],['Hélio'],['Elfi'],['Amarildo'],['Cristiane'],
-  ['Josias'],['Rosinha'],['Rosângela'],['Mário Antônio'],['Emily'],['Michael'],['Maitê'],['Reginaldo Arruda'],
-  ['Ana'],['Samuel'],['Matheus Augusto'],['Amélia'],['Rose'],['Ademir'],['Thalita'],['Willian'],['Patrick'],
-  ['Edvaldo'],['Genildes'],['Isabela'],
-  ['Harley','Família Harley'],['Filho do Harley','Família Harley'],
-  ['Jean'],['Camila'],['Douglas'],['Nenê'],['Madu'],['Ilda'],['Carlos'],['Claudiane'],['Théo'],['Stefany'],
-  ['Ana Lívia'],['Bruno Filipp'],['Jaque'],['Lívia'],['Luisa'],['Cesário'],['Suzana'],
-  ['Cardoso','Família Cardoso'],['Namorada Cardoso','Família Cardoso'],
-  ['João Paulo'],['Andressa'],['Lívia'],['Claudete'],['Gilmar'],['Léo'],['Matheus Pereira'],['Taíse'],
-  ['Fábio'],['Noah'],['Gael'],['Ronan'],['Gabi'],
-  ['Fornecedor 1','Fornecedores','confirmado'],['Fornecedor 2','Fornecedores','confirmado'],
-  ['Fornecedor 3','Fornecedores','confirmado'],['Fornecedor 4','Fornecedores','confirmado'],
-  ['Fornecedor 5','Fornecedores','confirmado'],['Fornecedor 6','Fornecedores','confirmado']
-]; }
+    ['Ilton','Família do Ilton','adulto',true,''],
+    ['Sonia','Família do Ilton','adulto',true,''],
+    ['Daniele','Família da Daniele','adulto',true,''],
+    ['Ezequiel','Família da Daniele','adulto',true,''],
+    ['Sofia','Família da Daniele','crianca',false,''],
+    ['Sérgio','Família do Sérgio','adulto',true,'47 99674-3679'],
+    ['Márcia Eing','Família do Sérgio','adulto',true,''],
+    ['Vinicius','Família do Sérgio','adulto',true,''],
+    ['Giovania','Família do Sérgio','adolescente',false,''],
+    ['Suelen','Família da Suelen','adulto',true,'47 98448-1932'],
+    ['Matheus Siqueira','Família da Suelen','adulto',true,''],
+    ['Wagner','Família do Wagner','adulto',true,'47 99101-4522'],
+    ['Zé','Família do Wagner','adulto',true,''],
+    ['Vilma','Família da Vilma','adulto',true,'44 99875-6581'],
+    ['Antônio Arthur (Tunico)','Família da Vilma','adulto',true,'44 99133-2131'],
+    ['Denise','Família da Denise','adulto',true,'44 99912-6301'],
+    ['Marido Denise','Família da Denise','adulto',true,''],
+    ['Helena','Família da Denise','crianca',false,''],
+    ['Danilo','Família do Danilo','adulto',true,''],
+    ['Juliete','Família do Danilo','adulto',true,''],
+    ['Gustavo','Família do Danilo','adolescente',true,''],
+    ['Ana Júlia','Família do Danilo','adolescente',false,''],
+    ['Bruno','Família do Bruno','adulto',true,'47 99166-2308'],
+    ['Milena','Família do Bruno','adulto',true,''],
+    ['Rosa Gutowski','Família da Rosa Gutowski','adulto',false,'47 99230-8996'],
+    ['Índio','Família da Rosa Gutowski','adulto',false,''],
+    ['Jeferson','Família do Jeferson','adulto',true,'47 99202-6464'],
+    ['Mariane','Família do Jeferson','adulto',true,''],
+    ['Filho 1 Mariane','Família do Jeferson','crianca',false,''],
+    ['Filho 2 Mariane','Família do Jeferson','crianca',false,''],
+    ['Madalena','Família da Madalena','adulto',true,'47 99919-2890'],
+    ['Eduardo','Família do Eduardo','adulto',true,'47 99918-8648'],
+    ['Jaqueline','Família do Eduardo','adulto',true,''],
+    ['Edlucina','Família da Edlucina','adulto',true,'47 99918-5909'],
+    ['Leonora','Família da Edlucina','adulto',true,''],
+    ['João','Família da Edlucina','adulto',true,''],
+    ['Ronaldo','Família do Ronaldo','adulto',true,'44 99874-5580'],
+    ['Sônia Olivato','Família do Ronaldo','adulto',true,'44 99988-8200'],
+    ['Rafael','Família do Rafael','adulto',true,'44 99990-5560'],
+    ['Vitória','Família do Rafael','adulto',true,''],
+    ['Natália','Família da Natália','adulto',true,'44 99815-9016'],
+    ['Reginaldo Tessaro','Família do Reginaldo Tessaro','adulto',true,'44 99646-5809'],
+    ['Márcia Fanhani','Família do Reginaldo Tessaro','adulto',true,''],
+    ['Giovana','Família da Giovana','adulto',true,'44 99851-7642'],
+    ['Gersinio','Família da Giovana','adulto',true,''],
+    ['Rodrigo','Família do Rodrigo','adulto',true,'44 99889-8399'],
+    ['Érica','Família do Rodrigo','adulto',true,''],
+    ['Mauro','Família do Mauro','adulto',false,'44 99808-4056'],
+    ['Lourdes','Família do Mauro','adulto',false,''],
+    ['Gilberto','Família do Gilberto','adulto',true,'44 99736-3098'],
+    ['Carla','Família do Gilberto','adulto',true,''],
+    ['Amanda Tesky','Família do Gilberto','adolescente',false,''],
+    ['Bianca','Família do Gilberto','adolescente',false,''],
+    ['Mario Tessaro','Família do Mario Tessaro','adulto',true,'44 99979-1206'],
+    ['Maria Zulato','Família do Mario Tessaro','adulto',true,''],
+    ['Eliandro','Família do Eliandro','adulto',true,'44 99900-5013'],
+    ['Moacir','Família do Moacir','adulto',true,'44 99852-2710'],
+    ['Olivia','Família do Moacir','adulto',true,''],
+    ['Maria','Família da Maria','adulto',true,'44 98441-0827'],
+    ['Amador','Família da Maria','adulto',true,''],
+    ['Ana Tessaro','Família da Ana Tessaro','adulto',true,'69 98158-2848'],
+    ['Valter','Família da Ana Tessaro','adulto',true,''],
+    ['Carine','Família da Carine','adulto',true,'47 99162-8566'],
+    ['Marciano','Família da Carine','adulto',true,''],
+    ['Sarah','Família da Carine','crianca',false,''],
+    ['Lucas','Família da Carine','crianca',false,''],
+    ['Cleide','Família da Cleide','adulto',true,'47 99618-6279'],
+    ['Betinho','Família da Cleide','adulto',true,''],
+    ['Julia','Família da Julia','adulto',true,'47 99671-7285'],
+    ['Goreti','Família da Goreti','adulto',true,'47 99239-4539'],
+    ['Vanderlei','Família da Goreti','adulto',true,''],
+    ['Hélio','Família do Hélio','adulto',true,'47 99677-9719'],
+    ['Elfi','Família do Hélio','adulto',true,''],
+    ['Amarildo','Família do Amarildo','adulto',true,'47 99291-5670'],
+    ['Cristiane','Família do Amarildo','adulto',true,''],
+    ['Marlon','Família do Marlon','adulto',true,'','confirmado'],
+    ['Caroline','Família do Marlon','adulto',false,'','confirmado'],
+    ['Josias','Família do Josias','adulto',false,''],
+    ['Rosinha','Família do Josias','adulto',false,''],
+    ['Rosângela','Família da Rosângela','adulto',true,''],
+    ['Mário Antônio','Família do Mário Antônio','adulto',true,''],
+    ['Emily','Família do Mário Antônio','adulto',true,''],
+    ['Michael','Família do Michael','adulto',true,''],
+    ['Maitê','Família do Michael','crianca',false,''],
+    ['Reginaldo Arruda','Família do Reginaldo Arruda','adulto',true,''],
+    ['Ana','Família do Reginaldo Arruda','adulto',true,''],
+    ['Samuel','Família do Reginaldo Arruda','adulto',true,''],
+    ['Matheus Augusto','Família do Reginaldo Arruda','adulto',true,''],
+    ['Amélia','Família da Amélia','adulto',true,''],
+    ['Rose','Família da Rose','adulto',true,''],
+    ['Ademir','Família da Rose','adulto',true,''],
+    ['Thalita','Família da Thalita','adulto',true,''],
+    ['William','Família da Thalita','adulto',true,''],
+    ['Patrick','Família do Patrick','adulto',true,''],
+    ['Edvaldo','Família do Edvaldo','adulto',true,''],
+    ['Genildes','Família do Edvaldo','adulto',true,''],
+    ['Isabela','Família da Isabela','adulto',true,''],
+    ['Harley','Família da Isabela','adulto',true,''],
+    ['Jean','Família do Jean','adulto',true,''],
+    ['Camila','Família do Jean','adulto',true,''],
+    ['Douglas','Família do Douglas','adulto',true,''],
+    ['Nenê','Família do Douglas','crianca',false,''],
+    ['Madu','Família do Douglas','adulto',true,''],
+    ['Ilda','Família do Douglas','adulto',true,''],
+    ['Carlos','Família do Carlos','adulto',true,''],
+    ['Claudiane','Família do Carlos','adulto',true,''],
+    ['Théo','Família do Carlos','crianca',false,''],
+    ['Stefany','Família da Stefany','adolescente',false,''],
+    ['Ana Lívia','Família da Stefany','adolescente',false,''],
+    ['Bruno Filipp','Família do Bruno Filipp','adulto',true,''],
+    ['Jaque','Família do Bruno Filipp','adulto',true,''],
+    ['Lívia','Família do Bruno Filipp','crianca',false,''],
+    ['Luísa','Família do Bruno Filipp','crianca',false,''],
+    ['Cesário','Família do Cesário','adulto',true,''],
+    ['Suzana','Família do Cesário','adulto',true,''],
+    ['Cardoso','Família do Cardoso','adulto',true,''],
+    ['Eduarda Cardoso','Família do Cardoso','adulto',true,''],
+    ['João Paulo','Família do João Paulo','adulto',true,''],
+    ['Andressa','Família do João Paulo','adulto',true,''],
+    ['Lívia','Família do João Paulo','crianca',false,''],
+    ['Claudete','Família da Claudete','adulto',true,''],
+    ['Gilmar','Família da Claudete','adulto',true,''],
+    ['Léo','Família da Claudete','adulto',true,''],
+    ['Matheus Pereira','Família da Claudete','adulto',true,''],
+    ['Taíse','Família da Taíse','adulto',true,''],
+    ['Fábio','Família da Taíse','adulto',true,''],
+    ['Noah','Família da Taíse','crianca',false,''],
+    ['Gael','Família da Taíse','crianca',false,''],
+    ['Fornecedor 1','Fornecedores','adulto',false,'','confirmado'],
+    ['Fornecedor 2','Fornecedores','adulto',false,'','confirmado'],
+    ['Fornecedor 3','Fornecedores','adulto',false,'','confirmado'],
+    ['Fornecedor 4','Fornecedores','adulto',false,'','confirmado'],
+    ['Fornecedor 5','Fornecedores','adulto',false,'','confirmado'],
+    ['Fornecedor 6','Fornecedores','adulto',false,'','confirmado']
+  ]; }
 /* ═══════════ "Implementar tudo" — monta o casamento inteiro de uma vez ═══════════
    Junta tudo que o Marlon já passou: os 137 convidados (por família),
    o orçamento real (fotógrafo pago, DJ pelo irmão…) e os custos por convidado
@@ -74,7 +185,7 @@ function seedGuestNames(){ return [
    o conteúdo, então use depois de um "Reset total" (ou aceite a limpeza). */
 function buildFullSetup(){
   // 1) Convidados — os 137, já agrupados por família (lista central)
-  const guests = seedGuestNames().map(([name,group,status])=>normGuest({name, group:group||'', status:status||'pendente'}));
+  const guests = seedGuestNames().map(([name,group,age,drinks,phone,status])=>normGuest({name, group:group||'', ageGroup:age||'adulto', drinks:!!drinks, phone:phone||'', status:status||'pendente'}));
 
   /* 2) Custos POR CONVIDADO (variáveis) — valores reais do Marlon.
         O unitValue é o preço por unidade; o total no orçamento é calculado
@@ -147,7 +258,7 @@ function seedGuests(list, settings){
   if(settings.seedGuests) return list;
   settings.seedGuests=true;
   if(list.length) return list; // já tem convidados (ex.: importados) — não duplica
-  seedGuestNames().forEach(([name,group,status])=>list.push(normGuest({name, group:group||'', status:status||'pendente'})));
+  seedGuestNames().forEach(([name,group,age,drinks,phone,status])=>list.push(normGuest({name, group:group||'', ageGroup:age||'adulto', drinks:!!drinks, phone:phone||'', status:status||'pendente'})));
   return list;
 }
 
@@ -408,7 +519,7 @@ function toggleVarSync(id,on){
 }
 
 /* ── Render da vista de convidados ── */
-let gFilter='all', gGroup='all', gSort='name', gSearch='';
+let gFilter='all', gGroup='all', gSort='auto', gSearch='';
 function unitAbbr(u){ return ({'Litro':'L','Garrafa':'gf','Lata':'lata','Unidade':'un','Quilo':'kg','Caixa':'cx','Pessoa':'pessoa'})[u]||u; }
 function renderGuestView(c){
   const s=guestStats();
@@ -440,10 +551,15 @@ function renderGuestView(c){
   if(gFilter!=='all') rows=rows.filter(g=>g.status===gFilter);
   if(gGroup!=='all') rows=rows.filter(g=>g.group===gGroup);
   if(gSearch){ const q=gSearch.toLowerCase(); rows=rows.filter(g=>[g.name,g.group,g.phone,g.whats,g.email,g.notes].join(' ').toLowerCase().includes(q)); }
+  // Índice da ordem original (como foi cadastrado / veio da planilha: família por família)
+  const orderIdx=new Map(state.guests.map((g,i)=>[g.id,i]));
+  const noFilter = (gFilter==='all' && gGroup==='all' && !gSearch);
   rows.sort((a,b)=>{
-    if(gSort==='status') return (G_STATUS[a.status].ord-G_STATUS[b.status].ord)||a.name.localeCompare(b.name,'pt-BR');
-    if(gSort==='group') return (a.group||'\uffff').localeCompare(b.group||'\uffff','pt-BR')||a.name.localeCompare(b.name,'pt-BR');
-    return a.name.localeCompare(b.name,'pt-BR');
+    if(gSort==='status') return (G_STATUS[a.status].ord-G_STATUS[b.status].ord)||(orderIdx.get(a.id)-orderIdx.get(b.id));
+    if(gSort==='name')   return a.name.localeCompare(b.name,'pt-BR');
+    if(gSort==='group')  return (a.group||'\uffff').localeCompare(b.group||'\uffff','pt-BR')||(orderIdx.get(a.id)-orderIdx.get(b.id));
+    // padrão ('auto'): agrupa família por família na ordem original — sem alfabetizar
+    return (orderIdx.get(a.id)-orderIdx.get(b.id));
   });
 
   const tbody=el('g-tbody'); tbody.innerHTML='';
