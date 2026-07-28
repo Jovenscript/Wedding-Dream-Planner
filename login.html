@@ -1,40 +1,18 @@
-<!DOCTYPE html>
-<!-- ═══════════════════════════════════════════════════════════════════
-     login.html — porta de entrada do SaaS
-     Autenticação por e-mail/senha (Firebase). Já logado → index.html.
-     Modo local (config vazia) → botão de entrada direta.
-     ═══════════════════════════════════════════════════════════════════ -->
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>EventFlow — Entrar</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css" />
-  <script src="js/config.js"></script>
-  <style>body{background:var(--ivory)} .auth-overlay{display:flex;position:fixed;background:radial-gradient(1200px 600px at 50% -10%, var(--olive-mist), var(--ivory))}</style>
-</head>
-<body>
-  <div class="auth-overlay show" role="main">
-    <div class="auth-card">
-      <p class="eyebrow" style="font-size:11px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:6px">✦ EventFlow ✦</p>
-      <h3 id="auth-title">Bem-vindo(a)</h3>
-      <p class="sub" id="auth-sub">Entre com sua conta para gerenciar seus eventos — cada usuário vê apenas os próprios dados.</p>
-      <div class="fld"><label class="field-label" for="auth-mail">E-mail</label><input id="auth-mail" class="name-input" type="email" autocomplete="email" placeholder="voce@email.com" /></div>
-      <div class="fld"><label class="field-label" for="auth-pass">Senha</label><input id="auth-pass" class="name-input" type="password" autocomplete="current-password" placeholder="••••••••" /></div>
-      <div class="actions-col">
-        <button id="auth-login">Entrar</button>
-        <button id="auth-signup" class="secondary">Criar conta</button>
-      </div>
-      <div class="auth-links">
-        <a id="auth-forgot">Esqueci minha senha</a>
-        <a id="auth-local">Usar sem conta (só neste aparelho)</a>
-      </div>
-      <div class="auth-msg" id="auth-msg"></div>
-    </div>
-  </div>
-  <script src="js/auth.js"></script>
-</body>
-</html>
+/* ═════════════════════════════════════════════════════════════════════
+   config.js — LIGA o modo NUVEM/SaaS (login + Firestore).
+   Já está preenchido com as credenciais do projeto wedding-dreams-71032.
+   Regra de ouro: a variável PRECISA se chamar window.FIREBASE_CONFIG e
+   nenhuma outra linha pode reescrevê-la depois. Para voltar ao modo local
+   (sem login), troque o objeto abaixo por: window.FIREBASE_CONFIG = false;
+   ═════════════════════════════════════════════════════════════════════ */
+window.FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAxbgXptautbR5Za8677fMolcWIRtr-D7c",
+  authDomain: "wedding-dreams-71032.firebaseapp.com",
+  projectId: "wedding-dreams-71032",
+  storageBucket: "wedding-dreams-71032.firebasestorage.app",
+  messagingSenderId: "789020951087",
+  appId: "1:789020951087:web:faac7a215d284e472afcda"
+};
+
+// Preparado para múltiplos casamentos por usuário (planos futuros do SaaS):
+window.WEDDING_ID = 'default';

@@ -1,393 +1,326 @@
-<!DOCTYPE html>
-<!-- ═══════════════════════════════════════════════════════════════════
-     PLANNER DO CASAMENTO · Carol & Marlon — index.html (o aplicativo)
-     Vistas Orçamento e Convidados na mesma página (troca instantânea de
-     abas, sem recarregar). Com a nuvem ativa (js/config.js), quem não
-     estiver logado é redirecionado para login.html pelo firebase-sync.js.
-     Ordem dos scripts = ordem de dependência (comentada lá embaixo).
-     ═══════════════════════════════════════════════════════════════════ -->
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>EventFlow — Gestão de Eventos</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css" />
-  <script src="js/config.js"></script>
-  <script>/* Nuvem ativa? Esconde o app até o firebase-sync decidir (logado → mostra; deslogado → login.html). */
-    if(window.FIREBASE_CONFIG) document.documentElement.classList.add('cloud-wait');</script>
-</head>
-<body>
-  <canvas id="bg"></canvas>
+/* ═════════════════════════════════════════════════════════════════════
+   orcamento.js — vista Orçamento
+   O QUE: aportes (add/editar/remover), pagamentos (payItem com aviso de
+   saldo, estorno, remoção), renders do painel financeiro/aportes/itens/
+   histórico e o wiring initOrcamentoUI().
+   REGRA DE OURO: pagar só via botão "Pagar" → desconta do saldo derivado,
+   registra no histórico e muda o status (Pago parcial / Quitado).
+   CONVERSA COM: state.js (dados/compute), ui.js (modal/toast),
+   convidados.js (itens automáticos chegam prontos via syncVarLinkedItems).
+   ═════════════════════════════════════════════════════════════════════ */
 
-  <header class="site-header">
-    <p class="eyebrow">✦ EventFlow ✦</p>
-    <h1>Event <em>Manager</em></h1>
-    <p class="sub">Gestão financeira e de pessoas para qualquer evento — orçamento, aportes, pagamentos e convidados em um só lugar.</p>
-  </header>
+/* ═══════════ Ações: aportes ═══════════ */
+function addFundFromForm(){
+  const nameEl=el('fund-name'), typeEl=el('fund-type'), amtEl=el('fund-amount'), dateEl=el('fund-date');
+  const name=(nameEl.value||'').trim();
+  const amount=Math.max(0, parseMoneyToNumber(amtEl.dataset.raw||amtEl.value));
+  const type=typeEl.value||'Outros';
+  const date=dateEl.value||todayISO();
+  if(!name){ nameEl.focus(); toast('Dê um nome ao aporte.','warn'); return; }
+  if(amount<=0){ amtEl.focus(); toast('Informe um valor maior que zero.','warn'); return; }
+  state.funds.unshift(normFund({name, type, amount, date}));
+  logHist('aporte', `Aporte — ${name}`, +amount);
+  save(); renderAll();
+  nameEl.value=''; amtEl.value=''; amtEl.dataset.raw='0'; dateEl.value=todayISO(); nameEl.focus();
+  toast(`Aporte de ${toBRL(amount)} adicionado`,'ok');
+}
+async function removeFund(id){
+  const f=state.funds.find(x=>x.id===id); if(!f) return;
+  const ok=await confirmDialog('Remover aporte', `Remover “${f.name}” (${toBRL(f.amount)})? O saldo disponível será reduzido nesse valor.`, {confirmText:'Remover'});
+  if(!ok) return;
+  state.funds=state.funds.filter(x=>x.id!==id);
+  logHist('exclusao', `Aporte removido — ${f.name}`, -f.amount);
+  save(); renderAll(); toast('Aporte removido');
+}
 
-  <nav class="nav" aria-label="Navegação">
-    <a class="tab" href="#convidados" data-view="convidados">Pessoas</a>
-    <a class="tab active" href="#orcamento" data-view="orcamento" aria-current="page">Financeiro</a>
-  </nav>
+/* ═══════════ Ações: pagamentos ═══════════ */
+async function payItem(id){
+  const it=state.items.find(x=>x.id===id); if(!it) return;
+  const c=compute();
+  const remaining=Math.max(0, round2((it.total||0)-(it.paid||0)-(it.paidExt||0)));
+  if(remaining<=0){ toast('Este item já está quitado.'); return; }
+  const SRC_SALDO='Saldo dos aportes (desconta do caixa)', SRC_EXT='Terceiro — presente/família (não mexe no caixa)';
+  const res=await modal({
+    title:`Pagar — ${it.name}`,
+    fields:[
+      {key:'amount', label:'Valor a pagar', type:'money', value:remaining},
+      {key:'source', label:'De onde sai o dinheiro?', type:'select', options:[SRC_SALDO, SRC_EXT], value:it.sponsor?SRC_EXT:SRC_SALDO},
+      {key:'sponsor', label:'Quem pagou? (se terceiro — ex.: Irmão)', value:it.sponsor||''}
+    ],
+    note:`Falta neste item: ${toBRL(remaining)}   ·   Saldo disponível em caixa: ${toBRL(c.saldo)}`,
+    confirmText:'Registrar pagamento',
+    dynamicNote:(v)=>{ if(v.source===SRC_EXT) return {warn:false, text:'Pagamento de terceiro: entra no progresso do evento, mas não desconta do seu saldo.'}; const a=parseMoneyToNumber(v.amount); if(a>0 && a>c.saldo){ const falta=round2(a-Math.max(0,c.saldo)); return {warn:true, text:`Saldo insuficiente: faltam ${toBRL(falta)} de saldo para este pagamento (disponível ${toBRL(Math.max(0,c.saldo))}). Você pode pagar ${toBRL(Math.max(0,Math.min(c.saldo,remaining)))} agora e complementar depois com um novo aporte.`}; } return null; },
+    validate:(v)=>{ const a=parseMoneyToNumber(v.amount); if(a<=0) return 'Informe um valor maior que zero.'; if(state.settings.strict && a>remaining+0.001) return `O valor não pode passar do que falta neste item (${toBRL(remaining)}).`; return null; }
+  });
+  if(!res) return;
+  let a=parseMoneyToNumber(res.amount);
+  if(state.settings.strict) a=Math.min(a, remaining);
+  a=round2(a);
+  const ext = res.source===SRC_EXT;
+  if(ext){
+    it.paidExt=round2((it.paidExt||0)+a);
+    it.sponsor=(res.sponsor||'').trim()||it.sponsor||'Terceiro';
+    logHist('pagamento', `Pagamento — ${it.name} (pago por ${it.sponsor}, sem usar o saldo)`, 0);
+  } else {
+    it.paid=round2((it.paid||0)+a);
+    if(state.settings.strict && round2((it.paid||0)+(it.paidExt||0))>it.total) it.paid=round2(it.total-(it.paidExt||0));
+    logHist('pagamento', `Pagamento — ${it.name} (saldo dos aportes → despesa)`, -a);
+  }
+  save(); renderAll();
+  const now=Math.max(0, round2((it.total||0)-(it.paid||0)-(it.paidExt||0)));
+  toast(now<=0 ? `${it.name} quitado ✓` : `Pago ${toBRL(a)} · falta ${toBRL(now)}`, 'ok');
+}
+async function estornoItem(id){
+  const it=state.items.find(x=>x.id===id); if(!it) return;
+  const own=it.paid||0, ext=it.paidExt||0, amt=round2(own+ext); if(amt<=0) return;
+  const msg = ext>0 ? `Estornar ${toBRL(amt)} de “${it.name}”? ${toBRL(own)} voltam ao saldo; ${toBRL(ext)} eram de terceiros e apenas saem do registro.` : `Estornar ${toBRL(amt)} de “${it.name}”? O valor volta para o saldo disponível.`;
+  const ok=await confirmDialog('Cancelar pagamento', msg, {confirmText:'Estornar'});
+  if(!ok) return;
+  it.paid=0; it.paidExt=0; it.paidAt=null;
+  logHist('estorno', `Pagamento cancelado — ${it.name}`+(ext>0?` (${toBRL(ext)} eram de terceiros)`:''), +own);
+  save(); renderAll(); toast('Pagamento estornado');
+}
+async function removeItem(id){
+  const it=state.items.find(x=>x.id===id); if(!it) return;
+  const paid=it.paid||0;
+  const msg = paid>0 ? `Remover “${it.name}”? Ele tem ${toBRL(paid)} pago — esse valor volta ao saldo disponível.` : `Remover “${it.name}”?`;
+  const ok=await confirmDialog('Remover item', msg, {confirmText:'Remover'});
+  if(!ok) return;
+  state.items=state.items.filter(x=>x.id!==id);
+  logHist('exclusao', `Item removido — ${it.name}`, +paid);
+  save(); renderAll(); toast('Item removido');
+}
 
-  <div class="auth-bar" id="auth-bar" aria-live="polite">
-    <span class="cloud-dot" id="cloud-dot" aria-hidden="true"></span>
-    <span id="auth-email"></span>
-    <button class="ghost btn-sm" id="auth-logout">Sair</button>
-  </div>
+/* ═══════════ Render ═══════════ */
+function setKPI(id, val, cls){ const n=el(id); if(!n) return; n.textContent=val; n.classList.remove('pos','neg','accent'); if(cls) n.classList.add(cls); }
 
-  <main class="container">
-    <div class="view" id="view-orcamento">
+function renderDashboard(c){
+  setKPI('k-total',  toBRL(c.totalExpense));
+  setKPI('k-paid',   toBRL(c.totalPaid));
+  setKPI('k-pending',toBRL(c.pending));
+  setKPI('k-saldo',  toBRL(c.saldo), c.saldo<0?'neg':(c.saldo>0?'pos':null));
+  setKPI('k-funds',  toBRL(c.totalFunds));
+  setKPI('k-falta',  toBRL(c.faltaArrecadar), c.faltaArrecadar>0?'neg':'pos');
+  setKPI('k-surplus',toBRL(c.surplus), c.surplus>0?'pos':null);
 
-    <!-- PAINEL FINANCEIRO -->
-    <section class="card" aria-labelledby="painel">
-      <div class="card-header">
-        <h2 id="painel">Painel Financeiro</h2>
-        <div class="header-rule"></div>
-        <button id="btn-pdf" class="header-action" title="Gerar relatório financeiro em PDF">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg>
-          <span class="ha-txt">Relatório PDF</span>
-        </button>
-      </div>
-      <div class="dash-grid">
-        <div class="dash-main">
-          <div class="summary">
-            <div class="kpi"><div class="label">Total do casamento</div><div class="value" id="k-total">—</div></div>
-            <div class="kpi"><div class="label">Já pago</div><div class="value" id="k-paid">—</div></div>
-            <div class="kpi"><div class="label">Falta pagar</div><div class="value" id="k-pending">—</div></div>
-            <div class="kpi"><div class="label">Saldo disponível</div><div class="value" id="k-saldo">—</div></div>
-          </div>
-          <div class="summary three">
-            <div class="kpi"><div class="label">Recursos totais</div><div class="value" id="k-funds">—</div></div>
-            <div class="kpi"><div class="label">Falta arrecadar</div><div class="value" id="k-falta">—</div></div>
-            <div class="kpi"><div class="label">Sobra de recursos</div><div class="value" id="k-surplus">—</div></div>
-          </div>
-          <div class="progress-wrap">
-            <div class="progress-label"><span>Progresso dos pagamentos</span><span id="bar-pago-legend">0% pago</span></div>
-            <div class="bar"><span id="bar-pago"></span></div>
-          </div>
-          <div class="progress-wrap" style="padding-top:4px">
-            <div class="progress-label"><span>Orçamento garantido pelos recursos</span><span id="bar-gar-legend">0% garantido</span></div>
-            <div class="bar"><span id="bar-gar" class="bar-gold"></span></div>
-          </div>
-        </div>
-        <div class="donut-wrap">
-          <div class="donut" id="donut" style="--p1:0;--p2:0">
-            <div class="center"><span class="big" id="donut-big">0%</span><span class="small" id="donut-small">pago</span></div>
-          </div>
-          <div class="legend">
-            <div class="row"><span class="dot" style="background:var(--olive)"></span>Pago<span class="val" id="leg-pago">—</span></div>
-            <div class="row"><span class="dot" style="background:var(--gold-light)"></span>Coberto por recursos<span class="val" id="leg-res">—</span></div>
-            <div class="row"><span class="dot" style="background:var(--olive-mist)"></span>Falta arrecadar<span class="val" id="leg-falta">—</span></div>
-          </div>
-        </div>
-      </div>
-    </section>
+  el('bar-pago').style.width = c.pctPago.toFixed(2)+'%';
+  el('bar-pago-legend').textContent = `${c.pctPago.toFixed(0)}% pago`;
+  el('bar-gar').style.width = c.pctGarantido.toFixed(2)+'%';
+  el('bar-gar-legend').textContent = `${c.pctGarantido.toFixed(0)}% garantido`;
 
-    <!-- RECURSOS & APORTES -->
-    <section class="card" aria-labelledby="recursos">
-      <div class="card-header">
-        <h2 id="recursos">Recursos &amp; Aportes</h2>
-        <div class="header-rule"></div>
-      </div>
-      <div class="saldo-hero">
-        <div class="label" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)">Saldo disponível para pagar</div>
-        <div class="amt" id="saldo-amt">—</div>
-        <div class="f-date" id="saldo-sub" style="margin-top:3px">—</div>
-      </div>
-      <div class="fund-form">
-        <span class="input-icon" style="min-width:220px;flex:1">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>
-          <input id="fund-name" class="name-input" type="text" placeholder="Descrição (ex.: Dinheiro guardado, 13º, pais)" style="width:100%" />
-        </span>
-        <select id="fund-type" class="field" aria-label="Tipo do aporte">
-          <option>Guardado</option>
-          <option>A receber</option>
-          <option>Investimento</option>
-          <option>Economia mensal</option>
-          <option>Presente</option>
-          <option>Outros</option>
-        </select>
-        <input id="fund-amount" class="money" inputmode="decimal" placeholder="R$ 0,00" style="max-width:150px" aria-label="Valor do aporte" />
-        <input id="fund-date" class="field" type="date" aria-label="Data do aporte" />
-        <button id="fund-add">Adicionar aporte +</button>
-      </div>
-      <div class="fund-list" id="fund-list"></div>
-      <p class="tip">Cadastre tudo que vai bancar o casamento — dinheiro guardado, valores a receber, investimentos, economia mensal e presentes. A soma vira o saldo disponível, e cada pagamento desconta dele automaticamente.</p>
-    </section>
+  const total=c.totalExpense;
+  const segPago = total>0 ? c.totalPaid/total*100 : 0;
+  const segRes  = total>0 ? c.coveredUnpaid/total*100 : 0;
+  const donut=el('donut');
+  donut.style.setProperty('--p1', segPago.toFixed(3));
+  donut.style.setProperty('--p2', (segPago+segRes).toFixed(3));
+  el('donut-big').textContent = `${c.pctPago.toFixed(0)}%`;
+  el('donut-small').textContent = total>0 ? 'pago' : 'sem itens';
+  el('leg-pago').textContent = toBRL(c.totalPaid);
+  el('leg-res').textContent  = toBRL(c.coveredUnpaid);
+  el('leg-falta').textContent= toBRL(c.uncovered);
+}
 
-    <!-- ITENS -->
-    <section class="card" aria-labelledby="itens">
-      <div class="card-header">
-        <h2 id="itens">Itens do Casamento</h2>
-        <div class="header-rule"></div>
-      </div>
-      <div class="actions">
-        <div style="display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap">
-          <span class="input-icon" style="min-width:240px">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
-            <input id="new-name" class="name-input" type="text" placeholder="Nome do novo item (ex.: Bem-casados)" style="width:100%" />
-          </span>
-          <button id="add">Adicionar +</button>
-        </div>
-        <div style="display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap">
-          <button id="reset" class="secondary">Restaurar padrão</button>
-          <button id="clear" class="danger">Zerar valores</button>
-        </div>
-      </div>
-      <div class="toolbar">
-        <label class="import-label">
-          ↑ Importar JSON
-          <input id="import" type="file" accept="application/json" style="display:none" />
-        </label>
-        <button id="export" class="ghost">↓ Exportar dados (JSON)</button>
-      </div>
+function renderFunds(c){
+  const amtEl=el('saldo-amt'); amtEl.textContent=toBRL(c.saldo); amtEl.classList.toggle('neg', c.saldo<0);
+  el('saldo-sub').textContent = `Recursos ${toBRL(c.totalFunds)} − pago ${toBRL(c.totalPaid)}`;
+  const list=el('fund-list');
+  if(!state.funds.length){ list.innerHTML=`<div class="empty">Nenhum aporte ainda. Cadastre dinheiro guardado, valores a receber, contribuições e economias — tudo vira saldo disponível.</div>`; return; }
+  list.innerHTML='';
+  state.funds.forEach(f=>{
+    const row=document.createElement('div'); row.className='fund-row';
+    row.innerHTML =
+      `<span class="pill">${escapeHtml(f.type)}</span>`+
+      `<div style="display:flex;flex-direction:column;gap:2px;min-width:0">`+
+        `<span class="f-name editable" title="Editar aporte">${escapeHtml(f.name)}</span>`+
+        `<span class="f-date">${fmtDate(f.date)}</span>`+
+      `</div>`+
+      `<span class="f-amt">+ ${toBRL(f.amount)}</span>`+
+      `<div class="row-actions">`+
+        `<button class="btn-sm ghost" data-act="edit" title="Editar aporte" aria-label="Editar aporte">Editar</button>`+
+        `<button class="icon-btn" data-act="del" title="Remover aporte" aria-label="Remover aporte">✕</button>`+
+      `</div>`;
+    row.querySelector('.f-name').addEventListener('click', ()=>editFund(f.id));
+    row.querySelector('[data-act="edit"]').addEventListener('click', ()=>editFund(f.id));
+    row.querySelector('[data-act="del"]').addEventListener('click', ()=>removeFund(f.id));
+    list.appendChild(row);
+  });
+}
 
-      <div style="overflow-x:auto">
-        <table>
-          <thead><tr>
-            <th style="min-width:220px">Item</th>
-            <th>Categoria</th>
-            <th style="min-width:150px">Valor total</th>
-            <th style="min-width:130px">Pago</th>
-            <th>Falta</th>
-            <th>Status</th>
-            <th style="min-width:170px;text-align:right">Ação</th>
-          </tr></thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
-      <p class="tip">Clique em “Pagar” para registrar quanto pagou — o valor sai do saldo disponível e a data fica no histórico. Ajuste o total clicando no valor. Use “Estornar” para desfazer um pagamento.</p>
-    </section>
+function statusOf(it){
+  const t=it.total||0, p=round2((it.paid||0)+(it.paidExt||0));
+  if(t>0 && p>=t) return {cls:'ok',    label:'Quitado'};
+  if(p>0)         return {cls:'warn',  label:'Pago parcial'};
+  if(t>0)         return {cls:'warn',  label:'Em aberto'};
+  return               {cls:'danger',label:'Sem valor'};
+}
 
-    <!-- HISTÓRICO -->
-    <section class="card" aria-labelledby="historico">
-      <div class="card-header">
-        <h2 id="historico">Histórico Financeiro</h2>
-        <div class="header-rule"></div>
-      </div>
-      <div class="hist-filters">
-        <button class="chip active" data-kind="all">Tudo</button>
-        <button class="chip" data-kind="aporte">Aportes</button>
-        <button class="chip" data-kind="pagamento">Pagamentos</button>
-        <button class="chip" data-kind="estorno">Estornos</button>
-        <button class="chip" data-kind="ajuste">Ajustes</button>
-        <button class="chip" data-kind="exclusao">Exclusões</button>
-      </div>
-      <div class="hist-list" id="hist-list"></div>
-    </section>
+function renderItems(c){
+  const tbody=el('tbody'); tbody.innerHTML='';
+  if(!state.items.length){ tbody.innerHTML=`<tr><td colspan="7"><div class="empty">Nenhum item. Adicione fornecedores e serviços no campo acima.</div></td></tr>`; return; }
+  state.items.forEach(it=>{
+    const t=it.total||0, p=round2((it.paid||0)+(it.paidExt||0));
+    const remaining=Math.max(0, round2(t-p));
+    const quit=(t>0 && p>=t);
+    const row=document.createElement('tr'); if(quit) row.className='quitado';
 
-    <!-- CONFIGURAÇÕES -->
-    <section class="card" aria-labelledby="sobre">
-      <div class="card-header">
-        <h2 id="sobre">Configurações</h2>
-        <div class="header-rule"></div>
-      </div>
-      <div class="settings-grid">
-        <label class="setting-item" style="grid-column:1/-1">
-          <span class="setting-label">Nome do evento (aparece no topo, no PDF e nos arquivos exportados)</span>
-          <input id="event-name" class="name-input" type="text" placeholder="Ex.: Casamento Carol & Marlon, Aniversário 15 anos, Confraternização…" style="margin-top:6px" />
-        </label>
-        <label class="setting-item">
-          <input type="checkbox" id="show-over" />
-          <span class="setting-label">Mostrar coluna "Falta" como zero quando pago supera o total</span>
-        </label>
-        <label class="setting-item">
-          <input type="checkbox" id="strict-nonnegative" checked />
-          <span class="setting-label">Impedir valor "Pago" maior que "Total" por item</span>
-        </label>
-      </div>
-      <div class="actions" style="border-top:1px solid var(--olive-mist);margin-top:6px;padding-top:16px">
-        <div style="display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap">
-          <button id="load-examples" class="secondary">Carregar exemplos</button>
-          <span style="font-size:11.5px;color:var(--ink-faint)">Itens típicos de casamento + custos de referência (chope, água, bolo…).</span>
-        </div>
-        <button id="reset-all" class="danger">Reset total (apaga tudo)</button>
-      </div>
-    </section>
+    const tdName=document.createElement('td');
+    tdName.innerHTML=`<div class="name">${quit?'<span style="color:var(--ok)" aria-hidden="true">✓</span>':''}<input class="name-input" type="text" value="${escapeHtml(it.name)}" aria-label="Nome do item"></div>`;
+    row.appendChild(tdName);
 
-    </div>
+    const tdCat=document.createElement('td'); tdCat.innerHTML=`<span class="pill">${escapeHtml(it.category||'—')}</span>${it.varId?'<span class="auto-tag" title="Calculado pelos convidados confirmados — edite em Convidados › Custos por Convidado">auto</span>':''}`; row.appendChild(tdCat);
 
-    <!-- ═══════════ VISTA: CONVIDADOS ═══════════ -->
-    <div class="view" id="view-convidados" hidden>
+    const tdTotal=document.createElement('td');
+    const totalInput=document.createElement('input'); totalInput.type='text'; totalInput.className='money'; totalInput.setAttribute('inputmode','decimal'); totalInput.setAttribute('aria-label','Valor total');
+    if(it.varId){ totalInput.disabled=true; totalInput.title='Valor automático — calculado pelos convidados confirmados'; }
+    tdTotal.appendChild(totalInput); row.appendChild(tdTotal);
 
-      <!-- PAINEL DE CONVIDADOS -->
-      <section class="card" aria-labelledby="g-painel">
-        <div class="card-header">
-          <h2 id="g-painel">Painel de Pessoas</h2>
-          <div class="header-rule"></div>
-          <button id="btn-explain" class="header-action" title="Como as estimativas foram calculadas">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
-            <span class="ha-txt">Ver detalhes do cálculo</span>
-          </button>
-        </div>
-        <div class="summary">
-          <div class="kpi"><div class="label">Pessoas na lista</div><div class="value" id="gk-total">—</div></div>
-          <div class="kpi"><div class="label">Confirmados</div><div class="value" id="gk-conf">—</div><div class="g-sub" id="gk-conf-sub"></div></div>
-          <div class="kpi"><div class="label">Pendentes</div><div class="value" id="gk-pend">—</div></div>
-          <div class="kpi"><div class="label">Não irão</div><div class="value" id="gk-nao">—</div></div>
-        </div>
-        <div class="summary">
-          <div class="kpi"><div class="label">Alimentação (estim.)</div><div class="value" id="gk-food">—</div></div>
-          <div class="kpi"><div class="label">Bebidas (estim.)</div><div class="value" id="gk-drink">—</div></div>
-          <div class="kpi"><div class="label">Outros itens</div><div class="value" id="gk-other">—</div></div>
-          <div class="kpi"><div class="label">Total do evento</div><div class="value" id="gk-var">—</div><div class="g-sub" id="gk-var-sub">—</div></div>
-        </div>
-        <div class="progress-wrap">
-          <div class="progress-label"><span>Confirmações</span><span id="g-bar-legend">0% confirmado</span></div>
-          <div class="bar"><span id="g-bar"></span></div>
-        </div>
-        <p class="tip" id="g-smart-line">Confirme convidados para ver as estimativas ganharem vida — tudo começa zerado e recalcula sozinho a cada confirmação.</p>
-      </section>
+    const tdPaid=document.createElement('td');
+    let tag=''; if(quit) tag='<span class="paid-tag full">Quitado</span>'; else if(p>0) tag='<span class="paid-tag partial">Pago parcial</span>';
+    const spTag = (it.sponsor||(it.paidExt||0)>0) ? `<span class="pill" title="Pagamento de terceiro — não usa o seu saldo" style="margin-left:6px;background:var(--gold-light);color:var(--olive-dark)">paga: ${escapeHtml(it.sponsor||'terceiro')}</span>` : '';
+    tdPaid.innerHTML=`<span class="money-falta">${toBRL(p)}</span>${tag}${spTag}`;
+    row.appendChild(tdPaid);
 
-      <!-- LISTA DE CONVIDADOS -->
-      <section class="card" aria-labelledby="g-lista">
-        <div class="card-header">
-          <h2 id="g-lista">Convidados</h2>
-          <div class="header-rule"></div>
-        </div>
+    const tdLeft=document.createElement('td');
+    const rawFalta=round2(t-p);
+    const faltaShown=(rawFalta<0 && state.settings.showOver)?0:rawFalta;
+    tdLeft.innerHTML=`<span class="money-falta">${toBRL(faltaShown)}</span>`;
+    row.appendChild(tdLeft);
 
-        <div class="g-filters">
-          <span class="search-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-            <input id="g-search" class="name-input" type="text" placeholder="Buscar por nome, grupo, telefone…" aria-label="Buscar convidado" />
-          </span>
-          <span class="chips" role="group" aria-label="Filtrar por status">
-            <button class="chip active" data-gstatus="all">Todos</button>
-            <button class="chip" data-gstatus="confirmado">Confirmados</button>
-            <button class="chip" data-gstatus="pendente">Pendentes</button>
-            <button class="chip" data-gstatus="nao">Não irão</button>
-          </span>
-          <select id="g-group-filter" class="field" aria-label="Filtrar por grupo"><option value="all">Todos os grupos</option></select>
-          <select id="g-sort" class="field" aria-label="Ordenar por">
-            <option value="name">Ordenar: Nome</option>
-            <option value="status">Ordenar: Confirmação</option>
-            <option value="group">Ordenar: Grupo</option>
-          </select>
-        </div>
+    const st=statusOf(it); const tdStatus=document.createElement('td'); tdStatus.innerHTML=`<span class="status ${st.cls}">${st.label}</span>`; row.appendChild(tdStatus);
 
-        <div class="g-form">
-          <span class="input-icon" style="flex:1;min-width:200px">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
-            <input id="g-name" class="name-input" type="text" placeholder="Nome do convidado" style="width:100%" />
-          </span>
-          <input id="g-phone" class="name-input" type="tel" inputmode="tel" placeholder="WhatsApp (ex.: 47 99999-0000)" style="max-width:210px" aria-label="Telefone / WhatsApp" />
-          <input id="g-group" class="name-input" type="text" placeholder="Família ou grupo" style="max-width:170px" list="g-group-list" aria-label="Família ou grupo" />
-          <datalist id="g-group-list"></datalist>
-          <input id="g-comp" class="field" type="number" min="0" max="20" step="1" value="0" style="max-width:110px" aria-label="Acompanhantes" title="Acompanhantes" />
-          <select id="g-age" class="field" aria-label="Faixa etária" title="Faixa etária (bebida alcoólica só conta para adultos)">
-            <option value="adulto">Adulto</option>
-            <option value="adolescente">Adolescente</option>
-            <option value="crianca">Criança</option>
-          </select>
-          <select id="g-status" class="field" aria-label="Status">
-            <option value="pendente">Pendente</option>
-            <option value="confirmado">Confirmado</option>
-            <option value="nao">Não irá</option>
-          </select>
-          <button id="g-add">Adicionar +</button>
-        </div>
+    const tdAct=document.createElement('td'); const acts=document.createElement('div'); acts.className='row-actions';
+    if(remaining>0){ const pay=document.createElement('button'); pay.className='btn-sm'; pay.textContent='Pagar'; pay.addEventListener('click', ()=>payItem(it.id)); acts.appendChild(pay); }
+    if(p>0){ const est=document.createElement('button'); est.className='ghost btn-sm'; est.textContent='Estornar'; est.addEventListener('click', ()=>estornoItem(it.id)); acts.appendChild(est); }
+    if(!it.varId){ const del=document.createElement('button'); del.className='icon-btn'; del.title='Remover item'; del.setAttribute('aria-label','Remover item'); del.textContent='✕'; del.addEventListener('click', ()=>removeItem(it.id)); acts.appendChild(del); }
+    tdAct.appendChild(acts); row.appendChild(tdAct);
 
-        <div class="toolbar">
-          <label class="import-label">
-            ↑ Importar Excel (.xlsx)
-            <input id="g-import" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none" />
-          </label>
-          <button id="g-export-xlsx" class="ghost">↓ Exportar Excel</button>
-          <button id="g-export-csv" class="ghost">↓ Exportar CSV</button>
-          <button id="g-msg" class="secondary">✎ Mensagem de convite</button>
-        </div>
+    tbody.appendChild(row);
 
-        <div style="overflow-x:auto">
-          <table>
-            <thead><tr>
-              <th style="min-width:200px">Convidado</th>
-              <th style="min-width:170px">Contato</th>
-              <th>Grupo</th>
-              <th>Acomp.</th>
-              <th style="min-width:130px">Status</th>
-              <th style="min-width:210px">Ações</th>
-            </tr></thead>
-            <tbody id="g-tbody"></tbody>
-          </table>
-        </div>
-        <p class="tip">Toque no <strong>nome</strong> para editar tudo — e-mail, observações, <strong>faixa etária</strong> e <strong>se consome álcool</strong> (isso alimenta as estimativas de bebidas). Acompanhantes herdam o perfil do titular. O botão verde abre o WhatsApp; os ícones copiam telefone ou convite.</p>
-      </section>
+    const nameInp=tdName.querySelector('.name-input');
+    if(it.varId){ nameInp.disabled=true; nameInp.title='Nome automático — edite em Convidados › Custos por Convidado'; }
+    else nameInp.addEventListener('input', e=>{ it.name=e.target.value; save(); });
+    attachMoney(totalInput, ()=>it.total||0, (n)=>{
+      const old=it.total||0; it.total=n;
+      if(state.settings.strict && (it.paid||0)>it.total) it.paid=it.total;
+      if(Math.abs(old-n)>0.001) logHist('ajuste', `Ajuste de valor — ${it.name}: ${toBRL(old)} → ${toBRL(n)}`, 0);
+      save(); renderAll();
+    });
+  });
+}
 
-      <!-- CUSTOS POR CONVIDADO -->
-      <section class="card" aria-labelledby="g-custos">
-        <div class="card-header">
-          <h2 id="g-custos">Custos do Evento</h2>
-          <div class="header-rule"></div>
-        </div>
-        <div class="g-filters" style="padding-bottom:0">
-          <span style="display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-muted)">Margem de segurança
-            <input id="smart-margin" class="field slim" type="number" min="0" max="100" step="1" style="width:70px" aria-label="Margem de segurança em porcento" /> %</span>
-          <span style="display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-muted)">Duração do evento
-            <input id="smart-hours" class="field slim" type="number" min="1" max="24" step="1" style="width:64px" aria-label="Duração do evento em horas" /> h</span>
-          <span style="font-size:11.5px;color:var(--ink-faint)">A margem entra nos itens marcados; consumos médios ficam em cada item (Editar).</span>
-        </div>
-        <div class="fund-form">
-          <span class="input-icon" style="flex:1;min-width:190px">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-            <input id="vc-name" class="name-input" type="text" placeholder="Item (ex.: Chope, Jantar, Lembrancinha)" style="width:100%" />
-          </span>
-          <select id="vc-mode" class="field" aria-label="Tipo de custo" title="Variável: multiplica pelos convidados confirmados. Fixo: quantidade × valor.">
-            <option value="var">Variável (por pessoa)</option>
-            <option value="fixo">Fixo (do evento)</option>
-          </select>
-          <select id="vc-cat" class="field" aria-label="Categoria">
-            <option>Alimentação</option>
-            <option>Bebidas</option>
-            <option>Doces &amp; Bolo</option>
-            <option>Descartáveis</option>
-            <option>Lembranças</option>
-            <option>Serviços</option>
-            <option>Estrutura</option>
-            <option>Outros</option>
-          </select>
-          <select id="vc-unit" class="field" aria-label="Unidade">
-            <option>Pessoa</option>
-            <option>Litro</option>
-            <option>Garrafa</option>
-            <option>Lata</option>
-            <option>Unidade</option>
-            <option>Quilo</option>
-            <option>Caixa</option>
-          </select>
-          <input id="vc-price" class="money" inputmode="decimal" placeholder="R$ por unidade" style="max-width:140px" aria-label="Valor unitário" />
-          <input id="vc-per" class="field" type="number" min="0" step="0.01" placeholder="Consumo/pessoa" style="max-width:140px" aria-label="Consumo médio por pessoa" title="Consumo médio por pessoa (ex.: 0,2 litro)" />
-          <input id="vc-qty" class="field" type="number" min="1" step="1" value="1" placeholder="Quantidade" style="max-width:120px;display:none" aria-label="Quantidade" title="Quantidade (ex.: 3 garçons)" />
-          <button id="vc-add">Adicionar +</button>
-        </div>
-        <div class="fund-list" id="vc-list"></div>
-        <p class="tip"><strong>Variável</strong> multiplica pelos confirmados: chope a R$ 23,00/L com 0,5 L por pessoa e 100 confirmados → 50 L e R$ 1.150,00, sozinho. <strong>Fixo</strong> multiplica pela quantidade: 3 garçons × R$ 220,00 → R$ 660,00. Ligue <strong>“No orçamento”</strong> para virar item automático na aba Orçamento — variáveis acompanham cada confirmação.</p>
-      </section>
+let histFilter='all';
+const KIND_META={
+  aporte:    {label:'Aporte',    bg:'#e6f2e8',          fg:'var(--ok)'},
+  pagamento: {label:'Pagamento', bg:'var(--olive-mist)',fg:'var(--olive-dark)'},
+  estorno:   {label:'Estorno',   bg:'#fdf4e3',          fg:'var(--warn)'},
+  ajuste:    {label:'Ajuste',    bg:'var(--ivory-deep)',fg:'var(--ink-muted)'},
+  exclusao:  {label:'Exclusão',  bg:'#f8eaea',          fg:'var(--danger)'}
+};
+function renderHistory(){
+  const list=el('hist-list');
+  let rows=state.history;
+  if(histFilter!=='all') rows=rows.filter(h=>h.kind===histFilter);
+  if(!rows.length){ list.innerHTML=`<div class="empty">Sem movimentações ${histFilter==='all'?'ainda':'deste tipo'}. Aportes, pagamentos, estornos e ajustes aparecem aqui com data e hora.</div>`; return; }
+  list.innerHTML='';
+  rows.slice(0,200).forEach(h=>{
+    const meta=KIND_META[h.kind]||KIND_META.ajuste;
+    const amtCls=h.delta>0?'in':(h.delta<0?'out':'neutral');
+    const amtTxt=h.delta>0?`+ ${toBRL(h.delta)}`:(h.delta<0?`− ${toBRL(Math.abs(h.delta))}`:'—');
+    const r=document.createElement('div'); r.className='hist-row';
+    r.innerHTML =
+      `<span class="hist-when">${fmtDateTime(h.ts)}</span>`+
+      `<span class="hist-desc"><span class="kind" style="background:${meta.bg};color:${meta.fg}">${meta.label}</span>${escapeHtml(h.desc)}</span>`+
+      `<span class="hist-amt ${amtCls}">${amtTxt}</span>`;
+    list.appendChild(r);
+  });
+}
 
-    </div>
 
-    <div class="brand">
-      <span class="ring" aria-hidden="true"></span>
-      EventFlow — Gestão inteligente de eventos
-      <span class="ring" aria-hidden="true"></span>
-    </div>
-  </main>
+/* ═══════════ Wiring de controles fixos ═══════════ */
+/* Liga botões/inputs fixos da vista Orçamento aos handlers.
+   Chamado pelo app.js após initState() — os handlers leem `state` na hora do clique. */
+function initOrcamentoUI(){
+const showOverToggle=el('show-over'), strictToggle=el('strict-nonnegative');
+showOverToggle.checked=!!state.settings.showOver;
+strictToggle.checked=!!state.settings.strict;
+showOverToggle.addEventListener('change', ()=>{ state.settings.showOver=showOverToggle.checked; save(); renderAll(); });
+strictToggle.addEventListener('change',   ()=>{ state.settings.strict=strictToggle.checked;     save(); renderAll(); });
 
-  <div class="modal-backdrop" id="modal-backdrop" aria-hidden="true"></div>
-  <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+el('add').addEventListener('click', ()=>{
+  const inp=el('new-name'); const name=(inp.value||'').trim();
+  if(!name){ inp.focus(); return; }
+  state.items.push({id:uid(), name, category:'Outros', total:0, paid:0, paidAt:null});
+  logHist('ajuste', `Item adicionado — ${name}`, 0);
+  inp.value=''; save(); renderAll(); toast('Item adicionado');
+  setTimeout(()=>window.scrollTo({top:document.body.scrollHeight, behavior:'smooth'}),0);
+});
+el('new-name').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); el('add').click(); } });
 
-  <!-- Ordem de carga (dependências):
-       config → utils → state → ui → orcamento → pdf → convidados → app (boot) → firebase-sync -->
-  <script src="js/utils.js"></script>
-  <script src="js/state.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/orcamento.js"></script>
-  <script src="js/pdf.js"></script>
-  <script src="js/convidados.js"></script>
-  <script src="js/app.js"></script>
-  <script src="js/firebase-sync.js"></script>
-</body>
-</html>
+el('reset').addEventListener('click', async ()=>{
+  const ok=await confirmDialog('Restaurar itens padrão','Isso substitui os itens atuais pela lista padrão. Aportes e histórico são mantidos. Continuar?',{confirmText:'Restaurar'});
+  if(!ok) return;
+  state.items=seedItems(); logHist('ajuste','Itens restaurados para o padrão',0); save(); renderAll(); toast('Itens restaurados');
+});
+el('clear').addEventListener('click', async ()=>{
+  const ok=await confirmDialog('Zerar valores','Zera totais e pagamentos de todos os itens (os itens continuam na lista). Aportes e histórico são mantidos. Continuar?',{confirmText:'Zerar valores'});
+  if(!ok) return;
+  state.items=state.items.map(it=>({...it, total:0, paid:0, paidAt:null})); logHist('ajuste','Valores dos itens zerados',0); save(); renderAll(); toast('Valores zerados');
+});
+
+el('export').addEventListener('click', ()=>{
+  const data={ items:state.items, funds:state.funds, history:state.history, guests:state.guests, varCosts:state.varCosts, settings:state.settings, showOver:state.settings.showOver, strict:state.settings.strict, exportedAt:new Date().toISOString() };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='planner-casamento.json'; a.click();
+  URL.revokeObjectURL(url); toast('Backup exportado');
+});
+el('import').addEventListener('change', e=>{
+  const file=e.target.files?.[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const raw=JSON.parse(reader.result);
+      const m=migrate(raw);
+      state=m.state;
+      showOverToggle.checked=!!state.settings.showOver;
+      strictToggle.checked=!!state.settings.strict;
+      save(); renderAll(); toast('Dados importados');
+      if(m.migrated && m.migrated.length) setTimeout(()=>toast(`${m.migrated.length} aporte(s) migrados dos itens antigos`,'ok'), 500);
+    }catch{ toast('Arquivo inválido. Verifique o JSON.','warn'); }
+  };
+  reader.readAsText(file); e.target.value='';
+});
+
+document.querySelectorAll('.hist-filters .chip').forEach(ch=>{
+  ch.addEventListener('click', ()=>{
+    document.querySelectorAll('.hist-filters .chip').forEach(x=>x.classList.remove('active'));
+    ch.classList.add('active'); histFilter=ch.dataset.kind; renderHistory();
+  });
+});
+
+// Formulário de aporte
+el('fund-add').addEventListener('click', addFundFromForm);
+(function(){
+  const inp=el('fund-amount'); inp.dataset.raw='0';
+  inp.addEventListener('focus', ()=>{ const n=parseMoneyToNumber(inp.dataset.raw); inp.value=n?String(round2(n)).replace('.',','):''; setTimeout(()=>placeCaretAtEnd(inp),0); });
+  inp.addEventListener('input', ()=>{ inp.dataset.raw=String(parseMoneyToNumber(inp.value)); });
+  inp.addEventListener('blur',  ()=>{ const n=parseMoneyToNumber(inp.value); inp.dataset.raw=String(n); inp.value=n?toBRL(n):''; });
+  inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addFundFromForm(); } });
+  el('fund-name').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); el('fund-amount').focus(); } });
+  el('fund-date').value=todayISO();
+})();
+
+
+    el('load-examples').addEventListener('click', async ()=>{
+      const ok=await confirmDialog('Carregar exemplos', 'Adiciona itens típicos de casamento e custos de referência (com estimativas inteligentes). Seus dados atuais são mantidos. Convidados não são alterados.', {danger:false, confirmText:'Carregar'});
+      if(!ok) return; loadExampleData(); renderAll(); toast('Exemplos carregados','ok');
+    });
+    const evName=el('event-name');
+    if(evName){ evName.value=(state.settings.eventName||''); 
+      evName.addEventListener('input', ()=>{ state.settings.eventName=evName.value.trim(); applyEventName(); save(); }); }
+    el('reset-all').addEventListener('click', async ()=>{
+      const ok=await confirmDialog('Reset TOTAL do sistema', 'Isto apaga ABSOLUTAMENTE TUDO: itens, aportes, convidados, custos, histórico, configurações, nome do evento e o armazenamento local do navegador. Se estiver logado, a nuvem também fica vazia. Não dá para desfazer — exporte um backup (JSON) antes se quiser guardar. Deseja continuar?', {danger:true, confirmText:'Apagar tudo'});
+      if(!ok) return; resetTotal(); toast('Sistema restaurado de fábrica','ok'); setTimeout(()=>location.reload(), 900);
+    });
+} /* fim initOrcamentoUI */
