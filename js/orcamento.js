@@ -299,4 +299,12 @@ el('fund-add').addEventListener('click', addFundFromForm);
 })();
 
 
+    el('load-examples').addEventListener('click', async ()=>{
+      const ok=await confirmDialog('Carregar exemplos', 'Adiciona itens típicos de casamento e custos de referência (com estimativas inteligentes). Seus dados atuais são mantidos. Convidados não são alterados.', {danger:false, confirmText:'Carregar'});
+      if(!ok) return; loadExampleData(); renderAll(); toast('Exemplos carregados','ok');
+    });
+    el('reset-all').addEventListener('click', async ()=>{
+      const ok=await confirmDialog('Recomeçar do zero', 'Isto apaga TODOS os itens, aportes, convidados, custos e histórico desta conta. As preferências são mantidas. Não dá para desfazer — exporte um backup antes se quiser guardar. Deseja continuar?', {danger:true, confirmText:'Zerar tudo'});
+      if(!ok) return; resetAllData(); renderAll(); toast('Tudo zerado — bom recomeço!','ok');
+    });
 } /* fim initOrcamentoUI */

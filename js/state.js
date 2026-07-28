@@ -21,7 +21,11 @@ const DEFAULT_ITEMS = [
   {name:'Maquiagem & cabelo',category:'Beleza'},      {name:'Igreja',            category:'Cerimônia'}
 ];
 function seedItems(){ return DEFAULT_ITEMS.map(d=>({id:uid(), name:d.name, category:d.category, total:0, paid:0, paidAt:null})); }
-function blankState(){ const settings={showOver:true, strict:true, smart:{margin:10, hours:6}}; return { items:seedItems(), funds:[], history:[], guests:seedGuests([],settings), varCosts:upgradeSmartSeeds(seedEventCosts([],settings),settings), settings }; }
+/* Estado NOVO nasce vazio — cada conta/casal começa do zero.
+   As sementes (itens padrão, custos de referência, lista de convidados)
+   deixam de rodar no boot; ficam disponíveis apenas como ações manuais
+   (ex.: botão "Carregar exemplos" / "Restaurar padrão"). */
+function blankState(){ const settings={showOver:true, strict:true, smart:{margin:10, hours:6}, seedItems:true, seedGuests:true, seedEventCosts:true, seedSmartV2:true}; return { items:[], funds:[], history:[], guests:[], varCosts:[], settings }; }
 function normFund(f){ return { id:f.id||uid(), name:f.name||'Aporte', type:f.type||'Outros', amount:Math.max(0,round2(f.amount)), date:f.date||todayISO() }; }
 
 // Migração idempotente: aceita array antigo, {items,...} antigo ou o formato novo.
@@ -50,8 +54,10 @@ function migrate(raw){
     }
   });
   history = (history||[]).filter(h=>h&&typeof h==='object').map(h=>({ id:h.id||uid(), ts:h.ts||Date.now(), kind:h.kind||'ajuste', desc:h.desc||'', delta:round2(h.delta) }));
-  guests = seedGuests(guests.filter(g=>g&&typeof g==='object').map(normGuest), settings);
-  varCosts = upgradeSmartSeeds(seedEventCosts(varCosts.filter(v=>v&&typeof v==='object').map(normVar), settings), settings);
+  guests = guests.filter(g=>g&&typeof g==='object').map(normGuest);
+  varCosts = varCosts.filter(v=>v&&typeof v==='object').map(normVar);
+  // Estados antigos que ainda não tinham perfis/margem nos custos ganham os campos novos, sem ADICIONAR itens.
+  if(!settings.seedSmartV2){ upgradeSmartSeeds(varCosts, {}); settings.seedSmartV2=true; }
   settings.smart = Object.assign({margin:10, hours:6}, (settings.smart&&typeof settings.smart==='object')?settings.smart:{});
   const empty = normItems.length===0 && outFunds.length===0 && history.length===0 && guests.length===0 && varCosts.length===0;
   if(empty) return { state:blankState(), migrated:[] };
@@ -68,6 +74,22 @@ let state  = null;
    (os normalizadores de convidados/custos vivem em convidados.js). */
 function initState(){ __boot = loadState(); state = __boot.state; }
 function save(){ try{ localStorage.setItem(STORE, JSON.stringify(state)); }catch{} if(window.__cloudSave) window.__cloudSave(); }
+
+/* Zera todos os dados desta conta (itens, aportes, convidados, custos e
+   histórico), preservando apenas as preferências. Sincroniza com a nuvem. */
+function resetAllData(){
+  state.items=[]; state.funds=[]; state.guests=[]; state.varCosts=[]; state.history=[];
+  logHist('ajuste','Sistema zerado — recomeço do planejamento',0);
+  save();
+}
+/* Carrega, sob demanda, os exemplos/modelos (itens padrão de casamento e
+   custos de referência com estimativas inteligentes). Não toca em convidados. */
+function loadExampleData(){
+  if(!state.items.length) state.items=seedItems();
+  const st2={}; state.varCosts=upgradeSmartSeeds(seedEventCosts(state.varCosts, st2), st2);
+  logHist('ajuste','Exemplos carregados (itens e custos de referência)',0);
+  save();
+}
 function logHist(kind, desc, delta){
   state.history.unshift({ id:uid(), ts:Date.now(), kind, desc, delta:round2(delta) });
   if(state.history.length>500) state.history.length = 500;
