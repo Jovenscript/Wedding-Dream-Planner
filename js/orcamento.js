@@ -26,6 +26,10 @@ function addFundFromForm(){
 }
 async function removeFund(id){
   const f=state.funds.find(x=>x.id===id); if(!f) return;
+  if((f.used||0)>0.005){
+    await modal({ title:'Recurso em uso', message:`“${f.name}” já tem ${toBRL(f.used)} usados em pagamentos. Estorne esses pagamentos antes de remover o recurso, para os valores não ficarem sem lastro.`, confirmText:'Entendi', hideCancel:true });
+    return;
+  }
   const ok=await confirmDialog('Remover aporte', `Remover “${f.name}” (${toBRL(f.amount)})? O saldo disponível será reduzido nesse valor.`, {confirmText:'Remover'});
   if(!ok) return;
   state.funds=state.funds.filter(x=>x.id!==id);
@@ -39,48 +43,99 @@ async function payItem(id){
   const c=compute();
   const remaining=Math.max(0, round2((it.total||0)-(it.paid||0)-(it.paidExt||0)));
   if(remaining<=0){ toast('Este item já está quitado.'); return; }
-  const SRC_SALDO='Saldo dos aportes (desconta do caixa)', SRC_EXT='Terceiro — presente/família (não mexe no caixa)';
+
+  const SRC_EXT='__ext__';
+  // opções = cada recurso com saldo + a opção "terceiro"
+  const withBal = state.funds.map(f=>({f, bal:fundBalance(f)}));
+  const usable  = withBal.filter(x=>x.bal>0.005);
+  const optLabels = usable.map(x=>`${x.f.name} — disponível ${toBRL(x.bal)}`);
+  optLabels.push('Pago por terceiro (não usa seus recursos)');
+  const labelToId = {}; usable.forEach((x,i)=>labelToId[optLabels[i]]=x.f.id); optLabels.forEach(l=>{ if(l.startsWith('Pago por terceiro')) labelToId[l]=SRC_EXT; });
+
+  if(!usable.length){
+    // Sem saldo em nenhum recurso: só permite terceiro, ou avisa.
+    const go=await confirmDialog('Sem saldo nos recursos',
+      `Você não tem saldo disponível nos aportes para pagar “${it.name}”. Cadastre um recurso (presente, investimento, salário…) ou registre como pago por terceiro.`,
+      {danger:false, confirmText:'Pagar por terceiro'});
+    if(!go) return;
+    const sp=await modal({ title:`Terceiro — ${it.name}`, fields:[
+      {key:'amount', label:'Valor pago pelo terceiro', type:'money', value:remaining},
+      {key:'sponsor', label:'Quem pagou? (ex.: Irmão)', value:it.sponsor||''}
+    ], confirmText:'Registrar', validate:v=>parseMoneyToNumber(v.amount)<=0?'Informe um valor maior que zero.':null });
+    if(!sp) return;
+    let a=round2(Math.min(parseMoneyToNumber(sp.amount), remaining));
+    it.paidExt=round2((it.paidExt||0)+a); it.sponsor=(sp.sponsor||'').trim()||it.sponsor||'Terceiro'; it.paidAt=Date.now();
+    logHist('pagamento', `Pagamento — ${it.name} (pago por ${it.sponsor}, sem usar recursos)`, 0);
+    save(); renderAll(); toast(`Registrado: ${toBRL(a)} pago por ${it.sponsor}`,'ok'); return;
+  }
+
   const res=await modal({
     title:`Pagar — ${it.name}`,
     fields:[
       {key:'amount', label:'Valor a pagar', type:'money', value:remaining},
-      {key:'source', label:'De onde sai o dinheiro?', type:'select', options:[SRC_SALDO, SRC_EXT], value:it.sponsor?SRC_EXT:SRC_SALDO},
-      {key:'sponsor', label:'Quem pagou? (se terceiro — ex.: Irmão)', value:it.sponsor||''}
+      {key:'source', label:'De qual recurso sai o dinheiro?', type:'select', options:optLabels, value:optLabels[0]},
+      {key:'sponsor', label:'Se terceiro: quem pagou?', value:it.sponsor||''}
     ],
-    note:`Falta neste item: ${toBRL(remaining)}   ·   Saldo disponível em caixa: ${toBRL(c.saldo)}`,
+    note:`Falta neste item: ${toBRL(remaining)}   ·   Saldo total em caixa: ${toBRL(c.saldo)}`,
     confirmText:'Registrar pagamento',
-    dynamicNote:(v)=>{ if(v.source===SRC_EXT) return {warn:false, text:'Pagamento de terceiro: entra no progresso do evento, mas não desconta do seu saldo.'}; const a=parseMoneyToNumber(v.amount); if(a>0 && a>c.saldo){ const falta=round2(a-Math.max(0,c.saldo)); return {warn:true, text:`Saldo insuficiente: faltam ${toBRL(falta)} de saldo para este pagamento (disponível ${toBRL(Math.max(0,c.saldo))}). Você pode pagar ${toBRL(Math.max(0,Math.min(c.saldo,remaining)))} agora e complementar depois com um novo aporte.`}; } return null; },
-    validate:(v)=>{ const a=parseMoneyToNumber(v.amount); if(a<=0) return 'Informe um valor maior que zero.'; if(state.settings.strict && a>remaining+0.001) return `O valor não pode passar do que falta neste item (${toBRL(remaining)}).`; return null; }
+    dynamicNote:(v)=>{
+      const a=parseMoneyToNumber(v.amount); const fid=labelToId[v.source];
+      if(fid===SRC_EXT) return {warn:false, text:'Pagamento de terceiro: entra no progresso do evento, mas não desconta dos seus recursos.'};
+      const f=state.funds.find(x=>x.id===fid); if(!f) return null;
+      const bal=fundBalance(f);
+      if(a>bal+0.005){ const falta=round2(a-bal); return {warn:true, text:`“${f.name}” só tem ${toBRL(bal)} disponível — faltam ${toBRL(falta)}. Pague no máximo ${toBRL(Math.min(bal,remaining))} deste recurso e o restante por outra fonte.`}; }
+      return {warn:false, text:`Sai de “${f.name}”. Ficará com ${toBRL(round2(bal-Math.max(0,a)))} após o pagamento.`};
+    },
+    validate:(v)=>{
+      const a=parseMoneyToNumber(v.amount); if(a<=0) return 'Informe um valor maior que zero.';
+      if(state.settings.strict && a>remaining+0.005) return `O valor não pode passar do que falta neste item (${toBRL(remaining)}).`;
+      const fid=labelToId[v.source];
+      if(fid!==SRC_EXT){ const f=state.funds.find(x=>x.id===fid); if(f && a>fundBalance(f)+0.005) return `“${f.name}” não tem saldo suficiente (${toBRL(fundBalance(f))}). Reduza o valor ou escolha outro recurso.`; }
+      return null;
+    }
   });
   if(!res) return;
   let a=parseMoneyToNumber(res.amount);
   if(state.settings.strict) a=Math.min(a, remaining);
   a=round2(a);
-  const ext = res.source===SRC_EXT;
-  if(ext){
+  const fid=labelToId[res.source];
+
+  if(fid===SRC_EXT){
     it.paidExt=round2((it.paidExt||0)+a);
     it.sponsor=(res.sponsor||'').trim()||it.sponsor||'Terceiro';
-    logHist('pagamento', `Pagamento — ${it.name} (pago por ${it.sponsor}, sem usar o saldo)`, 0);
+    it.paidAt=Date.now();
+    logHist('pagamento', `Pagamento — ${it.name} (pago por ${it.sponsor}, sem usar recursos)`, 0);
   } else {
+    const f=state.funds.find(x=>x.id===fid);
+    const applied=fundUse(fid, a);            // desconta do recurso escolhido
+    a=applied;                                 // paga exatamente o que saiu do recurso
+    if(a<=0){ toast('Recurso sem saldo.','warn'); return; }
     it.paid=round2((it.paid||0)+a);
-    if(state.settings.strict && round2((it.paid||0)+(it.paidExt||0))>it.total) it.paid=round2(it.total-(it.paidExt||0));
-    logHist('pagamento', `Pagamento — ${it.name} (saldo dos aportes → despesa)`, -a);
+    it.paidFrom=fid;                           // memória do último recurso usado (para estorno)
+    it.paidAt=Date.now();
+    logHist('pagamento', `Pagamento — ${it.name} (via ${f?f.name:'recurso'})`, -a);
   }
   save(); renderAll();
   const now=Math.max(0, round2((it.total||0)-(it.paid||0)-(it.paidExt||0)));
   toast(now<=0 ? `${it.name} quitado ✓` : `Pago ${toBRL(a)} · falta ${toBRL(now)}`, 'ok');
-}
-async function estornoItem(id){
+}async function estornoItem(id){
   const it=state.items.find(x=>x.id===id); if(!it) return;
   const own=it.paid||0, ext=it.paidExt||0, amt=round2(own+ext); if(amt<=0) return;
-  const msg = ext>0 ? `Estornar ${toBRL(amt)} de “${it.name}”? ${toBRL(own)} voltam ao saldo; ${toBRL(ext)} eram de terceiros e apenas saem do registro.` : `Estornar ${toBRL(amt)} de “${it.name}”? O valor volta para o saldo disponível.`;
+  const backTo = it.paidFrom && state.funds.find(f=>f.id===it.paidFrom);
+  const msg = ext>0
+    ? `Estornar ${toBRL(amt)} de “${it.name}”? ${toBRL(own)} voltam ${backTo?`para “${backTo.name}”`:'aos recursos'}; ${toBRL(ext)} eram de terceiros e apenas saem do registro.`
+    : `Estornar ${toBRL(amt)} de “${it.name}”? ${toBRL(own)} voltam ${backTo?`para “${backTo.name}”`:'aos recursos (o saldo é liberado)'}.`;
   const ok=await confirmDialog('Cancelar pagamento', msg, {confirmText:'Estornar'});
   if(!ok) return;
-  it.paid=0; it.paidExt=0; it.paidAt=null;
+  // devolve o que saiu do nosso caixa ao recurso de origem (ou distribui de volta)
+  if(own>0){
+    if(backTo){ fundUse(backTo.id, -own); }
+    else { let rest=own; for(const f of state.funds){ if(rest<=0) break; const back=Math.min(f.used||0, rest); if(back>0){ fundUse(f.id, -back); rest=round2(rest-back); } } }
+  }
+  it.paid=0; it.paidExt=0; it.paidFrom=null; it.paidAt=null;
   logHist('estorno', `Pagamento cancelado — ${it.name}`+(ext>0?` (${toBRL(ext)} eram de terceiros)`:''), +own);
-  save(); renderAll(); toast('Pagamento estornado');
-}
-async function removeItem(id){
+  save(); renderAll(); toast('Pagamento estornado','ok');
+}async function removeItem(id){
   const it=state.items.find(x=>x.id===id); if(!it) return;
   const paid=it.paid||0;
   const msg = paid>0 ? `Remover “${it.name}”? Ele tem ${toBRL(paid)} pago — esse valor volta ao saldo disponível.` : `Remover “${it.name}”?`;
@@ -123,7 +178,7 @@ function renderDashboard(c){
 
 function renderFunds(c){
   const amtEl=el('saldo-amt'); amtEl.textContent=toBRL(c.saldo); amtEl.classList.toggle('neg', c.saldo<0);
-  el('saldo-sub').textContent = `Recursos ${toBRL(c.totalFunds)} − pago ${toBRL(c.totalPaid)}`;
+  el('saldo-sub').textContent = `Recursos ${toBRL(c.totalFunds)} − usados ${toBRL(c.usedFunds)}`;
   const list=el('fund-list');
   if(!state.funds.length){ list.innerHTML=`<div class="empty">Nenhum aporte ainda. Cadastre dinheiro guardado, valores a receber, contribuições e economias — tudo vira saldo disponível.</div>`; return; }
   list.innerHTML='';
@@ -135,7 +190,7 @@ function renderFunds(c){
         `<span class="f-name editable" title="Editar aporte">${escapeHtml(f.name)}</span>`+
         `<span class="f-date">${fmtDate(f.date)}</span>`+
       `</div>`+
-      `<span class="f-amt">+ ${toBRL(f.amount)}</span>`+
+      `<span class="f-amt">${toBRL(fundBalance(f))}${(f.used||0)>0.005?`<span class="f-used">de ${toBRL(f.amount)} · ${toBRL(f.used)} usados</span>`:''}</span>`+
       `<div class="row-actions">`+
         `<button class="btn-sm ghost" data-act="edit" title="Editar aporte" aria-label="Editar aporte">Editar</button>`+
         `<button class="icon-btn" data-act="del" title="Remover aporte" aria-label="Remover aporte">✕</button>`+

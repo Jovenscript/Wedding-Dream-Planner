@@ -1067,3 +1067,7 @@ html.cloud-wait::after {
   input, select, textarea { font-size: 16px !important; }
   .field.slim, select.field.slim { font-size: 14px !important; }
 }
+
+/* Saldo por recurso — mostra "disponível" grande e "usados" pequeno embaixo */
+.fund-row .f-amt { display: inline-flex; flex-direction: column; align-items: flex-end; line-height: 1.15; }
+.fund-row .f-used { font-size: 10.5px; font-weight: 400; color: var(--ink-faint); font-family: 'Inter', sans-serif; margin-top: 2px; white-space: nowrap; }

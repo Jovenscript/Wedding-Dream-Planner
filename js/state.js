@@ -26,7 +26,7 @@ function seedItems(){ return DEFAULT_ITEMS.map(d=>({id:uid(), name:d.name, categ
    deixam de rodar no boot; ficam disponíveis apenas como ações manuais
    (ex.: botão "Carregar exemplos" / "Restaurar padrão"). */
 function blankState(){ const settings={showOver:true, strict:true, smart:{margin:10, hours:6, basis:'lista'}, seedItems:true, seedGuests:true, seedEventCosts:true, seedSmartV2:true}; return { items:[], funds:[], history:[], guests:[], varCosts:[], settings }; }
-function normFund(f){ return { id:f.id||uid(), name:f.name||'Aporte', type:f.type||'Outros', amount:Math.max(0,round2(f.amount)), date:f.date||todayISO() }; }
+function normFund(f){ const amount=Math.max(0,round2(f.amount)); return { id:f.id||uid(), name:f.name||'Aporte', type:f.type||'Outros', amount, used:Math.max(0,Math.min(amount,round2(f.used))), date:f.date||todayISO() }; }
 
 // Migração idempotente: aceita array antigo, {items,...} antigo ou o formato novo.
 // Itens legados que só serviam de "cofre" (total 0 e pago > 0) viram aportes automaticamente.
@@ -61,6 +61,19 @@ function migrate(raw){
   settings.smart = Object.assign({margin:10, hours:6, basis:'lista'}, (settings.smart&&typeof settings.smart==='object')?settings.smart:{});
   const empty = normItems.length===0 && outFunds.length===0 && history.length===0 && guests.length===0 && varCosts.length===0;
   if(empty) return { state:blankState(), migrated:[] };
+  // Retrocompatibilidade: garante o invariante funds.used == items.paid.
+  // Se ninguém tinha 'used' ainda, distribui o total pago entre os recursos.
+  (function reconcileFunds(){
+    const paidOwn = round2(normItems.reduce((a,it)=>a+(it.paid||0),0));
+    let usedSum   = round2(outFunds.reduce((a,f)=>a+(f.used||0),0));
+    if(outFunds.length===0) return;
+    if(Math.abs(usedSum - paidOwn) < 0.005) return;         // já coerente
+    outFunds.forEach(f=>f.used=0);                           // zera e redistribui
+    let rest = paidOwn;
+    for(const f of outFunds){ if(rest<=0) break; const take=Math.min(f.amount, rest); f.used=round2(take); rest=round2(rest-take); }
+    // Se pagamos mais do que há em recursos (raro), o excedente fica sem lastro
+    // e aparecerá como saldo negativo — coerente com a realidade.
+  })();
   return { state:{ items:normItems, funds:outFunds, history, guests, varCosts, settings }, migrated };
 }
 function loadState(){
@@ -108,30 +121,59 @@ async function editFund(id){
       {key:'date',   label:'Data', type:'date', value:f.date}
     ],
     confirmText:'Salvar',
-    validate:v=>{ if(!(v.name||'').trim()) return 'Dê um nome ao aporte.'; if(parseMoneyToNumber(v.amount)<=0) return 'Informe um valor maior que zero.'; return null; }
+    validate:v=>{ if(!(v.name||'').trim()) return 'Dê um nome ao aporte.'; const a=parseMoneyToNumber(v.amount); if(a<=0) return 'Informe um valor maior que zero.'; if(a < (f.used||0)-0.005) return `Este recurso já tem ${toBRL(f.used)} usados em pagamentos. O valor não pode ficar abaixo disso (estorne antes se precisar reduzir).`; return null; }
   });
   if(!res) return;
   const old=f.amount;
-  f.name=(res.name||'').trim(); f.type=res.type||'Outros'; f.amount=Math.max(0,round2(parseMoneyToNumber(res.amount))); f.date=res.date||f.date;
+  f.name=(res.name||'').trim(); f.type=res.type||'Outros'; f.amount=Math.max(0,round2(parseMoneyToNumber(res.amount))); f.used=Math.max(0,Math.min(f.amount, f.used||0)); f.date=res.date||f.date;
   logHist('ajuste', `Aporte editado — ${f.name}: ${toBRL(old)} → ${toBRL(f.amount)}`, 0);
   save(); renderAll(); toast('Aporte atualizado');
 }
 
 /* ═══════════ Cálculo central (fonte única de verdade) ═══════════ */
 function compute(){
-  const totalExpense = state.items.reduce((a,it)=>a+(it.total||0),0);
-  const paidOwn      = state.items.reduce((a,it)=>a+(it.paid||0),0);     // pago com o NOSSO saldo (aportes)
-  const paidExt      = state.items.reduce((a,it)=>a+(it.paidExt||0),0);  // pago por TERCEIROS (ex.: DJ pago pelo irmão)
-  const totalPaid    = round2(paidOwn + paidExt);                        // pago no total (progresso do evento)
-  const totalFunds   = state.funds.reduce((a,f)=>a+(f.amount||0),0);
-  const pending      = Math.max(0, round2(totalExpense - totalPaid));
-  const saldo        = round2(totalFunds - paidOwn);                     // só o que saiu do nosso caixa desconta
-  const coverage     = round2(totalFunds + paidExt);                     // dinheiro nosso + o que terceiros já cobriram
-  const faltaArrecadar = Math.max(0, round2(totalExpense - coverage));
-  const surplus      = Math.max(0, round2(coverage - totalExpense));
+  /* ═══════════ REGRA DE NEGÓCIO ÚNICA (fonte da verdade) ═══════════
+     Despesas (items): total = quanto custa; paid = pago com NOSSOS recursos
+     (sai dos aportes); paidExt = pago por terceiros (ex.: DJ do irmão) — não
+     usa o nosso caixa. Recursos (funds): amount = quanto entrou; used =
+     quanto já foi gasto em pagamentos.
+     INVARIANTE-CHAVE: soma dos funds.used === soma dos items.paid
+     (todo pagamento nosso sai de algum recurso; nada é contado em dobro). */
+  const totalExpense = round2(state.items.reduce((a,it)=>a+(it.total||0),0)); // previsto (inclui itens de terceiros)
+  const paidOwn      = round2(state.items.reduce((a,it)=>a+(it.paid||0),0));   // pago com nosso dinheiro
+  const paidExt      = round2(state.items.reduce((a,it)=>a+(it.paidExt||0),0));// pago por terceiros
+  const totalPaid    = round2(paidOwn + paidExt);                             // pago no total (progresso)
+  const pending      = Math.max(0, round2(totalExpense - totalPaid));          // ainda falta pagar
+
+  const totalFunds   = round2(state.funds.reduce((a,f)=>a+(f.amount||0),0));   // recursos cadastrados
+  const usedFunds    = round2(state.funds.reduce((a,f)=>a+(f.used||0),0));     // recursos já gastos
+  const saldo        = round2(totalFunds - usedFunds);                        // DINHEIRO EM CAIXA disponível
+
+  /* Cobertura do objetivo: quanto do previsto já está garantido =
+     o que já saiu do caixa (usedFunds) + o que ainda temos em caixa (saldo) +
+     o que terceiros bancam (paidExt). Isso é exatamente totalFunds + paidExt. */
+  const coverage       = round2(totalFunds + paidExt);
+  const faltaArrecadar = Math.max(0, round2(totalExpense - coverage));         // quanto ainda precisa ENTRAR
+  const surplus        = Math.max(0, round2(coverage - totalExpense));
+
   const pctPago      = totalExpense>0 ? clamp(totalPaid/totalExpense*100,0,100) : 0;
   const pctGarantido = totalExpense>0 ? clamp(coverage/totalExpense*100,0,100) : 0;
+
+  // Do que ainda falta pagar, quanto o caixa atual cobre e quanto ficaria a descoberto
   const coveredUnpaid= clamp(Math.min(Math.max(0,saldo), pending), 0, pending);
   const uncovered    = Math.max(0, round2(pending - coveredUnpaid));
-  return { totalExpense, totalPaid, paidOwn, paidExt, totalFunds, pending, saldo, faltaArrecadar, surplus, pctPago, pctGarantido, coveredUnpaid, uncovered };
+
+  return { totalExpense, totalPaid, paidOwn, paidExt, pending,
+           totalFunds, usedFunds, saldo, coverage, faltaArrecadar, surplus,
+           pctPago, pctGarantido, coveredUnpaid, uncovered };
+}
+
+/* Saldo disponível de UM recurso específico (amount − used). */
+function fundBalance(f){ return round2((f.amount||0) - (f.used||0)); }
+/* Aplica/estorna consumo de um recurso, sem passar do disponível nem de zero. */
+function fundUse(fundId, delta){
+  const f=state.funds.find(x=>x.id===fundId); if(!f) return 0;
+  const applied=round2(Math.max(-(f.used||0), Math.min(delta, fundBalance(f))));
+  f.used=round2((f.used||0)+applied);
+  return applied;
 }
