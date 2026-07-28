@@ -73,45 +73,73 @@ function seedGuestNames(){ return [
    com as regras inteligentes. Não semeia em cima do que já existe: substitui
    o conteúdo, então use depois de um "Reset total" (ou aceite a limpeza). */
 function buildFullSetup(){
-  // 1) Convidados (reaproveita a lista central, já agrupada por família)
+  // 1) Convidados — os 137, já agrupados por família (lista central)
   const guests = seedGuestNames().map(([name,group,status])=>normGuest({name, group:group||'', status:status||'pendente'}));
 
-  // 2) Custos por convidado (variáveis inteligentes + fixos do evento)
+  /* 2) Custos POR CONVIDADO (variáveis) — valores reais do Marlon.
+        O unitValue é o preço por unidade; o total no orçamento é calculado
+        pela quantidade de gente. Como já há valores pagos, o pagamento é
+        preservado no item automático correspondente (ver montagem em 4). */
   const varCosts = [
-    normVar({name:'Comida (por convidado)', category:'Alimentação', mode:'var',  unit:'Pessoa',  unitValue:65, perGuest:1,   audience:'todos',     useMargin:false, sync:true, notes:'R$ 65 por pessoa da lista — varia com confirmações/cancelamentos.'}),
-    normVar({name:'Chopp',                  category:'Bebidas',     mode:'var',  unit:'Litro',   unitValue:23, perGuest:1,   audience:'bebem',     useMargin:true,  sync:true, notes:'Só adultos que bebem · margem de segurança configurável.'}),
-    normVar({name:'Refrigerante (lata)',    category:'Bebidas',     mode:'var',  unit:'Lata',    unitValue:8,  perGuest:2,   audience:'nao-bebem', useMargin:true,  sync:true, notes:'Menores + quem não bebe álcool.'}),
-    normVar({name:'Água (garrafa)',         category:'Bebidas',     mode:'var',  unit:'Garrafa', unitValue:5,  perGuest:1,   audience:'todos',     useMargin:true,  sync:true, notes:'Todos da lista.'}),
-    normVar({name:'Bolo',                   category:'Doces & Bolo',mode:'var',  unit:'Quilo',   unitValue:0,  perGuest:0.1, audience:'todos',     useMargin:true,  sync:true, notes:'Referência 100 g/pessoa — informe o preço por quilo.'}),
-    normVar({name:'Docinhos',               category:'Doces & Bolo',mode:'var',  unit:'Unidade', unitValue:0,  perGuest:7,   audience:'todos',     useMargin:true,  sync:true, notes:'Referência 7 por pessoa — informe o preço por unidade.'}),
-    normVar({name:'Garçom',                 category:'Serviços',    mode:'fixo', unit:'Unidade', unitValue:270,qty:4, sync:true, notes:'R$ 1.080 = 4 garçons de R$ 270. Mude a quantidade e o total recalcula.'}),
-    normVar({name:'Zeladora dos banheiros', category:'Serviços',    mode:'fixo', unit:'Unidade', unitValue:300,qty:1, sync:true, notes:'Valor por unidade.'}),
-    normVar({name:'ECAD',                   category:'Outros',      mode:'fixo', unit:'Unidade', unitValue:800,qty:1, sync:true, notes:'Taxa fixa.'})
+    normVar({name:'Comida',              category:'Gastronomia', mode:'var', unit:'Pessoa',  unitValue:65, perGuest:1,   audience:'todos',     useMargin:false, sync:true, notes:'R$ 65 por pessoa da lista.'}),
+    normVar({name:'Chopp',               category:'Bebidas',     mode:'var', unit:'Litro',   unitValue:23, perGuest:1,   audience:'bebem',     useMargin:true,  sync:true, notes:'Só adultos que bebem · margem de segurança.'}),
+    normVar({name:'Refrigerante (lata)', category:'Bebidas',     mode:'var', unit:'Lata',    unitValue:8,  perGuest:1,   audience:'todos',     useMargin:true,  sync:true, notes:'Todos da lista (crianças bebem mais; adultos que bebem álcool, menos — na média, 1 lata/pessoa).'}),
+    normVar({name:'Água (garrafa)',      category:'Bebidas',     mode:'var', unit:'Garrafa', unitValue:5,  perGuest:1,   audience:'todos',     useMargin:true,  sync:true, notes:'Todos da lista.'}),
+    // Fixos do evento por quantidade:
+    normVar({name:'Garçom',              category:'Serviços', mode:'fixo', unit:'Unidade', unitValue:270, qty:4, sync:true, notes:'R$ 1.080 = 4 × R$ 270.'}),
+    normVar({name:'Zeladora',            category:'Serviços', mode:'fixo', unit:'Unidade', unitValue:350, qty:1, sync:true}),
+    normVar({name:'Café',                category:'Alimentação', mode:'fixo', unit:'Unidade', unitValue:350, qty:1, sync:true}),
+    normVar({name:'E-cad',               category:'Outros',   mode:'fixo', unit:'Unidade', unitValue:450, qty:1, sync:true})
   ];
 
-  // 3) Itens fixos do orçamento (fotógrafo pago; DJ pago pelo irmão; demais a preencher)
+  /* 3) Pagamentos já feitos nos itens VARIÁVEIS (preservados no item auto).
+        chave = nome do custo em varCosts → quanto já foi pago. */
+  const varPaid = { 'Comida':500, 'Chopp':0, 'Refrigerante (lata)':0, 'Água (garrafa)':0, 'Garçom':0, 'Zeladora':0, 'Café':0, 'E-cad':0 };
+
+  /* 4) Itens FIXOS do orçamento — total e pago reais (o resto do casamento). */
   const NI=(o)=>Object.assign({id:uid(), total:0, paid:0, paidExt:0, sponsor:'', paidAt:null}, o);
+  const P=(paid)=> paid>0 ? Date.now() : null;
   const items = [
-    NI({name:'Cerimonialista', category:'Serviços'}),
-    NI({name:'Decoração',      category:'Estrutura'}),
-    NI({name:'DJ',             category:'Serviços', sponsor:'Irmão'}),
-    NI({name:'Fotógrafo',      category:'Serviços', total:2890, paid:2890, paidAt:Date.now()}),
-    NI({name:'Vestido',        category:'Trajes'}),
-    NI({name:'Igreja',         category:'Cerimônia'})
+    NI({name:'DJ',                  category:'Música',      total:3600, paid:3600, paidAt:P(1)}),
+    NI({name:'Cerimonialista',      category:'Serviços',    total:2400, paid:300,  paidAt:P(1)}),
+    NI({name:'Fotógrafo',           category:'Serviços',    total:2890, paid:2890, paidAt:P(1)}),
+    NI({name:'Decoradora',          category:'Decoração',   total:5050, paid:505,  paidAt:P(1)}),
+    NI({name:'Maquiagem/Cabelo',    category:'Beleza',      total:1550, paid:465,  paidAt:P(1)}),
+    NI({name:'Igreja',              category:'Cerimônia',   total:1518, paid:759,  paidAt:P(1)}),
+    NI({name:'Vestido e terno',     category:'Trajes',      total:3800, paid:1560, paidAt:P(1)}),
+    NI({name:'Músicos',             category:'Música',      total:1500, paid:750,  paidAt:P(1)}),
+    NI({name:'Docinhos e bolo',     category:'Doces & Bolo',total:2000, paid:2000, paidAt:P(1)}),
+    NI({name:'Documentação igreja', category:'Cerimônia',   total:200,  paid:0}),
+    NI({name:'Casamento Civil',     category:'Cerimônia',   total:851.05, paid:851.05, paidAt:P(1)}),
+    NI({name:'Sapato noiva',        category:'Trajes',      total:142,  paid:142,  paidAt:P(1)})
   ];
 
-  return { guests, varCosts, items };
-}
-/* Aplica o pacote acima ao estado e sincroniza (nuvem inclusa via save()). */
+  /* 5) Recursos / aportes reais (o dinheiro disponível). */
+  const funds = [
+    normFund({name:'Valores investidos',   type:'Investimento', amount:19789, date:todayISO()}),
+    normFund({name:'Valor pais da Carol',  type:'Presente',     amount:15000, date:todayISO()}),
+    normFund({name:'Lucro agosto',         type:'Guardado',     amount:8000,  date:todayISO()})
+  ];
+
+  return { guests, varCosts, varPaid, items, funds };
+}/* Aplica o pacote acima ao estado e sincroniza (nuvem inclusa via save()). */
 function implantarTudo(){
   const pack=buildFullSetup();
   state.items=pack.items;
   state.varCosts=pack.varCosts;
   state.guests=pack.guests;
-  state.funds=[];               // aportes você cadastra conforme entra dinheiro
+  state.funds=pack.funds;
   state.settings.eventName = state.settings.eventName || 'Casamento Carol & Marlon';
   state.settings.smart = Object.assign({margin:10, hours:6, basis:'lista'}, state.settings.smart||{});
-  logHist('ajuste', `Configuração completa aplicada — ${pack.guests.length} convidados, ${pack.items.length} itens, ${pack.varCosts.length} custos`, 0);
+  // cria os itens automáticos dos custos e injeta os pagamentos já feitos neles
+  syncVarLinkedItems();
+  Object.entries(pack.varPaid||{}).forEach(([name,paid])=>{
+    if(paid<=0) return;
+    const v=state.varCosts.find(x=>x.name===name); if(!v) return;
+    const it=state.items.find(x=>x.varId===v.id); if(!it) return;
+    it.paid=round2(Math.min(paid, it.total||paid)); it.paidAt=Date.now();
+  });
+  logHist('ajuste', `Configuração completa aplicada — ${pack.guests.length} convidados, ${pack.items.length} itens fixos, ${pack.varCosts.length} custos, ${pack.funds.length} aportes`, 0);
   save();
 }
 
