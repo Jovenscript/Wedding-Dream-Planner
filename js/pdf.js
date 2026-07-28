@@ -134,15 +134,15 @@
         });
         y+=12;
       }
-      function footer(){ const n=doc.getNumberOfPages(); for(let i=1;i<=n;i++){ doc.setPage(i); draw(C.mist); doc.setLineWidth(.5); doc.line(M,PH-30,PW-M,PH-30); doc.setFont('helvetica','normal'); doc.setFontSize(8); txt(C.inkFaint); doc.text('Planner do Casamento · Carol & Marlon',M,PH-18); doc.text('Página '+i+' de '+n,PW-M,PH-18,{align:'right'}); } }
+      function footer(){ const n=doc.getNumberOfPages(); for(let i=1;i<=n;i++){ doc.setPage(i); draw(C.mist); doc.setLineWidth(.5); doc.line(M,PH-30,PW-M,PH-30); doc.setFont('helvetica','normal'); doc.setFontSize(8); txt(C.inkFaint); doc.text((state.settings.eventName||'EventFlow')+' · Relatório financeiro',M,PH-18); doc.text('Página '+i+' de '+n,PW-M,PH-18,{align:'right'}); } }
 
       // — CAPA —
       const bandH=132;
       fill(C.oliveDark); doc.rect(0,0,PW,bandH,'F');
       fill(C.olive); doc.rect(0,bandH-6,PW,6,'F');
       doc.setFont('helvetica','bold'); doc.setFontSize(9); txt(C.goldLight); doc.text('R E L A T Ó R I O   F I N A N C E I R O',M,50);
-      doc.setFont('times','bold'); doc.setFontSize(34); txt(C.ivory); doc.text('Carol & Marlon',M,86);
-      doc.setFont('helvetica','normal'); doc.setFontSize(11); txt([226,231,215]); doc.text('Orçamento, investimentos e pagamentos do casamento',M,106);
+      doc.setFont('times','bold'); doc.setFontSize(34); txt(C.ivory); doc.text(state.settings.eventName||'Meu Evento',M,86);
+      doc.setFont('helvetica','normal'); doc.setFontSize(11); txt([226,231,215]); doc.text('Orçamento, investimentos e pagamentos do evento',M,106);
       doc.setFontSize(9); txt([211,217,197]); doc.text('Emitido em '+fmtDateTime(Date.now()),PW-M,50,{align:'right'});
       y=bandH+26;
 
@@ -223,7 +223,7 @@
       y+=boxH+10;
 
       footer();
-      doc.save('Relatorio-Financeiro-Carol-e-Marlon.pdf');
+      doc.save('Relatorio-Financeiro-'+((state.settings.eventName||'Evento').replace(/[^\w]+/g,'-'))+'.pdf');
       toast('Relatório PDF gerado','ok');
     }catch(e){ console.error(e); toast('Não consegui gerar o PDF. Verifique a conexão e tente de novo.','warn'); }
     finally{ if(btn) btn.disabled=false; }

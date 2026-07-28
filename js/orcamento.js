@@ -42,7 +42,7 @@ async function payItem(id){
   const res=await modal({
     title:`Pagar — ${it.name}`,
     fields:[{key:'amount', label:'Valor a pagar', type:'money', value:remaining}],
-    note:`Falta neste item: ${toBRL(remaining)}   ·   Saldo disponível: ${toBRL(c.saldo)}`,
+    note:`Este pagamento usa o saldo dos seus aportes.\nFalta neste item: ${toBRL(remaining)}   ·   Saldo disponível em caixa: ${toBRL(c.saldo)}`,
     confirmText:'Registrar pagamento',
     dynamicNote:(v)=>{ const a=parseMoneyToNumber(v.amount); if(a>0 && a>c.saldo){ const falta=round2(a-Math.max(0,c.saldo)); return {warn:true, text:`Saldo insuficiente: faltam ${toBRL(falta)} de saldo para este pagamento (disponível ${toBRL(Math.max(0,c.saldo))}). Você pode pagar ${toBRL(Math.max(0,Math.min(c.saldo,remaining)))} agora e complementar depois com um novo aporte.`}; } return null; },
     validate:(v)=>{ const a=parseMoneyToNumber(v.amount); if(a<=0) return 'Informe um valor maior que zero.'; if(state.settings.strict && a>remaining+0.001) return `O valor não pode passar do que falta neste item (${toBRL(remaining)}).`; return null; }
@@ -54,7 +54,7 @@ async function payItem(id){
   it.paid=round2((it.paid||0)+a);
   if(state.settings.strict && it.paid>it.total) it.paid=it.total;
   it.paidAt=Date.now();
-  logHist('pagamento', `Pagamento — ${it.name}`, -a);
+  logHist('pagamento', `Pagamento — ${it.name} (saldo dos aportes → despesa)`, -a);
   save(); renderAll();
   const now=Math.max(0, round2((it.total||0)-(it.paid||0)));
   toast(now<=0 ? `${it.name} quitado ✓` : `Pago ${toBRL(a)} · falta ${toBRL(now)}`, 'ok');
@@ -303,6 +303,9 @@ el('fund-add').addEventListener('click', addFundFromForm);
       const ok=await confirmDialog('Carregar exemplos', 'Adiciona itens típicos de casamento e custos de referência (com estimativas inteligentes). Seus dados atuais são mantidos. Convidados não são alterados.', {danger:false, confirmText:'Carregar'});
       if(!ok) return; loadExampleData(); renderAll(); toast('Exemplos carregados','ok');
     });
+    const evName=el('event-name');
+    if(evName){ evName.value=(state.settings.eventName||''); 
+      evName.addEventListener('input', ()=>{ state.settings.eventName=evName.value.trim(); applyEventName(); save(); }); }
     el('reset-all').addEventListener('click', async ()=>{
       const ok=await confirmDialog('Recomeçar do zero', 'Isto apaga TODOS os itens, aportes, convidados, custos e histórico desta conta. As preferências são mantidas. Não dá para desfazer — exporte um backup antes se quiser guardar. Deseja continuar?', {danger:true, confirmText:'Zerar tudo'});
       if(!ok) return; resetAllData(); renderAll(); toast('Tudo zerado — bom recomeço!','ok');

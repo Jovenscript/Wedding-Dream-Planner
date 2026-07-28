@@ -12,7 +12,7 @@
 
 /* ═══════════════════ Convidados ═══════════════════ */
 const G_STATUS={ confirmado:{label:'Confirmado',cls:'ok',ord:0}, pendente:{label:'Pendente',cls:'warn',ord:1}, nao:{label:'Não irá',cls:'off',ord:2} };
-const DEFAULT_INVITE='Oi, {nome}! 💌 Com muito carinho, queremos você com a gente no nosso casamento. Reserve a data — em breve mandamos todos os detalhes! Com amor, Carol & Marlon 💍';
+const DEFAULT_INVITE='Oi, {nome}! 💌 Queremos você com a gente no nosso evento. Em breve enviamos todos os detalhes. Um abraço!';
 
 function normStatus(s){ s=String(s||'').toLowerCase().trim(); if(s.startsWith('conf')||s==='sim'||s==='ok') return 'confirmado'; if(s.startsWith('n')) return 'nao'; return 'pendente'; }
 function normAge(a){ a=String(a||'').toLowerCase(); if(a.startsWith('crian')) return 'crianca'; if(a.startsWith('adol')||a.startsWith('menor')) return 'adolescente'; return 'adulto'; }
@@ -161,7 +161,7 @@ function explainVar(id){
   let paras, rows;
   if(v.mode==='fixo'){
     paras=`Custo fixo do evento: não depende da quantidade de convidados. São ${c.qty} × ${toBRL(v.unitValue)}.`;
-    rows=[['Fórmula',`${c.qty} × ${toBRL(v.unitValue)} = ${toBRL(c.total)}`],['Quantidade',String(c.qty)],['Valor unitário',toBRL(v.unitValue)],['Total',toBRL(c.total)],['Por convidado', s.conf>0?toBRL(c.per):'—']];
+    rows=[['Fórmula',`${c.qty} × ${toBRL(v.unitValue)} = ${toBRL(c.total)}`],['Quantidade',`${c.qty} ${escapeHtml(v.unit.toLowerCase())}(s)`],['Custo de cada um',toBRL(v.unitValue)],['Total',toBRL(c.total)],['Impacto por convidado', s.conf>0?toBRL(c.per):'—']];
   } else {
     paras=`Foram considerados ${s.conf} convidado(s) confirmados (incluindo acompanhantes). Desses, ${s.drinkers} consomem bebida alcoólica e ${s.nonDrinkers} não consomem (${s.minors} menores). Este item é calculado para <strong>${AUD_LABEL[v.audience||'todos']}</strong> — ${c.target} pessoa(s) — usando o consumo médio configurado${c.marginPct?` e uma margem de segurança de ${fq(c.marginPct)}% para reduzir o risco de faltar`:''}.`;
     rows=[
@@ -411,7 +411,7 @@ function renderVarList(gsx, c){
       (fixo
         ? `<div class="vc-num"><div class="l">Quantidade</div><div class="v vc-qty-slot"></div></div>`
         : `<div class="vc-num"><div class="l">Necessário</div><div class="v">${fmtQ(qty)} ${escapeHtml(unitAbbr(v.unit))}</div></div>`)+
-      `<div class="vc-num"><div class="l">Por convidado</div><div class="v">${people>0?toBRL(per):'—'}</div></div>`+
+      `<div class="vc-num"><div class="l">${fixo?'Cada um':'Por convidado'}</div><div class="v">${fixo?toBRL(v.unitValue):(people>0?toBRL(per):'—')}</div></div>`+
       `<div class="vc-num"><div class="l">${fixo?'Total':'Total ('+target+' pessoas)'}</div><div class="v">${v.unitValue>0||fixo?toBRL(total):'—'}</div></div>`+
       `</div>`;
     row.querySelector('.vc-name').addEventListener('click',()=>editVar(v.id));
@@ -453,7 +453,7 @@ async function exportGuestsXLSX(){
     const ws=XLSX.utils.json_to_sheet(guestRowsForExport());
     ws['!cols']=[{wch:28},{wch:16},{wch:16},{wch:26},{wch:16},{wch:14},{wch:13},{wch:11},{wch:12},{wch:32}];
     const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Convidados');
-    XLSX.writeFile(wb,'Convidados-Carol-e-Marlon.xlsx');
+    XLSX.writeFile(wb,'Convidados-'+((state.settings.eventName||'Evento').replace(/[^\w]+/g,'-'))+'.xlsx');
     toast('Excel exportado','ok');
   }catch(e){ console.error(e); toast('Falha ao gerar o Excel. Verifique a conexão.','warn'); }
 }
@@ -464,7 +464,7 @@ function exportGuestsCSV(){
   const esc=v=>{ v=String(v==null?'':v); return /[";\n]/.test(v)?'"'+v.replaceAll('"','""')+'"':v; };
   const csv='\ufeff'+heads.join(';')+'\n'+rows.map(r=>heads.map(h=>esc(r[h])).join(';')).join('\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
-  const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='Convidados-Carol-e-Marlon.csv'; a.click(); URL.revokeObjectURL(url);
+  const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='Convidados-'+((state.settings.eventName||'Evento').replace(/[^\w]+/g,'-'))+'.csv'; a.click(); URL.revokeObjectURL(url);
   toast('CSV exportado','ok');
 }
 async function importGuestsXLSX(file){

@@ -6,7 +6,18 @@
    antes de qualquer função rodar (evita erro de "usado antes de definir").
    ═════════════════════════════════════════════════════════════════════ */
 
-function renderAll(){ syncVarLinkedItems(); const c=compute(); renderDashboard(c); renderFunds(c); renderItems(c); renderHistory(); renderGuestView(c); }
+/* Reflete o "Nome do evento" (Configurações) no cabeçalho e no <title>,
+   mantendo o subtítulo genérico. Vazio → mostra o nome do produto. */
+function applyEventName(){
+  const nm=(state.settings && state.settings.eventName || '').trim();
+  const h1=document.querySelector('.site-header h1');
+  const eb=document.querySelector('.site-header .eyebrow');
+  if(h1) h1.innerHTML = nm ? escapeHtml(nm) : 'Event <em>Manager</em>';
+  if(eb) eb.textContent = nm ? '✦ EventFlow ✦' : '✦ EventFlow ✦';
+  document.title = (nm ? nm+' — ' : '') + 'EventFlow';
+  const inp=el('event-name'); if(inp && document.activeElement!==inp) inp.value=nm;
+}
+function renderAll(){ applyEventName(); syncVarLinkedItems(); const c=compute(); renderDashboard(c); renderFunds(c); renderItems(c); renderHistory(); renderGuestView(c); }
 
 /* ═══════════ Boot ═══════════
    Ordem: 1) initState carrega/migra os dados; 2) os wirings ligam a interface;

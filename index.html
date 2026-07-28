@@ -10,7 +10,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Planner do Casamento — Orçamento</title>
+  <title>EventFlow — Gestão de Eventos</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -23,14 +23,14 @@
   <canvas id="bg"></canvas>
 
   <header class="site-header">
-    <p class="eyebrow">✦ Planner do Casamento ✦</p>
-    <h1>Orçamento <em>&amp; Pagamentos</em></h1>
-    <p class="sub">Controle valores, acompanhe o que já foi pago e o que falta. Tudo salvo no seu navegador.</p>
+    <p class="eyebrow">✦ EventFlow ✦</p>
+    <h1>Event <em>Manager</em></h1>
+    <p class="sub">Gestão financeira e de pessoas para qualquer evento — orçamento, aportes, pagamentos e convidados em um só lugar.</p>
   </header>
 
   <nav class="nav" aria-label="Navegação">
-    <a class="tab" href="#convidados" data-view="convidados">Convidados</a>
-    <a class="tab active" href="#orcamento" data-view="orcamento" aria-current="page">Orçamento</a>
+    <a class="tab" href="#convidados" data-view="convidados">Pessoas</a>
+    <a class="tab active" href="#orcamento" data-view="orcamento" aria-current="page">Financeiro</a>
   </nav>
 
   <div class="auth-bar" id="auth-bar" aria-live="polite">
@@ -187,6 +187,10 @@
         <div class="header-rule"></div>
       </div>
       <div class="settings-grid">
+        <label class="setting-item" style="grid-column:1/-1">
+          <span class="setting-label">Nome do evento (aparece no topo, no PDF e nos arquivos exportados)</span>
+          <input id="event-name" class="name-input" type="text" placeholder="Ex.: Casamento Carol & Marlon, Aniversário 15 anos, Confraternização…" style="margin-top:6px" />
+        </label>
         <label class="setting-item">
           <input type="checkbox" id="show-over" />
           <span class="setting-label">Mostrar coluna "Falta" como zero quando pago supera o total</span>
@@ -213,7 +217,7 @@
       <!-- PAINEL DE CONVIDADOS -->
       <section class="card" aria-labelledby="g-painel">
         <div class="card-header">
-          <h2 id="g-painel">Painel de Convidados</h2>
+          <h2 id="g-painel">Painel de Pessoas</h2>
           <div class="header-rule"></div>
           <button id="btn-explain" class="header-action" title="Como as estimativas foram calculadas">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
@@ -367,7 +371,7 @@
 
     <div class="brand">
       <span class="ring" aria-hidden="true"></span>
-      Planner do Casamento — Feito com amor
+      EventFlow — Gestão inteligente de eventos
       <span class="ring" aria-hidden="true"></span>
     </div>
   </main>
