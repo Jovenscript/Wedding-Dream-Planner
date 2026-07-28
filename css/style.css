@@ -922,3 +922,148 @@ html.cloud-wait::after {
   font-size: 14px; line-height: 1; filter: grayscale(1) opacity(.45); transition: all var(--transition); vertical-align: middle; }
 .beer-toggle:hover { border-color: var(--gold); transform: translateY(-1px); }
 .beer-toggle.on { filter: none; background: var(--gold-light); border-color: var(--gold); box-shadow: 0 2px 8px rgba(201,168,76,.25); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOBILE UX — experiência pensada para o celular (a maioria vai usar assim)
+   Estratégia: tabelas viram CARTÕES empilhados (nada de rolagem lateral),
+   formulários em coluna, alvos de toque ≥44px, tipografia e espaços ajustados.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 680px) {
+  /* Base mais confortável no toque */
+  html { -webkit-text-size-adjust: 100%; }
+  body { font-size: 15px; }
+  .container { padding-left: 12px; padding-right: 12px; }
+  .card { border-radius: var(--radius-md); margin-bottom: 16px; }
+
+  /* Cabeçalho do site menor */
+  .site-header { padding: 22px 0 6px; }
+  .site-header h1 { font-size: clamp(30px, 9vw, 40px); }
+  .site-header .sub { font-size: 13px; padding: 0 8px; }
+  .site-header .eyebrow { font-size: 10px; }
+
+  /* Navegação por abas: botões grandes, largura total, fixados no rodapé */
+  .nav { position: sticky; bottom: 0; z-index: 30; display: flex; gap: 8px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    margin: 0 -12px; background: rgba(250,248,243,.92); backdrop-filter: blur(10px);
+    border-top: 1px solid var(--olive-mist); box-shadow: 0 -4px 20px rgba(74,86,51,.08); }
+  .nav .tab { flex: 1; text-align: center; padding: 13px 8px; font-size: 14px; border-radius: var(--radius-md); }
+
+  /* Cabeçalho dos cards + botão de ação */
+  .card-header { flex-wrap: wrap; padding: 18px 16px 14px; }
+  .card-header h2 { font-size: 20px; }
+  .card-header .header-rule { display: none; }
+  .header-action { margin-left: auto; }
+  .header-action .ha-txt { display: inline; }
+
+  /* KPIs: 2 colunas, mais compactos */
+  .summary, .summary.three { grid-template-columns: 1fr 1fr !important; gap: 1px; }
+  .kpi { padding: 14px 14px; }
+  .kpi .value { font-size: 22px; }
+  .kpi .label { font-size: 10px; }
+
+  /* Painel financeiro: donut embaixo, largura total */
+  .dash-grid { grid-template-columns: 1fr !important; }
+  .donut-wrap { padding: 20px; }
+
+  /* Formulários: uma coluna, campos largos e altos (fáceis de tocar) */
+  .toolbar, .fund-form, .g-form, .g-filters { flex-direction: column; align-items: stretch; padding: 14px 16px; gap: 10px; }
+  .fund-form > *, .g-form > *, .toolbar > *, .g-filters > * { width: 100% !important; max-width: none !important; flex: none !important; }
+  .fund-form input, .fund-form select, .g-form input, .g-form select,
+  .money, .name-input, .field, textarea.field { min-height: 46px; font-size: 15px; }
+  .input-icon { width: 100%; }
+  .search-wrap { min-width: 0; }
+  .toolbar button, .fund-form button, .g-form button, .actions button { min-height: 46px; width: 100%; font-size: 15px; }
+  .import-label { justify-content: center; min-height: 46px; }
+  /* chips de filtro roláveis na horizontal, tamanho de toque */
+  .g-filters .chips, .hist-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { padding: 9px 14px; font-size: 13px; }
+
+  /* Botões de ação de linha maiores */
+  .btn-sm { padding: 10px 14px; font-size: 13px; }
+  .icon-btn { width: 40px; height: 40px; font-size: 16px; }
+  .wa-btn { min-height: 40px; padding: 9px 14px; }
+  .beer-toggle { width: 40px; height: 40px; font-size: 17px; }
+
+  /* ── TABELAS VIRAM CARTÕES ── */
+  table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  table, table tbody, table tr, table td { display: block; width: 100%; }
+  table tr {
+    background: var(--ivory-card); border: 1px solid var(--olive-mist);
+    border-radius: var(--radius-md); box-shadow: var(--shadow-card);
+    padding: 6px 14px 10px; margin-bottom: 12px;
+  }
+  table tr.quitado { border-left: 3px solid var(--ok); }
+  table td {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 9px 0; border: none; border-bottom: 1px dashed var(--olive-mist);
+    text-align: right; min-height: 40px;
+  }
+  table td:last-child { border-bottom: none; }
+  /* rótulo da coluna à esquerda de cada célula */
+  table td::before {
+    content: attr(data-label); text-align: left; flex: 0 0 40%;
+    font-size: 11px; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--ink-faint); font-weight: 600;
+  }
+  /* célula "Item/Convidado" em destaque, ocupa a linha toda */
+  table td[data-label="Item"], table td[data-label="Convidado"] { flex-wrap: wrap; }
+  table td[data-label="Item"]::before, table td[data-label="Convidado"]::before { flex-basis: 100%; margin-bottom: 4px; }
+  table td[data-label="Item"] .name, table td[data-label="Convidado"] { width: 100%; text-align: left; }
+  table td[data-label="Item"] .name-input { width: 100%; }
+  table td .money { width: 100%; max-width: 160px; text-align: right; }
+  /* ações do card: botões em linha, distribuídos */
+  table td[data-label="Ações"], table td[data-label="Ação"] { flex-wrap: wrap; justify-content: flex-end; }
+  table td[data-label="Ações"]::before, table td[data-label="Ação"]::before { flex-basis: 100%; margin-bottom: 6px; }
+  .row-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
+  .g-contact { align-items: flex-end; }
+
+  /* custos por convidado: cartão em coluna */
+  .vc-row { flex-direction: column; align-items: stretch; gap: 12px; }
+  .vc-row .vc-calc { justify-content: space-between; gap: 10px; }
+  .vc-row .vc-num { text-align: left; }
+
+  /* aportes empilhados */
+  .fund-row { flex-wrap: wrap; }
+  .fund-row .f-amt { margin-left: 0; }
+  .fund-row .row-actions { width: 100%; }
+
+  /* modais ocupam quase a tela e sobem de baixo */
+  .modal { max-width: 100%; width: 100%; border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    position: fixed; left: 0; right: 0; bottom: 0; max-height: 92vh; overflow-y: auto;
+    padding-bottom: calc(18px + env(safe-area-inset-bottom)); animation: sheetUp .28s cubic-bezier(.4,0,.2,1); }
+  .modal-backdrop { align-items: flex-end; }
+  .modal .modal-foot { position: sticky; bottom: 0; background: var(--ivory-card); padding-top: 12px; }
+  .modal .modal-foot button { min-height: 48px; flex: 1; }
+  @keyframes sheetUp { from { transform: translateY(100%);} to { transform: none; } }
+
+  /* barra de sessão (nuvem) compacta */
+  .auth-bar { flex-wrap: wrap; padding: 8px 12px; }
+
+  /* configurações: botões perigosos largos */
+  .actions { flex-direction: column; align-items: stretch; gap: 10px; }
+  #reset-all, #load-examples { width: 100%; }
+}
+
+/* Telas bem estreitas (iPhone SE, ~320px): KPIs em 1 coluna */
+@media (max-width: 380px) {
+  .summary, .summary.three { grid-template-columns: 1fr !important; }
+  .site-header h1 { font-size: 28px; }
+}
+
+/* Respeita o "notch"/safe-area em celulares modernos */
+@supports (padding: max(0px)) {
+  .container { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+}
+
+/* Login confortável no celular */
+@media (max-width: 680px) {
+  .auth-card { max-width: 100%; padding: 26px 20px calc(22px + env(safe-area-inset-bottom)); border-radius: var(--radius-lg); }
+  .auth-card .fld input { min-height: 48px; font-size: 16px; } /* 16px evita zoom automático no iOS */
+  .auth-card .actions-col button { min-height: 48px; font-size: 15px; }
+  .auth-links { flex-direction: column; gap: 10px; text-align: center; }
+}
+/* Inputs em 16px no mobile evitam o zoom-in automático do iOS ao focar */
+@media (max-width: 680px) {
+  input, select, textarea { font-size: 16px !important; }
+  .field.slim, select.field.slim { font-size: 14px !important; }
+}

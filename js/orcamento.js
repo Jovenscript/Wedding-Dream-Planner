@@ -166,34 +166,34 @@ function renderItems(c){
 
     const tdName=document.createElement('td');
     tdName.innerHTML=`<div class="name">${quit?'<span style="color:var(--ok)" aria-hidden="true">✓</span>':''}<input class="name-input" type="text" value="${escapeHtml(it.name)}" aria-label="Nome do item"></div>`;
-    row.appendChild(tdName);
+    tdName.setAttribute('data-label','Item'); row.appendChild(tdName);
 
-    const tdCat=document.createElement('td'); tdCat.innerHTML=`<span class="pill">${escapeHtml(it.category||'—')}</span>${it.varId?'<span class="auto-tag" title="Calculado pelos convidados confirmados — edite em Convidados › Custos por Convidado">auto</span>':''}`; row.appendChild(tdCat);
+    const tdCat=document.createElement('td'); tdCat.innerHTML=`<span class="pill">${escapeHtml(it.category||'—')}</span>${it.varId?'<span class="auto-tag" title="Calculado pelos convidados confirmados — edite em Convidados › Custos por Convidado">auto</span>':''}`; tdCat.setAttribute('data-label','Categoria'); row.appendChild(tdCat);
 
     const tdTotal=document.createElement('td');
     const totalInput=document.createElement('input'); totalInput.type='text'; totalInput.className='money'; totalInput.setAttribute('inputmode','decimal'); totalInput.setAttribute('aria-label','Valor total');
     if(it.varId){ totalInput.disabled=true; totalInput.title='Valor automático — calculado pelos convidados confirmados'; }
-    tdTotal.appendChild(totalInput); row.appendChild(tdTotal);
+    tdTotal.appendChild(totalInput); tdTotal.setAttribute('data-label','Valor total'); row.appendChild(tdTotal);
 
     const tdPaid=document.createElement('td');
     let tag=''; if(quit) tag='<span class="paid-tag full">Quitado</span>'; else if(p>0) tag='<span class="paid-tag partial">Pago parcial</span>';
     const spTag = (it.sponsor||(it.paidExt||0)>0) ? `<span class="pill" title="Pagamento de terceiro — não usa o seu saldo" style="margin-left:6px;background:var(--gold-light);color:var(--olive-dark)">paga: ${escapeHtml(it.sponsor||'terceiro')}</span>` : '';
     tdPaid.innerHTML=`<span class="money-falta">${toBRL(p)}</span>${tag}${spTag}`;
-    row.appendChild(tdPaid);
+    tdPaid.setAttribute('data-label','Pago'); row.appendChild(tdPaid);
 
     const tdLeft=document.createElement('td');
     const rawFalta=round2(t-p);
     const faltaShown=(rawFalta<0 && state.settings.showOver)?0:rawFalta;
     tdLeft.innerHTML=`<span class="money-falta">${toBRL(faltaShown)}</span>`;
-    row.appendChild(tdLeft);
+    tdLeft.setAttribute('data-label','Falta'); row.appendChild(tdLeft);
 
-    const st=statusOf(it); const tdStatus=document.createElement('td'); tdStatus.innerHTML=`<span class="status ${st.cls}">${st.label}</span>`; row.appendChild(tdStatus);
+    const st=statusOf(it); const tdStatus=document.createElement('td'); tdStatus.innerHTML=`<span class="status ${st.cls}">${st.label}</span>`; tdStatus.setAttribute('data-label','Status'); row.appendChild(tdStatus);
 
     const tdAct=document.createElement('td'); const acts=document.createElement('div'); acts.className='row-actions';
     if(remaining>0){ const pay=document.createElement('button'); pay.className='btn-sm'; pay.textContent='Pagar'; pay.addEventListener('click', ()=>payItem(it.id)); acts.appendChild(pay); }
     if(p>0){ const est=document.createElement('button'); est.className='ghost btn-sm'; est.textContent='Estornar'; est.addEventListener('click', ()=>estornoItem(it.id)); acts.appendChild(est); }
     if(!it.varId){ const del=document.createElement('button'); del.className='icon-btn'; del.title='Remover item'; del.setAttribute('aria-label','Remover item'); del.textContent='✕'; del.addEventListener('click', ()=>removeItem(it.id)); acts.appendChild(del); }
-    tdAct.appendChild(acts); row.appendChild(tdAct);
+    tdAct.setAttribute('data-label','Ações'); tdAct.appendChild(acts); row.appendChild(tdAct);
 
     tbody.appendChild(row);
 

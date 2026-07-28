@@ -458,14 +458,14 @@ function renderGuestView(c){
     const subTxt=[...prof, g.notes].filter(Boolean).join(' · ');
     tdName.innerHTML=`<button class="linklike" style="all:unset;cursor:pointer;font-weight:600;color:var(--ink)" title="Editar convidado">${escapeHtml(g.name)}</button>${subTxt?`<div class="g-sub">${escapeHtml(subTxt)}</div>`:''}`;
     tdName.querySelector('button').addEventListener('click',()=>editGuest(g.id));
-    tr.appendChild(tdName);
+    tdName.setAttribute('data-label','Convidado'); tr.appendChild(tdName);
 
     const tdC=document.createElement('td');
     tdC.innerHTML=`<div class="g-contact"><span class="ph">${escapeHtml(fmtPhone(g.whats||g.phone))||'<span style="color:var(--ink-faint)">sem telefone</span>'}</span>${g.email?`<span class="em">${escapeHtml(g.email)}</span>`:''}</div>`;
-    tr.appendChild(tdC);
+    tdC.setAttribute('data-label','Contato'); tr.appendChild(tdC);
 
-    const tdG=document.createElement('td'); tdG.innerHTML=g.group?`<span class="pill">${escapeHtml(g.group)}</span>`:'<span style="color:var(--ink-faint)">—</span>'; tr.appendChild(tdG);
-    const tdA=document.createElement('td'); tdA.textContent=g.companions?`+${g.companions}`:'—'; tr.appendChild(tdA);
+    const tdG=document.createElement('td'); tdG.innerHTML=g.group?`<span class="pill">${escapeHtml(g.group)}</span>`:'<span style="color:var(--ink-faint)">—</span>'; tdG.setAttribute('data-label','Grupo'); tr.appendChild(tdG);
+    const tdA=document.createElement('td'); tdA.textContent=g.companions?`+${g.companions}`:'—'; tdA.setAttribute('data-label','Acomp.'); tr.appendChild(tdA);
 
     const tdS=document.createElement('td');
     const sel=document.createElement('select'); sel.className='field slim'; sel.setAttribute('aria-label','Status de '+g.name);
@@ -481,7 +481,7 @@ function renderGuestView(c){
       bw.addEventListener('click',()=>{ g.drinks=!g.drinks; logHist('ajuste',`${g.name}: ${g.drinks?'bebe':'não bebe'} álcool`,0); save(); renderAll(); });
       tdS.appendChild(bw);
     }
-    tr.appendChild(tdS);
+    tdS.setAttribute('data-label','Status'); tr.appendChild(tdS);
 
     const tdAct=document.createElement('td'); const acts=document.createElement('div'); acts.className='row-actions';
     const wa=document.createElement('a'); wa.className='wa-btn'+(wnum?'':' is-disabled');
@@ -491,7 +491,7 @@ function renderGuestView(c){
     const cp=document.createElement('button'); cp.className='icon-btn'; cp.title='Copiar telefone'; cp.setAttribute('aria-label','Copiar telefone de '+g.name); cp.textContent='☎'; cp.addEventListener('click',()=>{ if(!g.phone&&!g.whats){ toast('Sem telefone cadastrado.','warn'); return;} copyText(fmtPhone(g.phone||g.whats),'Telefone copiado'); }); acts.appendChild(cp);
     const cm=document.createElement('button'); cm.className='icon-btn'; cm.title='Copiar mensagem de convite'; cm.setAttribute('aria-label','Copiar convite para '+g.name); cm.textContent='✉'; cm.addEventListener('click',()=>copyText(inviteMsgFor(g),'Convite copiado')); acts.appendChild(cm);
     const del=document.createElement('button'); del.className='icon-btn'; del.title='Remover convidado'; del.setAttribute('aria-label','Remover '+g.name); del.textContent='✕'; del.addEventListener('click',()=>removeGuest(g.id)); acts.appendChild(del);
-    tdAct.appendChild(acts); tr.appendChild(tdAct);
+    tdAct.setAttribute('data-label','Ações'); tdAct.appendChild(acts); tr.appendChild(tdAct);
     tbody.appendChild(tr);
   });
 
