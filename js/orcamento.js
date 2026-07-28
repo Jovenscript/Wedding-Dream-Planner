@@ -178,7 +178,7 @@ function renderDashboard(c){
 
 function renderFunds(c){
   const amtEl=el('saldo-amt'); amtEl.textContent=toBRL(c.saldo); amtEl.classList.toggle('neg', c.saldo<0);
-  el('saldo-sub').textContent = `Recursos ${toBRL(c.totalFunds)} − usados ${toBRL(c.usedFunds)}`;
+  el('saldo-sub').innerHTML = `Em caixa agora: <strong>${toBRL(c.saldo)}</strong>  ·  já pago: ${toBRL(c.paidOwn)}  ·  total reunido: ${toBRL(round2(c.saldo+c.paidOwn))}`;
   const list=el('fund-list');
   if(!state.funds.length){ list.innerHTML=`<div class="empty">Nenhum aporte ainda. Cadastre dinheiro guardado, valores a receber, contribuições e economias — tudo vira saldo disponível.</div>`; return; }
   list.innerHTML='';

@@ -149,10 +149,14 @@ function compute(){
   const usedFunds    = round2(state.funds.reduce((a,f)=>a+(f.used||0),0));     // recursos já gastos
   const saldo        = round2(totalFunds - usedFunds);                        // DINHEIRO EM CAIXA disponível
 
-  /* Cobertura do objetivo: quanto do previsto já está garantido =
-     o que já saiu do caixa (usedFunds) + o que ainda temos em caixa (saldo) +
-     o que terceiros bancam (paidExt). Isso é exatamente totalFunds + paidExt. */
-  const coverage       = round2(totalFunds + paidExt);
+  /* Cobertura do objetivo = TODO o dinheiro que conta para o casamento:
+     o que ainda temos em caixa (saldo) + o que JÁ gastamos dos recursos
+     (usedFunds) + o que terceiros bancam (paidExt).
+     saldo + usedFunds = totalFunds, então: coverage = totalFunds + paidExt...
+     MAS só quando usedFunds == paidOwn (invariante). Para ser à prova de
+     qualquer descasamento, somamos explicitamente o que já pagamos do nosso
+     bolso (paidOwn), que é o dinheiro que saiu de recursos e virou pagamento. */
+  const coverage       = round2(saldo + paidOwn + paidExt);
   const faltaArrecadar = Math.max(0, round2(totalExpense - coverage));         // quanto ainda precisa ENTRAR
   const surplus        = Math.max(0, round2(coverage - totalExpense));
 
