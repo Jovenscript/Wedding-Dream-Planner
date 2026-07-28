@@ -9,13 +9,9 @@
      4. Configurações do projeto → "Seus apps" → Web → copiar a config
      5. Colar abaixo no lugar do null e publicar
    ═════════════════════════════════════════════════════════════════════ */
-window.FIREBASE_CONFIG = null;
-const firebaseConfig = {
   apiKey: "AIzaSyAxbgXptautbR5Za8677fMolcWIRtr-D7c",
   authDomain: "wedding-dreams-71032.firebaseapp.com",
   projectId: "wedding-dreams-71032",
   storageBucket: "wedding-dreams-71032.firebasestorage.app",
   messagingSenderId: "789020951087",
   appId: "1:789020951087:web:faac7a215d284e472afcda"
-};
-window.WEDDING_ID = 'default';
