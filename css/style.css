@@ -1074,7 +1074,10 @@ html.cloud-wait::after {
 
 /* Ferramentas de administrador (dono do app) — reveladas só para e-mails autorizados */
 [hidden] { display: none !important; }
-.owner-tools { max-width: 1040px; margin: 22px auto 0; padding: 14px 20px; text-align: center;
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
+/* Ferramentas de administrador: OCULTAS por padrão. Só aparecem quando o
+   firebase-sync confirma um e-mail de dono e adiciona a classe .is-owner. */
+.owner-tools { display: none !important; }
+.owner-tools.is-owner { display: flex !important; max-width: 1040px; margin: 22px auto 0; padding: 14px 20px;
+  text-align: center; flex-direction: column; align-items: center; gap: 6px;
   border-top: 1px dashed var(--olive-mist); }
 .owner-hint { font-size: 11px; color: var(--ink-faint); }

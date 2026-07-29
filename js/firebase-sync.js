@@ -47,6 +47,7 @@
       const ot=el('owner-tools');
       if(ot){
         ot.hidden = !isOwner;
+        ot.classList.toggle('is-owner', isOwner);   // controle à prova de conflito de CSS
         if(isOwner){
           const imp=el('implant-all');
           if(imp && !imp.__wired){ imp.__wired=true; imp.addEventListener('click', async ()=>{
