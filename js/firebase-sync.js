@@ -54,7 +54,7 @@
             const ok = has
               ? await confirmDialog('Implementar tudo', 'Isto SUBSTITUI convidados, itens e custos atuais pelo preset completo do casamento. Aportes não são alterados. Continuar?', {danger:true, confirmText:'Implementar'})
               : await confirmDialog('Implementar tudo', 'Preenche o app com o preset completo do casamento (convidados por família, orçamento e custos). Continuar?', {danger:false, confirmText:'Implementar'});
-            if(!ok) return; implantarTudo(); renderAll(); if(typeof switchView==='function') switchView('convidados'); toast('Preset carregado — convidados, orçamento e custos','ok');
+            if(!ok) return; if(typeof window.presetCasamento==='function'){ window.presetCasamento(); } else { implantarTudo(); renderAll(); } toast('Preset carregado — convidados, orçamento e custos','ok');
           }); }
         }
       }

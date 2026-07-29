@@ -68,5 +68,5 @@ if(!window.FIREBASE_CONFIG){ maybeOnboard(); }
 window.__maybeOnboard = maybeOnboard;
 // Uso interno (sem botão visível): no console do navegador digite implantarTudo()
 // para carregar o preset do casamento Carol & Marlon. Invisível para clientes.
-try{ window.implantarTudo = ()=>{ implantarTudo(); renderAll(); toast('Preset carregado','ok'); }; }catch{}
+try{ window.presetCasamento = function(){ implantarTudo(); renderAll(); if(typeof switchView==='function') switchView('convidados'); toast('Preset carregado','ok'); }; }catch{}
 if(__boot.migrated && __boot.migrated.length) setTimeout(()=>toast(`${__boot.migrated.length} aporte(s) migrados dos itens antigos`,'ok'), 450);
