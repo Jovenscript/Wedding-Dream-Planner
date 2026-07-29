@@ -58,4 +58,8 @@ initState();
 initOrcamentoUI();
 initConvidadosUI();
 save(); renderAll();
+maybeOnboard();
+// Uso interno (sem botão visível): no console do navegador digite implantarTudo()
+// para carregar o preset do casamento Carol & Marlon. Invisível para clientes.
+try{ window.implantarTudo = ()=>{ implantarTudo(); renderAll(); toast('Preset carregado','ok'); }; }catch{}
 if(__boot.migrated && __boot.migrated.length) setTimeout(()=>toast(`${__boot.migrated.length} aporte(s) migrados dos itens antigos`,'ok'), 450);

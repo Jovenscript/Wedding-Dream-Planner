@@ -26,7 +26,7 @@ function seedItems(){ return DEFAULT_ITEMS.map(d=>({id:uid(), name:d.name, categ
    deixam de rodar no boot; ficam disponíveis apenas como ações manuais
    (ex.: botão "Carregar exemplos" / "Restaurar padrão"). */
 function blankState(){ const settings={showOver:true, strict:true, smart:{margin:10, hours:6, basis:'lista'}, seedItems:true, seedGuests:true, seedEventCosts:true, seedSmartV2:true}; return { items:[], funds:[], history:[], guests:[], varCosts:[], settings }; }
-function normFund(f){ const amount=Math.max(0,round2(f.amount)); return { id:f.id||uid(), name:f.name||'Aporte', type:f.type||'Outros', amount, used:Math.max(0,Math.min(amount,round2(f.used))), date:f.date||todayISO() }; }
+function normFund(f){ const amount=Math.max(0,round2(f.amount)); const o={ id:f.id||uid(), name:f.name||'Aporte', type:f.type||'Outros', amount, used:Math.max(0,Math.min(amount,round2(f.used))), date:f.date||todayISO() }; if(f.ownAuto) o.ownAuto=true; return o; }
 
 // Migração idempotente: aceita array antigo, {items,...} antigo ou o formato novo.
 // Itens legados que só serviam de "cofre" (total 0 e pago > 0) viram aportes automaticamente.
@@ -64,15 +64,24 @@ function migrate(raw){
   // Retrocompatibilidade: garante o invariante funds.used == items.paid.
   // Se ninguém tinha 'used' ainda, distribui o total pago entre os recursos.
   (function reconcileFunds(){
-    const paidOwn = round2(normItems.reduce((a,it)=>a+(it.paid||0),0));
-    let usedSum   = round2(outFunds.reduce((a,f)=>a+(f.used||0),0));
     if(outFunds.length===0) return;
-    if(Math.abs(usedSum - paidOwn) < 0.005) return;         // já coerente
-    outFunds.forEach(f=>f.used=0);                           // zera e redistribui
-    let rest = paidOwn;
-    for(const f of outFunds){ if(rest<=0) break; const take=Math.min(f.amount, rest); f.used=round2(take); rest=round2(rest-take); }
-    // Se pagamos mais do que há em recursos (raro), o excedente fica sem lastro
-    // e aparecerá como saldo negativo — coerente com a realidade.
+    const paidOwn = round2(normItems.reduce((a,it)=>a+(it.paid||0),0));
+    const usedSum = round2(outFunds.reduce((a,f)=>a+(f.used||0),0));
+    if(Math.abs(usedSum - paidOwn) < 0.005) return;             // já coerente
+    // Só age quando NINGUÉM tem 'used' ainda (dados antigos migrando 1x).
+    // Em vez de tirar dos aportes cadastrados, cria/usa um recurso "Recursos
+    // próprios" que representa dinheiro de vocês que já pagou coisas — mantendo
+    // os aportes reais (investido, presentes...) sem serem consumidos.
+    if(usedSum < 0.005 && paidOwn > 0.005){
+      let own = outFunds.find(f=>f.ownAuto);
+      if(!own){ own = normFund({name:'Recursos próprios (já usados)', type:'Próprios', amount:paidOwn, used:paidOwn}); own.ownAuto=true; outFunds.push(own); }
+      else { own.amount=round2(Math.max(own.amount, paidOwn)); own.used=round2(paidOwn); }
+      return;
+    }
+    // Caso já exista algum used mas desajustado, corrige suavemente sem estourar.
+    let diff = round2(paidOwn - usedSum);
+    if(diff>0){ for(const f of outFunds){ if(diff<=0) break; const room=round2((f.amount||0)-(f.used||0)); const add=Math.min(room, diff); if(add>0){ f.used=round2((f.used||0)+add); diff=round2(diff-add); } } }
+    else if(diff<0){ let give=-diff; for(const f of outFunds){ if(give<=0) break; const back=Math.min(f.used||0, give); if(back>0){ f.used=round2((f.used||0)-back); give=round2(give-back); } } }
   })();
   // ── Faxina de itens automáticos duplicados (ex.: sincronizações antigas da nuvem) ──
   (function dedupeAutoItems(){
