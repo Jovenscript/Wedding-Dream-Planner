@@ -42,7 +42,7 @@
       document.documentElement.classList.remove('cloud-wait');
       el('auth-email').textContent=u.email||'';
       // Contas de administrador (dono): liberam o "Implementar tudo".
-      const OWNERS=['marlonlindo0951@gmail.com','carol18bistafa@gmail.com','marlon0951@gmail.com'];
+      const OWNERS=['marlindo0951@gmail.com','carol18bistaffa@gmail.com','marlon0951@icloud.com'];
       const isOwner = OWNERS.includes((u.email||'').trim().toLowerCase());
       const ot=el('owner-tools');
       if(ot){
