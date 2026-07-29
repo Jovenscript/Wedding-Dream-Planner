@@ -15,7 +15,7 @@ function applyEventName(){
   if(h1) h1.innerHTML = nm ? escapeHtml(nm) : 'Event <em>Manager</em>';
   if(eb) eb.textContent = nm ? '✦ EventFlow ✦' : '✦ EventFlow ✦';
   document.title = (nm ? nm+' — ' : '') + 'EventFlow';
-  const inp=el('event-name'); if(inp && document.activeElement!==inp) inp.value=nm;
+  const inp=el('event-name'); if(inp && document.activeElement!==inp && inp.value!==nm) inp.value=nm;
 }
 function renderAll(){ applyEventName(); syncVarLinkedItems(); const c=compute(); renderDashboard(c); renderFunds(c); renderItems(c); renderHistory(); renderGuestView(c); }
 

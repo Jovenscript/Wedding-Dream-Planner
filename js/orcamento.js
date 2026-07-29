@@ -373,7 +373,15 @@ el('fund-add').addEventListener('click', addFundFromForm);
     });
     const evName=el('event-name');
     if(evName){ evName.value=(state.settings.eventName||''); 
-      evName.addEventListener('input', ()=>{ state.settings.eventName=evName.value.trim(); applyEventName(); save(); }); }
+      evName.addEventListener('input', ()=>{
+        state.settings.eventName=evName.value.trim();
+        // Atualiza só o cabeçalho e o título — NÃO chama applyEventName aqui,
+        // pois ela reescreve o próprio campo e dispararia 'input' em loop.
+        const nm=state.settings.eventName;
+        const h1=document.querySelector('.site-header h1'); if(h1) h1.innerHTML = nm ? escapeHtml(nm) : 'Event <em>Manager</em>';
+        document.title = (nm ? nm+' — ' : '') + 'EventFlow';
+        save();
+      }); }
     el('reset-all').addEventListener('click', async ()=>{
       const ok=await confirmDialog('Reset TOTAL do sistema', 'Isto apaga ABSOLUTAMENTE TUDO: itens, aportes, convidados, custos, histórico, configurações, nome do evento e o armazenamento local do navegador. Se estiver logado, a nuvem também fica vazia. Não dá para desfazer — exporte um backup (JSON) antes se quiser guardar. Deseja continuar?', {danger:true, confirmText:'Apagar tudo'});
       if(!ok) return;
