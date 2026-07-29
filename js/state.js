@@ -50,7 +50,7 @@ function migrate(raw){
       const f = normFund({name:it.name, type:'Outros', amount:p, date:it.paidAt||todayISO()});
       outFunds.push(f); migrated.push(f);
     } else {
-      normItems.push({ id:it.id||uid(), name:it.name||'Item', category:it.category||'Outros', total:t, paid:p, paidExt:Math.max(0,round2(it.paidExt)), sponsor:String(it.sponsor||'').trim(), paidAt:it.paidAt||null });
+      normItems.push({ id:it.id||uid(), name:it.name||'Item', category:it.category||'Outros', total:t, paid:p, paidExt:Math.max(0,round2(it.paidExt)), sponsor:String(it.sponsor||'').trim(), varId:it.varId||null, paidFrom:it.paidFrom||null, paidAt:it.paidAt||null });
     }
   });
   history = (history||[]).filter(h=>h&&typeof h==='object').map(h=>({ id:h.id||uid(), ts:h.ts||Date.now(), kind:h.kind||'ajuste', desc:h.desc||'', delta:round2(h.delta) }));
@@ -74,7 +74,39 @@ function migrate(raw){
     // Se pagamos mais do que há em recursos (raro), o excedente fica sem lastro
     // e aparecerá como saldo negativo — coerente com a realidade.
   })();
-  return { state:{ items:normItems, funds:outFunds, history, guests, varCosts, settings }, migrated };
+  // ── Faxina de itens automáticos duplicados (ex.: sincronizações antigas da nuvem) ──
+  (function dedupeAutoItems(){
+    const validVar=new Set((varCosts||[]).map(v=>v.id));
+    const byVar=new Map();            // varId -> item mantido (o primeiro)
+    const keep=[];
+    for(const it of normItems){
+      if(!it.varId){ keep.push(it); continue; }         // manual: mantém
+      const first=byVar.get(it.varId);
+      if(!first){
+        // primeiro deste varId
+        if(!validVar.has(it.varId) && !((it.paid||0)>0 || (it.paidExt||0)>0)){
+          continue;                                      // órfão sem pagamento: descarta
+        }
+        byVar.set(it.varId, it); keep.push(it);
+      } else {
+        // DUPLICADO: funde pagamentos no primeiro e descarta (NÃO cria manual novo)
+        first.paid    = round2((first.paid||0)    + (it.paid||0));
+        first.paidExt = round2((first.paidExt||0) + (it.paidExt||0));
+        if(it.sponsor && !first.sponsor) first.sponsor=it.sponsor;
+      }
+    }
+    // corrige pagamento que exceda o total, e converte órfãos remanescentes em manuais
+    for(const it of keep){
+      if(it.varId){
+        const cap=it.total||0;
+        if((it.paid||0)+(it.paidExt||0) > cap) it.paid=Math.max(0, round2(cap-(it.paidExt||0)));
+        if(!validVar.has(it.varId)) delete it.varId;     // custo sumiu, mas tinha pagamento → vira manual único
+      }
+    }
+    normItems.length=0; normItems.push(...keep);
+  })();
+  const built = { items:normItems, funds:outFunds, history, guests, varCosts, settings };
+  return { state: built, migrated };
 }
 function loadState(){
   try{ const s=localStorage.getItem(STORE);  if(s) return migrate(JSON.parse(s)); }catch{}

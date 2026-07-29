@@ -193,14 +193,14 @@ function buildFullSetup(){
         preservado no item automático correspondente (ver montagem em 4). */
   const varCosts = [
     normVar({name:'Comida',              category:'Gastronomia', mode:'var', unit:'Pessoa',  unitValue:65, perGuest:1,   audience:'todos',     useMargin:false, sync:true, notes:'R$ 65 por pessoa da lista.'}),
-    normVar({name:'Chopp',               category:'Bebidas',     mode:'var', unit:'Litro',   unitValue:23, perGuest:1,   audience:'bebem',     useMargin:true,  sync:true, notes:'Só adultos que bebem · margem de segurança.'}),
+    normVar({name:'Chopp',               category:'Bebidas',     mode:'var', unit:'Litro',   unitValue:23, perGuest:2,   audience:'bebem',     useMargin:true,  sync:true, notes:'2 L por adulto que bebe · margem de segurança.'}),
     normVar({name:'Refrigerante (lata)', category:'Bebidas',     mode:'var', unit:'Lata',    unitValue:8,  perGuest:1,   audience:'todos',     useMargin:true,  sync:true, notes:'Todos da lista (crianças bebem mais; adultos que bebem álcool, menos — na média, 1 lata/pessoa).'}),
     normVar({name:'Água (garrafa)',      category:'Bebidas',     mode:'var', unit:'Garrafa', unitValue:5,  perGuest:1,   audience:'todos',     useMargin:true,  sync:true, notes:'Todos da lista.'}),
     // Fixos do evento por quantidade:
-    normVar({name:'Garçom',              category:'Serviços', mode:'fixo', unit:'Unidade', unitValue:270, qty:4, sync:true, notes:'R$ 1.080 = 4 × R$ 270.'}),
+    normVar({name:'Garçom',              category:'Serviços', mode:'fixo', unit:'Unidade', unitValue:220, qty:5, sync:true, notes:'5 garçons × R$ 220.'}),
     normVar({name:'Zeladora',            category:'Serviços', mode:'fixo', unit:'Unidade', unitValue:350, qty:1, sync:true}),
     normVar({name:'Café',                category:'Alimentação', mode:'fixo', unit:'Unidade', unitValue:350, qty:1, sync:true}),
-    normVar({name:'E-cad',               category:'Outros',   mode:'fixo', unit:'Unidade', unitValue:450, qty:1, sync:true})
+    normVar({name:'E-cad',               category:'Outros',   mode:'fixo', unit:'Unidade', unitValue:350, qty:1, sync:true})
   ];
 
   /* 3) Pagamentos já feitos nos itens VARIÁVEIS (preservados no item auto).
@@ -390,17 +390,30 @@ function explainVar(id){
 /* Sincronização: custo variável ↔ item automático no orçamento */
 function syncVarLinkedItems(){
   const gsx=guestStats();
-  state.varCosts.forEach(v=>{
-    let it=state.items.find(x=>x.varId===v.id);
-    if(v.sync){
-      const {total}=varCalc(v,gsx);
-      if(!it){ it={id:uid(), varId:v.id, name:v.name, category:v.category, total, paid:0, paidAt:null}; state.items.push(it); }
-      else { it.name=v.name; it.category=v.category; if(Math.abs((it.total||0)-total)>0.004){ it.total=total; if(state.settings.strict && (it.paid||0)>it.total) it.paid=it.total; } }
-    } else if(it){ if((it.paid||0)>0){ delete it.varId; } else { state.items=state.items.filter(x=>x!==it); } }
+  const validIds=new Set(state.varCosts.filter(v=>v.sync).map(v=>v.id));
+  // 1) Remove QUALQUER item automático órfão ou duplicado (mantém só 1 por varId)
+  const seen=new Set();
+  state.items = state.items.filter(it=>{
+    if(!it.varId) return true;                         // item manual: mantém
+    if(!validIds.has(it.varId)){                       // custo desligado/removido
+      if((it.paid||0)>0 || (it.paidExt||0)>0){ delete it.varId; return true; } // tinha pagamento → vira manual
+      return false;                                    // sem pagamento → descarta
+    }
+    if(seen.has(it.varId)){                             // DUPLICADO do mesmo custo → funde
+      return false;
+    }
+    seen.add(it.varId); return true;
   });
-  state.items=state.items.filter(it=>!it.varId || state.varCosts.some(v=>v.id===it.varId && v.sync));
+  // 2) Cria/atualiza um item por custo sincronizado
+  state.varCosts.forEach(v=>{
+    if(!v.sync) return;
+    let it=state.items.find(x=>x.varId===v.id);
+    const {total}=varCalc(v,gsx);
+    if(!it){ it={id:uid(), varId:v.id, name:v.name, category:v.category, total, paid:0, paidExt:0, sponsor:'', paidFrom:null, paidAt:null}; state.items.push(it); }
+    else { it.name=v.name; it.category=v.category;
+      if(Math.abs((it.total||0)-total)>0.004){ it.total=total; if(state.settings.strict && (it.paid||0)+(it.paidExt||0)>it.total) it.paid=Math.max(0, round2(it.total-(it.paidExt||0))); } }
+  });
 }
-
 /* ── CRUD convidados ── */
 function addGuestFromForm(){
   const name=(el('g-name').value||'').trim();

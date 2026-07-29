@@ -84,8 +84,8 @@ function modal(opts){
     const firstKey = fields[0] && fields[0].key; if(firstKey) setTimeout(()=>inputs[firstKey].focus(), 60);
   });
 }
-async function confirmDialog(title, message, { danger=true, confirmText='Confirmar', note='' }={}){
-  const r = await modal({ title, message, note, danger, confirmText, cancelText:'Cancelar' });
+async function confirmDialog(title, message, { danger=true, confirmText='Confirmar', cancelText='Cancelar', note='' }={}){
+  const r = await modal({ title, message, note, danger, confirmText, cancelText });
   return !!r;
 }
 

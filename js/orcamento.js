@@ -388,6 +388,10 @@ el('fund-add').addEventListener('click', addFundFromForm);
       evName.addEventListener('input', ()=>{ state.settings.eventName=evName.value.trim(); applyEventName(); save(); }); }
     el('reset-all').addEventListener('click', async ()=>{
       const ok=await confirmDialog('Reset TOTAL do sistema', 'Isto apaga ABSOLUTAMENTE TUDO: itens, aportes, convidados, custos, histórico, configurações, nome do evento e o armazenamento local do navegador. Se estiver logado, a nuvem também fica vazia. Não dá para desfazer — exporte um backup (JSON) antes se quiser guardar. Deseja continuar?', {danger:true, confirmText:'Apagar tudo'});
-      if(!ok) return; resetTotal(); toast('Sistema restaurado de fábrica','ok'); setTimeout(()=>location.reload(), 900);
+      if(!ok) return;
+      if(window.__cloudReset){ toast('Apagando tudo…'); await window.__cloudReset(); }  // apaga na nuvem e aguarda
+      else { resetTotal(); }
+      try{ localStorage.removeItem('@wedding_planner_v3'); localStorage.removeItem('@wedding_planner_v2'); }catch{}
+      location.reload();
     });
 } /* fim initOrcamentoUI */

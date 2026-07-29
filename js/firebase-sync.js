@@ -88,6 +88,17 @@
     }, 900);
   };
 
+  // Reset total à prova de nuvem: cancela a escuta, apaga o documento e
+  // bloqueia novos saves até a página recarregar (senão o onSnapshot repovoa).
+  window.__cloudReset=async function(){
+    try{
+      if(unsub){ unsub(); unsub=null; }
+      applyingRemote=true;                 // trava __cloudSave
+      clearTimeout(saveTimer);
+      if(ref) await ref.delete();
+    }catch(e){ console.error(e); }
+  };
+
   el('auth-logout').addEventListener('click', async ()=>{
     const ok=await confirmDialog('Sair da conta','Seus dados continuam salvos na nuvem e também neste aparelho.',{danger:false, confirmText:'Sair'});
     if(ok) firebase.auth().signOut();
