@@ -21,10 +21,13 @@ function renderAll(){ applyEventName(); syncVarLinkedItems(); const c=compute();
 
 /* Primeiro acesso: faz perguntas básicas para o cliente configurar o evento.
    Só aparece uma vez (settings.onboarded) e quando o app está vazio. */
+let __onboarding=false;
 async function maybeOnboard(){
+  if(__onboarding) return;                       // não abre duas vezes
   if(state.settings.onboarded) return;
   const vazio = !state.items.length && !state.guests.length && !state.funds.length;
   if(!vazio){ state.settings.onboarded=true; save(); return; }
+  __onboarding=true;
   const res=await modal({
     title:'Bem-vindo(a) ao EventFlow 🎉',
     message:'Vamos configurar seu evento em segundos. Você pode mudar tudo depois.',
@@ -45,6 +48,7 @@ async function maybeOnboard(){
   }
   state.settings.onboarded=true;
   save(); renderAll();
+  __onboarding=false;
   // oferece carregar exemplos para o cliente ver o app preenchido
   const go=await confirmDialog('Quer um ponto de partida?', 'Posso carregar itens típicos e custos de referência (chope, comida, bolo…) para você só ajustar os valores. Ou começar em branco.', {danger:false, confirmText:'Carregar exemplos', cancelText:'Começar em branco'});
   if(go){ loadExampleData(); renderAll(); toast('Exemplos carregados — ajuste os valores','ok'); }
@@ -58,7 +62,10 @@ initState();
 initOrcamentoUI();
 initConvidadosUI();
 save(); renderAll();
-maybeOnboard();
+// Onboarding: em modo LOCAL roda já; em modo NUVEM, o firebase-sync dispara
+// window.__maybeOnboard() só DEPOIS de baixar os dados (evita o modal piscar/travar).
+if(!window.FIREBASE_CONFIG){ maybeOnboard(); }
+window.__maybeOnboard = maybeOnboard;
 // Uso interno (sem botão visível): no console do navegador digite implantarTudo()
 // para carregar o preset do casamento Carol & Marlon. Invisível para clientes.
 try{ window.implantarTudo = ()=>{ implantarTudo(); renderAll(); toast('Preset carregado','ok'); }; }catch{}

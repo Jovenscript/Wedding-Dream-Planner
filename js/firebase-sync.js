@@ -41,6 +41,23 @@
       if(!u){ location.replace('login.html'); return; }
       document.documentElement.classList.remove('cloud-wait');
       el('auth-email').textContent=u.email||'';
+      // Contas de administrador (dono): liberam o "Implementar tudo".
+      const OWNERS=['marlindo0951@gmail.com','carol18bistaffa@gmail.com','marlon0951@icloud.com'];
+      const isOwner = OWNERS.includes((u.email||'').trim().toLowerCase());
+      const ot=el('owner-tools');
+      if(ot){
+        ot.hidden = !isOwner;
+        if(isOwner){
+          const imp=el('implant-all');
+          if(imp && !imp.__wired){ imp.__wired=true; imp.addEventListener('click', async ()=>{
+            const has = state.guests.length || state.items.length || state.varCosts.length;
+            const ok = has
+              ? await confirmDialog('Implementar tudo', 'Isto SUBSTITUI convidados, itens e custos atuais pelo preset completo do casamento. Aportes não são alterados. Continuar?', {danger:true, confirmText:'Implementar'})
+              : await confirmDialog('Implementar tudo', 'Preenche o app com o preset completo do casamento (convidados por família, orçamento e custos). Continuar?', {danger:false, confirmText:'Implementar'});
+            if(!ok) return; implantarTudo(); toast('Preset carregado','ok');
+          }); }
+        }
+      }
       bar.classList.add('show');
       ref=db.collection('users').doc(u.uid).collection('weddings').doc(window.WEDDING_ID);
       await cloudLoad();
@@ -55,6 +72,8 @@
       const snap=await ref.get();
       if(snap.exists){ applyRemote(snap.data()); toast('Dados carregados da nuvem','ok'); }
       else { await push(); toast('Seus dados locais foram enviados para a nuvem','ok'); }
+      // Só agora (dados prontos) oferecemos o onboarding, sem piscar/travar
+      if(window.__maybeOnboard) setTimeout(()=>window.__maybeOnboard(), 300);
       if(unsub) unsub();
       unsub=ref.onSnapshot(s=>{
         if(!s.exists || s.metadata.hasPendingWrites) return;      // ignora eco local
