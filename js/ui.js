@@ -10,7 +10,7 @@
 /* ═══════════ Toast ═══════════ */
 const toastStack = el('toast-stack');
 function toast(msg, kind='ok'){
-  const t = document.createElement('div'); t.className = 'toast '+(kind||'');
+  const t = document.createElement('div'); t.className = 'toast '+(kind||''); t.setAttribute('role', kind==='warn'?'alert':'status'); t.setAttribute('aria-live', kind==='warn'?'assertive':'polite');
   t.innerHTML = `<span class="dot"></span><span>${escapeHtml(msg)}</span>`;
   toastStack.appendChild(t);
   requestAnimationFrame(()=>t.classList.add('show'));
@@ -23,7 +23,7 @@ function modal(opts){
   return new Promise(resolve=>{
     const { title='', message='', fields=[], note='', confirmText='Confirmar', cancelText='Cancelar', danger=false, validate, dynamicNote } = opts;
     mBackdrop.innerHTML = '';
-    const box  = document.createElement('div'); box.className='modal';
+    const box  = document.createElement('div'); box.className='modal'; box.setAttribute('role','dialog'); box.setAttribute('aria-modal','true'); box.setAttribute('aria-label', title||'Janela');
     const head = document.createElement('div'); head.className='modal-head'; head.innerHTML = `<h3>${escapeHtml(title)}</h3>`;
     const body = document.createElement('div'); body.className='modal-body';
     if(message){ const p=document.createElement('p'); p.style.cssText='font-size:14px;color:var(--ink-muted);line-height:1.55'; p.textContent=message; body.appendChild(p); }

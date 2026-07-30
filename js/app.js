@@ -6,6 +6,21 @@
    antes de qualquer função rodar (evita erro de "usado antes de definir").
    ═════════════════════════════════════════════════════════════════════ */
 
+/* Contagem regressiva: se há data do evento, mostra "faltam X dias" no topo. */
+function applyCountdown(){
+  const cd=el('countdown'); if(!cd) return;
+  const d=(state.settings&&state.settings.eventDate)||'';
+  const di=el('event-date'); if(di && document.activeElement!==di && di.value!==d) di.value=d;
+  if(!d){ cd.hidden=true; return; }
+  const target=new Date(d+'T00:00:00'); const now=new Date(); now.setHours(0,0,0,0);
+  const days=Math.round((target-now)/86400000);
+  cd.classList.remove('today');
+  if(days>1) cd.innerHTML=`✦ Faltam <span class="cd-num">${days}</span> dias para o grande dia`;
+  else if(days===1) cd.innerHTML=`✦ É amanhã! <span class="cd-num">1</span> dia`;
+  else if(days===0){ cd.innerHTML=`🎉 É hoje! Aproveite cada momento`; cd.classList.add('today'); }
+  else cd.innerHTML=`✦ Evento realizado há <span class="cd-num">${Math.abs(days)}</span> dias`;
+  cd.hidden=false;
+}
 /* Reflete o "Nome do evento" (Configurações) no cabeçalho e no <title>,
    mantendo o subtítulo genérico. Vazio → mostra o nome do produto. */
 function applyEventName(){
@@ -17,7 +32,7 @@ function applyEventName(){
   document.title = (nm ? nm+' — ' : '') + 'EventFlow';
   const inp=el('event-name'); if(inp && document.activeElement!==inp && inp.value!==nm) inp.value=nm;
 }
-function renderAll(){ applyEventName(); syncVarLinkedItems(); const c=compute(); renderDashboard(c); renderFunds(c); renderItems(c); renderHistory(); renderGuestView(c); }
+function renderAll(){ applyEventName(); applyCountdown(); syncVarLinkedItems(); const c=compute(); renderDashboard(c); renderFunds(c); renderItems(c); renderHistory(); renderGuestView(c); }
 
 /* Primeiro acesso: faz perguntas básicas para o cliente configurar o evento.
    Só aparece uma vez (settings.onboarded) e quando o app está vazio. */
@@ -69,4 +84,12 @@ window.__maybeOnboard = maybeOnboard;
 // Uso interno (sem botão visível): no console do navegador digite implantarTudo()
 // para carregar o preset do casamento Carol & Marlon. Invisível para clientes.
 try{ window.presetCasamento = function(){ implantarTudo(); renderAll(); if(typeof switchView==='function') switchView('convidados'); toast('Preset carregado','ok'); }; }catch{}
+// PWA: registra o service worker (app instalável + offline). Falha silenciosa em file://
+// Atalho de teclado: "/" foca a busca de convidados (padrão de apps profissionais)
+document.addEventListener('keydown', function(e){ /* keydown-global */
+  if(e.key==='/' && !/INPUT|TEXTAREA|SELECT/.test((e.target&&e.target.tagName)||'')){
+    const s=el('g-search'); if(s){ e.preventDefault(); if(location.hash!=='#convidados'&&typeof switchView==='function') switchView('convidados'); s.focus(); }
+  }
+});
+if('serviceWorker' in navigator){ try{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }catch{} }
 if(__boot.migrated && __boot.migrated.length) setTimeout(()=>toast(`${__boot.migrated.length} aporte(s) migrados dos itens antigos`,'ok'), 450);

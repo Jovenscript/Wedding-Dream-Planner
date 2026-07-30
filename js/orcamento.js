@@ -150,6 +150,12 @@ async function payItem(id){
 function setKPI(id, val, cls){ const n=el(id); if(!n) return; n.textContent=val; n.classList.remove('pos','neg','accent'); if(cls) n.classList.add(cls); }
 
 function renderDashboard(c){
+  // Marco: 100% pago → comemora uma vez
+  try{
+    const done = c.totalExpense>0 && c.pending<=0.005;
+    if(done && !state.settings.__celebratedPaid){ state.settings.__celebratedPaid=true; setTimeout(()=>{ celebrate(); toast('Parabéns! Tudo pago 🎉','ok'); }, 200); save(); }
+    if(!done && state.settings.__celebratedPaid){ state.settings.__celebratedPaid=false; }
+  }catch{}
   setKPI('k-total',  toBRL(c.totalExpense));
   setKPI('k-paid',   toBRL(c.totalPaid));
   setKPI('k-pending',toBRL(c.pending));
@@ -371,8 +377,14 @@ el('fund-add').addEventListener('click', addFundFromForm);
       const ok=await confirmDialog('Carregar exemplos', 'Adiciona itens típicos de casamento e custos de referência (com estimativas inteligentes). Seus dados atuais são mantidos. Convidados não são alterados.', {danger:false, confirmText:'Carregar'});
       if(!ok) return; loadExampleData(); renderAll(); toast('Exemplos carregados','ok');
     });
+    const soundTog=el('sound-toggle');
+    if(soundTog){ soundTog.checked = state.settings.sound!==false;
+      soundTog.addEventListener('change', ()=>{ state.settings.sound=soundTog.checked; save(); if(soundTog.checked) toast('Sons ativados','ok'); }); }
     const evName=el('event-name');
     if(evName){ evName.value=(state.settings.eventName||''); 
+      const evDate=el('event-date');
+      if(evDate){ evDate.value=(state.settings.eventDate||'');
+        evDate.addEventListener('change', ()=>{ state.settings.eventDate=evDate.value; applyCountdown(); save(); }); }
       evName.addEventListener('input', ()=>{
         state.settings.eventName=evName.value.trim();
         // Atualiza só o cabeçalho e o título — NÃO chama applyEventName aqui,
@@ -382,6 +394,32 @@ el('fund-add').addEventListener('click', addFundFromForm);
         document.title = (nm ? nm+' — ' : '') + 'EventFlow';
         save();
       }); }
+    // Backup: exporta todo o estado como JSON com data no nome
+    const be=el('backup-export');
+    if(be) be.addEventListener('click', ()=>{
+      const data={ __eventflow:true, version:3, exportedAt:new Date().toISOString(),
+        items:state.items, funds:state.funds, guests:state.guests, varCosts:state.varCosts, history:state.history, settings:state.settings };
+      const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+      const nm=(state.settings.eventName||'evento').replace(/[^\w]+/g,'-');
+      a.download=`backup-${nm}-${new Date().toISOString().slice(0,10)}.json`; a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+      toast('Backup exportado ✓','ok');
+    });
+    // Restauração: lê o JSON e substitui o estado (com confirmação)
+    const bf=el('backup-file');
+    if(bf) bf.addEventListener('change', async (e)=>{
+      const file=e.target.files&&e.target.files[0]; if(!file) return;
+      try{
+        const txt=await file.text(); const data=JSON.parse(txt);
+        if(!data || (!data.items && !data.guests && !data.funds)) throw new Error('formato');
+        const ok=await confirmDialog('Restaurar backup', `Isto vai SUBSTITUIR todos os dados atuais pelos do arquivo “${file.name}”. Deseja continuar?`, {danger:true, confirmText:'Restaurar'});
+        if(!ok){ bf.value=''; return; }
+        const m=migrate(data); state=m.state; save(); renderAll();
+        toast('Backup restaurado ✓','ok');
+      }catch(err){ toast('Arquivo inválido — selecione um backup exportado por este app.','warn'); }
+      bf.value='';
+    });
     el('reset-all').addEventListener('click', async ()=>{
       const ok=await confirmDialog('Reset TOTAL do sistema', 'Isto apaga ABSOLUTAMENTE TUDO: itens, aportes, convidados, custos, histórico, configurações, nome do evento e o armazenamento local do navegador. Se estiver logado, a nuvem também fica vazia. Não dá para desfazer — exporte um backup (JSON) antes se quiser guardar. Deseja continuar?', {danger:true, confirmText:'Apagar tudo'});
       if(!ok) return;

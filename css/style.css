@@ -1081,3 +1081,10 @@ html.cloud-wait::after {
   text-align: center; flex-direction: column; align-items: center; gap: 6px;
   border-top: 1px dashed var(--olive-mist); }
 .owner-hint { font-size: 11px; color: var(--ink-faint); }
+
+/* Contagem regressiva para o evento */
+.countdown { display: inline-flex; align-items: center; gap: 8px; margin: 10px auto 0;
+  padding: 7px 16px; border-radius: 999px; background: var(--gold-light); color: var(--olive-dark);
+  font-size: 13px; font-weight: 600; border: 1px solid var(--gold); animation: fadeInUp .3s ease; }
+.countdown .cd-num { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 700; }
+.countdown.today { background: var(--olive); color: var(--ivory); border-color: var(--olive-dark); }

@@ -430,13 +430,13 @@ async function editGuest(id){
     title:`Editar — ${g.name}`,
     fields:[
       {key:'name',  label:'Nome completo', value:g.name},
-      {key:'phone', label:'Telefone', value:g.phone},
-      {key:'whats', label:'WhatsApp (se for outro número)', value:g.whats},
+      {key:'phone', label:'Telefone / WhatsApp', value:g.phone||g.whats},
+      {key:'whats', label:'WhatsApp (só se for número diferente do telefone)', value:(g.whats&&g.whats!==g.phone)?g.whats:''},
       {key:'email', label:'E-mail (opcional)', value:g.email},
       {key:'group', label:'Família / grupo', value:g.group},
-      {key:'companions', label:'Acompanhantes', type:'number', value:g.companions},
-      {key:'ageGroup', label:'Faixa etária', type:'select', options:['Adulto','Adolescente','Criança'], value:g.ageGroup==='crianca'?'Criança':(g.ageGroup==='adolescente'?'Adolescente':'Adulto')},
-      {key:'drinks', label:'Consome bebida alcoólica?', type:'select', options:['Sim','Não'], value:g.drinks?'Sim':'Não'},
+      {key:'companions', label:'Acompanhantes (nº de pessoas a mais)', type:'number', value:g.companions},
+      {key:'ageGroup', label:'Faixa etária', type:'select', options:['Adulto','Adolescente','Criança','Bebê'], value:({bebe:'Bebê',crianca:'Criança',adolescente:'Adolescente',adulto:'Adulto'})[g.ageGroup]||'Adulto'},
+      {key:'drinks', label:'Bebe cerveja/chope? (só vale para adultos)', type:'select', options:['Sim','Não'], value:g.drinks?'Sim':'Não'},
       {key:'status', label:'Confirmação', type:'select', options:['Pendente','Confirmado','Não irá'], value:G_STATUS[g.status].label},
       {key:'notes', label:'Observações', type:'textarea', value:g.notes}
     ],
@@ -444,8 +444,8 @@ async function editGuest(id){
     validate:v=>{ if(!(v.name||'').trim()) return 'O nome não pode ficar vazio.'; return null; }
   });
   if(!res) return;
-  Object.assign(g, normGuest({ ...g, ...res, whats:res.whats||res.phone }));
-  save(); renderAll(); toast('Convidado atualizado');
+  Object.assign(g, normGuest({ ...g, ...res, phone:res.phone, whats:(res.whats||'').trim()||res.phone }));
+  save(); renderAll(); toast('Convidado atualizado ✓','ok');
 }
 async function removeGuest(id){
   const g=state.guests.find(x=>x.id===id); if(!g) return;
@@ -617,6 +617,7 @@ function renderGuestView(c){
     wa.innerHTML=`<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2a9.9 9.9 0 0 0-8.4 15.2L2 22l4.93-1.58A9.9 9.9 0 1 0 12.04 2Zm0 18.06a8.1 8.1 0 0 1-4.13-1.13l-.3-.18-2.93.94.96-2.86-.2-.3a8.13 8.13 0 1 1 6.6 3.53Zm4.45-6.08c-.24-.12-1.44-.71-1.66-.79-.22-.08-.39-.12-.55.12-.16.24-.63.79-.77.95-.14.16-.28.18-.53.06-.24-.12-1.03-.38-1.96-1.21-.72-.64-1.21-1.44-1.35-1.68-.14-.24-.02-.37.11-.5.11-.11.24-.28.37-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.55-1.32-.75-1.81-.2-.48-.4-.41-.55-.42h-.47c-.16 0-.42.06-.65.3-.22.24-.85.83-.85 2.03s.87 2.36 1 2.52c.12.16 1.72 2.62 4.16 3.68.58.25 1.03.4 1.39.51.58.19 1.11.16 1.53.1.47-.07 1.44-.59 1.64-1.16.2-.57.2-1.05.14-1.16-.06-.1-.22-.16-.46-.28Z"/></svg><span>WhatsApp</span>`;
     if(wnum){ wa.href=`https://wa.me/${wnum}?text=${encodeURIComponent(inviteMsgFor(g))}`; wa.target='_blank'; wa.rel='noopener'; } else wa.title='Cadastre um telefone para abrir o WhatsApp';
     acts.appendChild(wa);
+    const ed=document.createElement('button'); ed.className='icon-btn'; ed.title='Editar convidado'; ed.setAttribute('aria-label','Editar '+g.name); ed.textContent='✎'; ed.addEventListener('click',()=>editGuest(g.id)); acts.appendChild(ed);
     const cp=document.createElement('button'); cp.className='icon-btn'; cp.title='Copiar telefone'; cp.setAttribute('aria-label','Copiar telefone de '+g.name); cp.textContent='☎'; cp.addEventListener('click',()=>{ if(!g.phone&&!g.whats){ toast('Sem telefone cadastrado.','warn'); return;} copyText(fmtPhone(g.phone||g.whats),'Telefone copiado'); }); acts.appendChild(cp);
     const cm=document.createElement('button'); cm.className='icon-btn'; cm.title='Copiar mensagem de convite'; cm.setAttribute('aria-label','Copiar convite para '+g.name); cm.textContent='✉'; cm.addEventListener('click',()=>copyText(inviteMsgFor(g),'Convite copiado')); acts.appendChild(cm);
     const del=document.createElement('button'); del.className='icon-btn'; del.title='Remover convidado'; del.setAttribute('aria-label','Remover '+g.name); del.textContent='✕'; del.addEventListener('click',()=>removeGuest(g.id)); acts.appendChild(del);

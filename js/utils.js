@@ -47,3 +47,45 @@ function placeCaretAtEnd(el){ const len=el.value.length; el.setSelectionRange(le
 function fmtDateTime(ts){ const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`; }
 function fmtDate(iso){ if(!iso) return ''; const d=new Date(String(iso).length<=10?iso+'T00:00:00':iso); if(isNaN(d)) return ''; const p=n=>String(n).padStart(2,'0'); return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}`; }
 const el = id => document.getElementById(id);
+
+
+/* Feedback sonoro sutil (Web Audio — sem arquivos externos). Um "tim" curto para
+   sucesso e um tom grave para aviso. Respeita a preferência do usuário (settings.sound). */
+let __audioCtx=null;
+function playChime(kind){
+  try{
+    if(typeof state!=='undefined' && state.settings && state.settings.sound===false) return;
+    __audioCtx = __audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    const ctx=__audioCtx, now=ctx.currentTime;
+    const notes = kind==='warn' ? [330] : kind==='ok' ? [660,880] : [520];
+    notes.forEach((f,i)=>{
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(0.0001, now+i*0.09);
+      g.gain.exponentialRampToValueAtTime(0.06, now+i*0.09+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+i*0.09+0.18);
+      o.connect(g); g.connect(ctx.destination); o.start(now+i*0.09); o.stop(now+i*0.09+0.2);
+    });
+  }catch{}
+}
+
+/* Microinteração de recompensa: chuva de pétalas/confete douradas quando o
+   usuário atinge um marco (ex.: orçamento 100% pago). Roda uma vez por marco. */
+function celebrate(){
+  try{
+    const cvs=document.createElement('canvas'); cvs.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:9999';
+    document.body.appendChild(cvs); const ctx=cvs.getContext('2d');
+    const rz=()=>{ cvs.width=innerWidth; cvs.height=innerHeight; }; rz();
+    const COL=['#C9A84C','#6B7B4A','#E8D9A0','#8a9a5b','#f0d98a'];
+    const P=Array.from({length:120},()=>({x:Math.random()*cvs.width,y:-20-Math.random()*cvs.height*0.5,
+      r:4+Math.random()*6, c:COL[Math.floor(Math.random()*COL.length)], vy:2+Math.random()*3,
+      vx:-1+Math.random()*2, rot:Math.random()*6, vr:-0.1+Math.random()*0.2}));
+    let t=0; const dur=160;
+    (function tick(){ ctx.clearRect(0,0,cvs.width,cvs.height);
+      P.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr;
+        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle=p.c;
+        ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6); ctx.restore(); });
+      if(++t<dur){ requestAnimationFrame(tick); } else { cvs.remove(); }
+    })();
+  }catch{}
+}
