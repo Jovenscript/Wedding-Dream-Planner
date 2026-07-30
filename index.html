@@ -21,6 +21,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <script src="js/config.js"></script>
+  <script>/* Detecta dispositivo de toque e marca html.is-touch — garante o layout
+    de APP mesmo em celulares que reportam largura grande (devicePixelRatio alto). */
+    (function(){ try{ var touch = ('ontouchstart' in window) || (navigator.maxTouchPoints>0) || matchMedia('(pointer:coarse)').matches; if(touch) document.documentElement.classList.add('is-touch'); }catch(e){} })();</script>
   <script>/* Nuvem ativa? Esconde o app até o firebase-sync decidir (logado → mostra; deslogado → login.html). */
     if(window.FIREBASE_CONFIG) document.documentElement.classList.add('cloud-wait');</script>
 </head>
