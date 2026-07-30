@@ -604,31 +604,22 @@ function renderGuestView(c){
     const tdA=document.createElement('td'); tdA.textContent=g.companions?`+${g.companions}`:'—'; tdA.setAttribute('data-label','Acomp.'); tr.appendChild(tdA);
 
     const tdS=document.createElement('td');
-    const sel=document.createElement('select'); sel.className='field slim'; sel.setAttribute('aria-label','Status de '+g.name);
+    const sel=document.createElement('select'); sel.className='field slim status-sel st-'+g.status; sel.setAttribute('aria-label','Status de '+g.name);
     [['pendente','Pendente'],['confirmado','Confirmado'],['nao','Não irá']].forEach(([v,l])=>{ const o=document.createElement('option'); o.value=v; o.textContent=l; sel.appendChild(o); });
     sel.value=g.status;
     sel.addEventListener('change', async ()=>{
       const novo=sel.value; const antigo=g.status;
+      sel.className='field slim status-sel st-'+novo;
       g.status=novo; logHist('ajuste',`Confirmação — ${g.name}: ${G_STATUS[g.status].label}`,0);
-      // Regra do TITULAR: se quem é titular da família cancela, a família cai junto.
+      // Regra do TITULAR (automática): titular cancela → toda a família cai junto na hora.
       if(g.isHead && novo==='nao' && g.group){
         const familia=state.guests.filter(x=>x.id!==g.id && x.group===g.group && x.status!=='nao');
-        if(familia.length){
-          const ok=await confirmDialog('Cancelar a família?',
-            `${g.name} é o titular da família “${g.group}”. Deseja marcar como “Não irá” também os outros ${familia.length} membro(s) desta família?`,
-            {danger:false, confirmText:`Sim, cancelar a família`, cancelText:'Não, só o titular'});
-          if(ok){ familia.forEach(x=>{ x.status='nao'; }); logHist('ajuste',`Família “${g.group}” cancelada junto com o titular ${g.name}`,0); toast(`Família “${g.group}” marcada como não irá`,'ok'); }
-        }
+        if(familia.length){ familia.forEach(x=>{ x.status='nao'; }); logHist('ajuste',`Família “${g.group}” cancelada junto com o titular ${g.name}`,0); toast(`Família “${g.group}” (${familia.length}) marcada como não irá`,'warn'); }
       }
-      // Se o titular VOLTA a confirmar/pendente, oferece reativar a família
+      // Titular volta a vir → a família volta junto (mesmo status).
       if(g.isHead && antigo==='nao' && novo!=='nao' && g.group){
         const cancelados=state.guests.filter(x=>x.id!==g.id && x.group===g.group && x.status==='nao');
-        if(cancelados.length){
-          const ok=await confirmDialog('Reativar a família?',
-            `${g.name} voltou. Deseja marcar como “${G_STATUS[novo].label}” novamente os ${cancelados.length} membro(s) da família “${g.group}”?`,
-            {danger:false, confirmText:'Sim, reativar', cancelText:'Não'});
-          if(ok){ cancelados.forEach(x=>{ x.status=novo; }); toast(`Família “${g.group}” reativada`,'ok'); }
-        }
+        if(cancelados.length){ cancelados.forEach(x=>{ x.status=novo; }); toast(`Família “${g.group}” reativada`,'ok'); }
       }
       save(); renderAll();
     });

@@ -1286,3 +1286,35 @@ html.is-touch .auth-overlay { padding: 0; align-items: stretch; }html.is-touch .
 .head-toggle.on { color: var(--gold); background: var(--gold-light); border-color: var(--gold); }
 @media (max-width: 1024px) { .head-toggle { width: 48px; height: 48px; font-size: 20px; border-radius: 14px; } }
 html.is-touch .head-toggle { width: 48px; height: 48px; font-size: 20px; border-radius: 14px; }
+
+/* ═══ Status coloridos no seletor (verde vem · amarelo pendente · vermelho não vem) ═══ */
+.status-sel { font-weight: 600; border-width: 1.5px; transition: all var(--transition); }
+.status-sel.st-confirmado { color: #2E7D46; border-color: #9CCBA8; background: #EAF6EE; }
+.status-sel.st-pendente   { color: #A0741E; border-color: #E6CE8E; background: #FBF3DC; }
+.status-sel.st-nao        { color: #B23B3B; border-color: #E3A9A9; background: #FBE9E9; }
+/* a linha inteira do card fica avermelhada quando "não irá" (feedback forte) */
+table tr:has(.status-sel.st-nao) { border-left: 4px solid #C4342E; background: #FDF6F5; }
+table tr:has(.status-sel.st-confirmado) { border-left: 4px solid #3D8A52; }
+table tr:has(.status-sel.st-pendente) { border-left: 4px solid #C9A84C; }
+
+/* ═══ Botões de ação mais "fashion" — pílulas suaves com fundo tonal ═══ */
+@media (max-width: 1024px) {
+  .row-actions { gap: 8px; }
+  .icon-btn { background: var(--olive-mist); color: var(--olive-dark); border: none;
+    width: 46px; height: 46px; border-radius: 50%; font-size: 17px;
+    display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06); transition: all var(--transition); }
+  .icon-btn:hover, .icon-btn:active { background: var(--gold-light); transform: translateY(-1px); }
+  .beer-toggle, .head-toggle { border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  .wa-btn { border-radius: 999px; box-shadow: 0 2px 10px rgba(61,122,69,.22); }
+  .status-sel { border-radius: 999px; padding: 11px 34px 11px 16px; }
+}
+html.is-touch .row-actions { gap: 8px; }
+html.is-touch .icon-btn { background: var(--olive-mist); color: var(--olive-dark); border: none;
+  width: 46px; height: 46px; border-radius: 50%; font-size: 17px;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+html.is-touch .icon-btn:hover, html.is-touch .icon-btn:active { background: var(--gold-light); transform: translateY(-1px); }
+html.is-touch .beer-toggle, html.is-touch .head-toggle { border-radius: 50%; }
+html.is-touch .wa-btn { border-radius: 999px; }
+html.is-touch .status-sel { border-radius: 999px; padding: 11px 34px 11px 16px; }

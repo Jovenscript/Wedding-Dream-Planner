@@ -55,6 +55,14 @@ function migrate(raw){
   });
   history = (history||[]).filter(h=>h&&typeof h==='object').map(h=>({ id:h.id||uid(), ts:h.ts||Date.now(), kind:h.kind||'ajuste', desc:h.desc||'', delta:round2(h.delta) }));
   guests = guests.filter(g=>g&&typeof g==='object').map(normGuest);
+  // Garante um titular por família (para dados antigos sem isHead): o primeiro da família.
+  (function ensureHeads(){
+    const grupos={};
+    guests.forEach(g=>{ if(g.group){ (grupos[g.group]=grupos[g.group]||[]).push(g); } });
+    Object.values(grupos).forEach(membros=>{
+      if(!membros.some(m=>m.isHead)) membros[0].isHead=true;   // ninguém marcado → primeiro vira titular
+    });
+  })();
   varCosts = varCosts.filter(v=>v&&typeof v==='object').map(normVar);
   // Estados antigos que ainda não tinham perfis/margem nos custos ganham os campos novos, sem ADICIONAR itens.
   if(!settings.seedSmartV2){ upgradeSmartSeeds(varCosts, {}); settings.seedSmartV2=true; }
