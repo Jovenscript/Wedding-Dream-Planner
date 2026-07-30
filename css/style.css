@@ -1277,3 +1277,12 @@ html.is-touch .auth-overlay { padding: 0; align-items: stretch; }html.is-touch .
   box-shadow: inset 0 0 0 2px rgba(255,255,255,.5); display: block; }
 .theme-swatch:hover { transform: translateY(-2px); }
 .theme-swatch.active { border-color: var(--sw1); background: var(--ivory-card); box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+
+/* Estrela de titular da família (★ mestre) */
+.head-toggle { margin-left: 6px; width: 30px; height: 30px; border-radius: var(--radius-sm);
+  border: 1px solid var(--olive-mist); background: var(--ivory-deep); cursor: pointer;
+  font-size: 15px; line-height: 1; color: var(--ink-faint); transition: all var(--transition); vertical-align: middle; }
+.head-toggle:hover { border-color: var(--gold); transform: translateY(-1px); }
+.head-toggle.on { color: var(--gold); background: var(--gold-light); border-color: var(--gold); }
+@media (max-width: 1024px) { .head-toggle { width: 48px; height: 48px; font-size: 20px; border-radius: 14px; } }
+html.is-touch .head-toggle { width: 48px; height: 48px; font-size: 20px; border-radius: 14px; }

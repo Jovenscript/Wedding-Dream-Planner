@@ -17,7 +17,7 @@ const DEFAULT_INVITE='Oi, {nome}! 💌 Queremos você com a gente no nosso event
 function normStatus(s){ s=String(s||'').toLowerCase().trim(); if(s.startsWith('conf')||s==='sim'||s==='ok') return 'confirmado'; if(s.startsWith('n')) return 'nao'; return 'pendente'; }
 function normAge(a){ a=String(a||'').toLowerCase(); if(a.startsWith('beb')||a.startsWith('baby')||a.startsWith('colo')) return 'bebe'; if(a.startsWith('crian')) return 'crianca'; if(a.startsWith('adol')||a.startsWith('menor')) return 'adolescente'; return 'adulto'; }
 function normDrinks(d, age){ if(typeof d==='boolean') return age==='adulto'?d:false; const s=String(d||'').toLowerCase().trim(); if(age!=='adulto') return false; if(['sim','s','true','1','x','yes'].includes(s)) return true; if(['nao','não','n','false','0','no'].includes(s)) return false; return true; }
-function normGuest(g){ g=g||{}; const ageGroup=normAge(g.ageGroup); return { id:g.id||uid(), name:String(g.name||'').trim()||'Convidado', phone:String(g.phone||'').trim(), whats:String(g.whats||g.phone||'').trim(), email:String(g.email||'').trim(), group:String(g.group||'').trim(), companions:Math.max(0,Math.min(20,Math.round(Number(g.companions)||0))), ageGroup, drinks:normDrinks(g.drinks, ageGroup), status:normStatus(g.status), notes:String(g.notes||'').trim() }; }
+function normGuest(g){ g=g||{}; const ageGroup=normAge(g.ageGroup); return { id:g.id||uid(), name:String(g.name||'').trim()||'Convidado', phone:String(g.phone||'').trim(), whats:String(g.whats||g.phone||'').trim(), email:String(g.email||'').trim(), group:String(g.group||'').trim(), companions:Math.max(0,Math.min(20,Math.round(Number(g.companions)||0))), ageGroup, drinks:normDrinks(g.drinks, ageGroup), status:normStatus(g.status), isHead:!!g.isHead, notes:String(g.notes||'').trim() }; }
 function normVar(v){ v=v||{}; const mode=(v.mode==='fixo')?'fixo':'var'; const aud=['todos','bebem','nao-bebem','sem-bebe'].includes(v.audience)?v.audience:'todos'; return { id:v.id||uid(), name:String(v.name||'').trim()||'Item', category:String(v.category||'Outros').trim(), mode, unit:String(v.unit||'Pessoa').trim(), unitValue:Math.max(0,round2(v.unitValue)), perGuest:Math.max(0,Number(String(v.perGuest??'').toString().replace(',','.'))||0), qty:Math.max(1,Math.round(Number(v.qty)||1)), audience:aud, useMargin:!!v.useMargin, notes:String(v.notes||'').trim(), sync:!!v.sync }; }
 
 /* Custos padrão do evento (sugeridos uma única vez; edite/apague à vontade) */
@@ -186,6 +186,9 @@ function seedGuestNames(){ return [
 function buildFullSetup(){
   // 1) Convidados — os 137, já agrupados por família (lista central)
   const guests = seedGuestNames().map(([name,group,age,drinks,phone,status])=>normGuest({name, group:group||'', ageGroup:age||'adulto', drinks:!!drinks, phone:phone||'', status:status||'pendente'}));
+  // Define o primeiro de cada família como titular (o "mestre" da família)
+  const vistos=new Set();
+  guests.forEach(g=>{ if(g.group && !vistos.has(g.group)){ g.isHead=true; vistos.add(g.group); } });
 
   /* 2) Custos POR CONVIDADO (variáveis) — valores reais do Marlon.
         O unitValue é o preço por unidade; o total no orçamento é calculado
@@ -438,13 +441,16 @@ async function editGuest(id){
       {key:'ageGroup', label:'Faixa etária', type:'select', options:['Adulto','Adolescente','Criança','Bebê'], value:({bebe:'Bebê',crianca:'Criança',adolescente:'Adolescente',adulto:'Adulto'})[g.ageGroup]||'Adulto'},
       {key:'drinks', label:'Bebe cerveja/chope? (só vale para adultos)', type:'select', options:['Sim','Não'], value:g.drinks?'Sim':'Não'},
       {key:'status', label:'Confirmação', type:'select', options:['Pendente','Confirmado','Não irá'], value:G_STATUS[g.status].label},
+      {key:'isHead', label:'É o titular da família? (se cancelar, cancela a família)', type:'select', options:['Não','Sim'], value:g.isHead?'Sim':'Não'},
       {key:'notes', label:'Observações', type:'textarea', value:g.notes}
     ],
     confirmText:'Salvar',
     validate:v=>{ if(!(v.name||'').trim()) return 'O nome não pode ficar vazio.'; return null; }
   });
   if(!res) return;
-  Object.assign(g, normGuest({ ...g, ...res, phone:res.phone, whats:(res.whats||'').trim()||res.phone }));
+  const virouTitular = res.isHead==='Sim';
+  if(virouTitular && g.group){ state.guests.forEach(x=>{ if(x.id!==g.id && x.group===(res.group||g.group)) x.isHead=false; }); }
+  Object.assign(g, normGuest({ ...g, ...res, isHead:virouTitular, phone:res.phone, whats:(res.whats||'').trim()||res.phone }));
   save(); renderAll(); toast('Convidado atualizado ✓','ok');
 }
 async function removeGuest(id){
@@ -583,6 +589,7 @@ function renderGuestView(c){
     const tdName=document.createElement('td');
     const AGEL={bebe:'Bebê',crianca:'Criança',adolescente:'Adolescente',adulto:'Adulto'};
     const prof=[]; if(g.ageGroup&&g.ageGroup!=='adulto') prof.push(AGEL[g.ageGroup]);
+    if(g.isHead) prof.unshift('★ Titular');
     if(g.ageGroup==='adulto') prof.push(g.drinks?'🍺 bebe':'não bebe álcool');
     const subTxt=[...prof, g.notes].filter(Boolean).join(' · ');
     tdName.innerHTML=`<button class="linklike" style="all:unset;cursor:pointer;font-weight:600;color:var(--ink)" title="Editar convidado">${escapeHtml(g.name)}</button>${subTxt?`<div class="g-sub">${escapeHtml(subTxt)}</div>`:''}`;
@@ -600,8 +607,46 @@ function renderGuestView(c){
     const sel=document.createElement('select'); sel.className='field slim'; sel.setAttribute('aria-label','Status de '+g.name);
     [['pendente','Pendente'],['confirmado','Confirmado'],['nao','Não irá']].forEach(([v,l])=>{ const o=document.createElement('option'); o.value=v; o.textContent=l; sel.appendChild(o); });
     sel.value=g.status;
-    sel.addEventListener('change',()=>{ g.status=sel.value; logHist('ajuste',`Confirmação — ${g.name}: ${G_STATUS[g.status].label}`,0); save(); renderAll(); });
+    sel.addEventListener('change', async ()=>{
+      const novo=sel.value; const antigo=g.status;
+      g.status=novo; logHist('ajuste',`Confirmação — ${g.name}: ${G_STATUS[g.status].label}`,0);
+      // Regra do TITULAR: se quem é titular da família cancela, a família cai junto.
+      if(g.isHead && novo==='nao' && g.group){
+        const familia=state.guests.filter(x=>x.id!==g.id && x.group===g.group && x.status!=='nao');
+        if(familia.length){
+          const ok=await confirmDialog('Cancelar a família?',
+            `${g.name} é o titular da família “${g.group}”. Deseja marcar como “Não irá” também os outros ${familia.length} membro(s) desta família?`,
+            {danger:false, confirmText:`Sim, cancelar a família`, cancelText:'Não, só o titular'});
+          if(ok){ familia.forEach(x=>{ x.status='nao'; }); logHist('ajuste',`Família “${g.group}” cancelada junto com o titular ${g.name}`,0); toast(`Família “${g.group}” marcada como não irá`,'ok'); }
+        }
+      }
+      // Se o titular VOLTA a confirmar/pendente, oferece reativar a família
+      if(g.isHead && antigo==='nao' && novo!=='nao' && g.group){
+        const cancelados=state.guests.filter(x=>x.id!==g.id && x.group===g.group && x.status==='nao');
+        if(cancelados.length){
+          const ok=await confirmDialog('Reativar a família?',
+            `${g.name} voltou. Deseja marcar como “${G_STATUS[novo].label}” novamente os ${cancelados.length} membro(s) da família “${g.group}”?`,
+            {danger:false, confirmText:'Sim, reativar', cancelText:'Não'});
+          if(ok){ cancelados.forEach(x=>{ x.status=novo; }); toast(`Família “${g.group}” reativada`,'ok'); }
+        }
+      }
+      save(); renderAll();
+    });
     tdS.appendChild(sel);
+    // Estrela: marca/desmarca o titular ("mestre") da família — 1 por grupo
+    if(g.group){
+      const hb=document.createElement('button'); hb.type='button';
+      hb.className='head-toggle'+(g.isHead?' on':'');
+      hb.textContent = g.isHead ? '★' : '☆';
+      hb.title = g.isHead ? 'Titular da família (se cancelar, a família cai junto). Clique para remover.' : 'Definir como titular da família';
+      hb.setAttribute('aria-label',(g.isHead?'Titular':'Definir titular')+' — '+g.name);
+      hb.addEventListener('click',()=>{
+        if(!g.isHead){ state.guests.forEach(x=>{ if(x.group===g.group) x.isHead=false; }); g.isHead=true; toast(`${g.name} agora é titular de “${g.group}”`,'ok'); }
+        else { g.isHead=false; }
+        logHist('ajuste',`${g.name}: ${g.isHead?'titular':'não titular'} de ${g.group}`,0); save(); renderAll();
+      });
+      tdS.appendChild(hb);
+    }
     if(g.ageGroup==='adulto'){
       const bw=document.createElement('button'); bw.type='button';
       bw.className='beer-toggle'+(g.drinks?' on':'');
