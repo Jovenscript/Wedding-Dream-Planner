@@ -32,6 +32,64 @@
       --transition:  .22s cubic-bezier(.4,0,.2,1);
     }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   TEMAS DE COR — a identidade padrão é Oliva & Dourado (casamento do Marlon).
+   Cada cliente pode escolher uma paleta que combine com o evento dele.
+   Trocar o tema = mudar o atributo data-theme no <html> (feito pelo seletor).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Rosé & Dourado — casamentos clássicos, chás, 15 anos */
+html[data-theme="rose"] {
+  --ivory:#FBF7F5; --ivory-deep:#F3EAE6; --ivory-card:#FFFDFC;
+  --olive:#B76E79; --olive-light:#CE8C96; --olive-dark:#8A4E58; --olive-mist:#F3E1E4;
+  --gold:#C9A84C; --gold-light:#F0DCA0;
+  --ink:#2A1E20; --ink-muted:#7A6668; --ink-faint:#BBA9AB;
+  --ok:#A85A64; --warn:#B07A2E; --danger:#9B3B3B;
+  --shadow-card:0 2px 24px rgba(183,110,121,.10),0 1px 4px rgba(183,110,121,.06);
+  --shadow-hover:0 8px 40px rgba(183,110,121,.18),0 2px 8px rgba(183,110,121,.10);
+}
+/* Azul Real & Prata — corporativo, formatura, bodas */
+html[data-theme="royal"] {
+  --ivory:#F5F7FB; --ivory-deep:#E9EEF6; --ivory-card:#FFFFFF;
+  --olive:#3B5BA5; --olive-light:#5B79C0; --olive-dark:#284178; --olive-mist:#DEE6F5;
+  --gold:#C0C4CC; --gold-light:#E4E7ED;
+  --ink:#161C29; --ink-muted:#5E6675; --ink-faint:#A3AAB8;
+  --ok:#2E7D6B; --warn:#B07A2E; --danger:#B23B4E;
+  --shadow-card:0 2px 24px rgba(59,91,165,.10),0 1px 4px rgba(59,91,165,.06);
+  --shadow-hover:0 8px 40px rgba(59,91,165,.18),0 2px 8px rgba(59,91,165,.10);
+}
+/* Festa Vibrante — aniversários, festas coloridas, infantil */
+html[data-theme="festa"] {
+  --ivory:#FFF9F4; --ivory-deep:#FDEEE2; --ivory-card:#FFFDFB;
+  --olive:#E4572E; --olive-light:#F07A50; --olive-dark:#B23A18; --olive-mist:#FCE3D6;
+  --gold:#F2B705; --gold-light:#FBE08A;
+  --ink:#2B1A12; --ink-muted:#7E645A; --ink-faint:#C2ABA1;
+  --ok:#2E9E5B; --warn:#C67A0E; --danger:#C4342E;
+  --shadow-card:0 2px 24px rgba(228,87,46,.10),0 1px 4px rgba(228,87,46,.06);
+  --shadow-hover:0 8px 40px rgba(228,87,46,.18),0 2px 8px rgba(228,87,46,.10);
+}
+/* Roxo & Dourado — luxo, gala, casamentos noturnos */
+html[data-theme="roxo"] {
+  --ivory:#FAF7FC; --ivory-deep:#F0E9F6; --ivory-card:#FFFDFF;
+  --olive:#7A4F9E; --olive-light:#9B72BC; --olive-dark:#573777; --olive-mist:#EBE0F4;
+  --gold:#C9A84C; --gold-light:#F0DCA0;
+  --ink:#221A2B; --ink-muted:#6E6178; --ink-faint:#B3A6BD;
+  --ok:#3D8A6B; --warn:#B07A2E; --danger:#A03B5B;
+  --shadow-card:0 2px 24px rgba(122,79,158,.10),0 1px 4px rgba(122,79,158,.06);
+  --shadow-hover:0 8px 40px rgba(122,79,158,.18),0 2px 8px rgba(122,79,158,.10);
+}
+/* Esmeralda & Ouro — sofisticado, tropical, festas ao ar livre */
+html[data-theme="esmeralda"] {
+  --ivory:#F4FAF7; --ivory-deep:#E6F2EC; --ivory-card:#FCFFFE;
+  --olive:#1E8A6E; --olive-light:#3FA88A; --olive-dark:#13624D; --olive-mist:#D6EEE6;
+  --gold:#D4AF37; --gold-light:#F0DC96;
+  --ink:#0F241D; --ink-muted:#5A6E67; --ink-faint:#9FB3AB;
+  --ok:#2E9E7B; --warn:#B07A2E; --danger:#B23B4E;
+  --shadow-card:0 2px 24px rgba(30,138,110,.10),0 1px 4px rgba(30,138,110,.06);
+  --shadow-hover:0 8px 40px rgba(30,138,110,.18),0 2px 8px rgba(30,138,110,.10);
+}
+
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
     body {
@@ -935,7 +993,7 @@ html.cloud-wait::after {
   body { font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; background: var(--ivory); }
 
   /* App usa a largura toda; respiro só nas bordas */
-  .container { padding: 0 14px 120px; max-width: 100%; }  /* 120px embaixo = espaço da bottom nav */
+  .container { padding: 0 16px 116px; max-width: 100%; }  /* respiro lateral + espaço da bottom nav */
 
   /* ── HEADER compacto estilo app ── */
   .site-header { padding: 18px 14px 4px; text-align: left; }
@@ -959,9 +1017,9 @@ html.cloud-wait::after {
 
   /* ── KPIs: 2 colunas grandes, números destacados ── */
   .summary, .summary.three { grid-template-columns: 1fr 1fr !important; gap: 1px; background: var(--olive-mist); }
-  .kpi { padding: 16px 16px; background: var(--ivory-card); }
-  .kpi .label { font-size: 11px; letter-spacing: .04em; margin-bottom: 4px; }
-  .kpi .value { font-size: 25px; }
+  .kpi { padding: 15px 16px; background: var(--ivory-card); }
+  .kpi .label { font-size: 10.5px; letter-spacing: .04em; margin-bottom: 3px; }
+  .kpi .value { font-size: 23px; }
   .kpi .sub { font-size: 11.5px; }
 
   /* painel financeiro: donut em cima, largura total */
@@ -1002,8 +1060,8 @@ html.cloud-wait::after {
   table tr.quitado { border-left: 4px solid var(--ok); }
   table td {
     display: flex; justify-content: space-between; align-items: center; gap: 12px;
-    padding: 11px 0; border: none; border-bottom: 1px solid rgba(107,123,74,.10);
-    text-align: right; min-height: 46px; font-size: 15.5px;
+    padding: 9px 0; border: none; border-bottom: 1px solid rgba(107,123,74,.10);
+    text-align: right; min-height: 40px; font-size: 15px;
   }
   table td:last-child { border-bottom: none; padding-bottom: 2px; }
   table td::before {
@@ -1207,3 +1265,15 @@ html.is-touch .auth-overlay { padding: 0; align-items: stretch; }html.is-touch .
     display: flex; flex-direction: column; justify-content: center;
     border-radius: 0; padding: 32px 22px calc(32px + env(safe-area-inset-bottom)); box-shadow: none; }html.is-touch .auth-card h3 { font-size: 28px; }html.is-touch .auth-card .sub { font-size: 14.5px; }html.is-touch .auth-card .fld input { min-height: 54px; font-size: 16px; border-radius: 14px; }html.is-touch .auth-card .actions-col { gap: 12px; }html.is-touch .auth-card .actions-col button { min-height: 54px; font-size: 16px; border-radius: 14px; }html.is-touch .auth-links { flex-direction: column; gap: 14px; text-align: center; margin-top: 18px; }html.is-touch .auth-links a { font-size: 15px; padding: 6px; }
 
+
+/* Seletor de tema — bolinhas com as duas cores principais de cada paleta */
+.theme-picker { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.theme-swatch { display: inline-flex; flex-direction: column; align-items: center; gap: 5px;
+  border: 2px solid transparent; border-radius: 14px; padding: 8px 10px 6px; cursor: pointer;
+  background: var(--ivory-deep); font-size: 11.5px; color: var(--ink-muted); font-weight: 600;
+  transition: all var(--transition); min-width: 62px; }
+.theme-swatch span { width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--sw1) 0 55%, var(--sw2) 55% 100%);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.5); display: block; }
+.theme-swatch:hover { transform: translateY(-2px); }
+.theme-swatch.active { border-color: var(--sw1); background: var(--ivory-card); box-shadow: 0 2px 12px rgba(0,0,0,.08); }

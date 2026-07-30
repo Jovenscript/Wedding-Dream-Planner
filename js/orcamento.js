@@ -377,6 +377,10 @@ el('fund-add').addEventListener('click', addFundFromForm);
       const ok=await confirmDialog('Carregar exemplos', 'Adiciona itens típicos de casamento e custos de referência (com estimativas inteligentes). Seus dados atuais são mantidos. Convidados não são alterados.', {danger:false, confirmText:'Carregar'});
       if(!ok) return; loadExampleData(); renderAll(); toast('Exemplos carregados','ok');
     });
+    // Seletor de tema de cores
+    document.querySelectorAll('.theme-swatch').forEach(b=>{
+      b.addEventListener('click', ()=>{ state.settings.theme=b.dataset.themeVal||'olive'; applyTheme(); save(); toast('Tema aplicado','ok'); });
+    });
     const soundTog=el('sound-toggle');
     if(soundTog){ soundTog.checked = state.settings.sound!==false;
       soundTog.addEventListener('change', ()=>{ state.settings.sound=soundTog.checked; save(); if(soundTog.checked) toast('Sons ativados','ok'); }); }

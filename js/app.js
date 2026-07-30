@@ -6,6 +6,17 @@
    antes de qualquer função rodar (evita erro de "usado antes de definir").
    ═════════════════════════════════════════════════════════════════════ */
 
+/* Aplica o tema de cores salvo (settings.theme). 'olive' = padrão (sem atributo). */
+function applyTheme(){
+  const t=(state.settings&&state.settings.theme)||'olive';
+  if(t==='olive') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', t);
+  const tm=document.querySelector('meta[name=theme-color]');
+  const c=getComputedStyle(document.documentElement).getPropertyValue('--olive').trim();
+  if(tm && c) tm.setAttribute('content', c);
+  // marca o swatch ativo
+  document.querySelectorAll('.theme-swatch').forEach(b=>b.classList.toggle('active', (b.dataset.themeVal||'olive')===t));
+}
 /* Contagem regressiva: se há data do evento, mostra "faltam X dias" no topo. */
 function applyCountdown(){
   const cd=el('countdown'); if(!cd) return;
@@ -32,7 +43,7 @@ function applyEventName(){
   document.title = (nm ? nm+' — ' : '') + 'EventFlow';
   const inp=el('event-name'); if(inp && document.activeElement!==inp && inp.value!==nm) inp.value=nm;
 }
-function renderAll(){ applyEventName(); applyCountdown(); syncVarLinkedItems(); const c=compute(); renderDashboard(c); renderFunds(c); renderItems(c); renderHistory(); renderGuestView(c); }
+function renderAll(){ applyTheme(); applyEventName(); applyCountdown(); syncVarLinkedItems(); const c=compute(); renderDashboard(c); renderFunds(c); renderItems(c); renderHistory(); renderGuestView(c); }
 
 /* Primeiro acesso: faz perguntas básicas para o cliente configurar o evento.
    Só aparece uma vez (settings.onboarded) e quando o app está vazio. */

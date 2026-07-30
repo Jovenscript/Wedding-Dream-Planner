@@ -14,7 +14,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css" />
   <script src="js/config.js"></script>
-  <script>(function(){ try{ var t=('ontouchstart' in window)||(navigator.maxTouchPoints>0)||matchMedia('(pointer:coarse)').matches; if(t) document.documentElement.classList.add('is-touch'); }catch(e){} })();</script>
+  <script>(function(){ try{ var t=('ontouchstart' in window)||(navigator.maxTouchPoints>0)||matchMedia('(pointer:coarse)').matches; if(t) document.documentElement.classList.add('is-touch');
+    // aplica o tema salvo (mesmo storage do app) para o login combinar
+    var raw=localStorage.getItem('@wedding_planner_v3'); if(raw){ var th=(JSON.parse(raw).settings||{}).theme; if(th&&th!=='olive') document.documentElement.setAttribute('data-theme',th); }
+  }catch(e){} })();</script>
   <style>body{background:var(--ivory)} .auth-overlay{display:flex;position:fixed;background:radial-gradient(1200px 600px at 50% -10%, var(--olive-mist), var(--ivory))}</style>
 </head>
 <body>
