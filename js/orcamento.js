@@ -333,7 +333,7 @@ el('export').addEventListener('click', ()=>{
   const data={ items:state.items, funds:state.funds, history:state.history, guests:state.guests, varCosts:state.varCosts, settings:state.settings, showOver:state.settings.showOver, strict:state.settings.strict, exportedAt:new Date().toISOString() };
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download='planner-casamento.json'; a.click();
+  const a=document.createElement('a'); a.href=url; a.download='eventflow-dados-'+((state.settings.eventName||'evento').replace(/[^\w]+/g,'-'))+'.json'; a.click();
   URL.revokeObjectURL(url); toast('Backup exportado');
 });
 el('import').addEventListener('change', e=>{
@@ -374,7 +374,7 @@ el('fund-add').addEventListener('click', addFundFromForm);
 
 
     el('load-examples').addEventListener('click', async ()=>{
-      const ok=await confirmDialog('Carregar exemplos', 'Adiciona itens típicos de casamento e custos de referência (com estimativas inteligentes). Seus dados atuais são mantidos. Convidados não são alterados.', {danger:false, confirmText:'Carregar'});
+      const ok=await confirmDialog('Carregar exemplos', 'Adiciona itens típicos de eventos e custos de referência (com estimativas inteligentes). Seus dados atuais são mantidos. Convidados não são alterados.', {danger:false, confirmText:'Carregar'});
       if(!ok) return; loadExampleData(); renderAll(); toast('Exemplos carregados','ok');
     });
     // Seletor de tema de cores

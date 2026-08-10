@@ -207,7 +207,7 @@
       // — RESUMO FINAL —
       sectionTitle('Resumo financeiro');
       const lines=[
-        ['Total previsto para o casamento', toBRL(c.totalExpense)],
+        ['Total previsto para o evento', toBRL(c.totalExpense)],
         ['Total já pago', toBRL(c.totalPaid)+'  ('+c.pctPago.toFixed(0)+'%)'],
         ['Total ainda pendente', toBRL(c.pending)],
         ['Recursos investidos / disponíveis', toBRL(c.totalFunds)+'  (cobre '+c.pctGarantido.toFixed(0)+'%)'],
