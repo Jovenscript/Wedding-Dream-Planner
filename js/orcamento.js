@@ -147,7 +147,26 @@ async function payItem(id){
 }
 
 /* ═══════════ Render ═══════════ */
-function setKPI(id, val, cls){ const n=el(id); if(!n) return; n.textContent=val; n.classList.remove('pos','neg','accent'); if(cls) n.classList.add(cls); }
+function setKPI(id, val, cls){
+  const n=el(id); if(!n) return;
+  n.classList.remove('pos','neg','accent'); if(cls) n.classList.add(cls);
+  // Count-up: anima do número anterior até o novo (só se 'fx' ligado e há dígitos).
+  const num = parseFloat(String(val).replace(/[^\d,-]/g,'').replace(/\./g,'').replace(',','.'));
+  const prev = n.__v;
+  if(document.documentElement.classList.contains('fx') && isFinite(num) && prev!==undefined && Math.abs(num-prev)>0.005 && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+    const from=prev, to=num, t0=performance.now(), dur=650;
+    const ease=x=>1-Math.pow(1-x,3);
+    const neg = to<0;
+    (function step(t){
+      const p=Math.min(1,(t-t0)/dur), v=from+(to-from)*ease(p);
+      n.textContent = (v<0?'-':'')+'R$ '+Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+      if(p<1) requestAnimationFrame(step); else n.textContent=val;
+    })(t0);
+  } else {
+    n.textContent=val;
+  }
+  n.__v = isFinite(num)? num : undefined;
+}
 
 function renderDashboard(c){
   // Marco: 100% pago → comemora uma vez

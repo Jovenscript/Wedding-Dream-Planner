@@ -1462,3 +1462,31 @@ html.fx .donut { transition: --p1 .8s ease, --p2 .8s ease; }
   /* seção com título tipo "sobretítulo" fininho antes do card grande */
   html:not(.is-touch) .card + .card { margin-top: 22px; }
 }
+
+/* ═══ EFEITOS PREMIUM (desktop, não-touch) — glass, brilho, info ═══ */
+@media (min-width: 1025px) {
+  /* Glassmorphism sutil nos cards: leve transparência + blur do fundo */
+  html:not(.is-touch) .card {
+    background: color-mix(in srgb, var(--ivory-card) 88%, transparent);
+    backdrop-filter: blur(8px) saturate(1.05);
+    -webkit-backdrop-filter: blur(8px) saturate(1.05);
+  }
+  /* Brilho que segue a borda superior no hover (spotlight suave) */
+  html:not(.is-touch) .card { position: relative; }
+  html:not(.is-touch) .card::after {
+    content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    background: radial-gradient(600px circle at var(--mx,50%) 0%, color-mix(in srgb, var(--gold) 14%, transparent), transparent 42%);
+    opacity:0; transition: opacity .35s ease;
+  }
+  html:not(.is-touch) .card:hover::after { opacity:1; }
+
+  /* Ícone de info nos KPIs */
+  html:not(.is-touch) .kpi-info { font-size:10px; color:var(--ink-faint); opacity:.55; cursor:help; transition:opacity var(--transition); }
+  html:not(.is-touch) .kpi:hover .kpi-info { opacity:1; color:var(--olive); }
+}
+.kpi-info { display:none; }  /* só no desktop */
+@media (min-width:1025px){ html:not(.is-touch) .kpi-info { display:inline; } }
+
+/* Donut que "desenha" na entrada (stroke-dashoffset animando) */
+html.fx .donut-ring { transition: stroke-dashoffset 1s cubic-bezier(.4,0,.2,1); }
+@media (prefers-reduced-motion: reduce){ html.fx .donut-ring { transition:none; } }

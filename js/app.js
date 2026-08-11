@@ -114,6 +114,17 @@ try{ window.presetCasamento = function(){ implantarTudo(); renderAll(); if(typeo
     const alvo=el('event-name'); if(alvo){ const card=alvo.closest('.card'); (card||alvo).scrollIntoView({behavior:'smooth', block:'start'}); }
   });
 })();
+// Spotlight: o brilho no topo do card segue o mouse (só desktop, leve).
+(function cardSpotlight(){
+  try{
+    if(matchMedia('(pointer:coarse)').matches) return;
+    document.addEventListener('pointermove', (e)=>{
+      const card=e.target.closest && e.target.closest('.card'); if(!card) return;
+      const r=card.getBoundingClientRect();
+      card.style.setProperty('--mx', ((e.clientX-r.left)/r.width*100)+'%');
+    }, {passive:true});
+  }catch{}
+})();
 // PWA: registra o service worker (app instalável + offline). Falha silenciosa em file://
 // Atalho de teclado: "/" foca a busca de convidados (padrão de apps profissionais)
 document.addEventListener('keydown', function(e){ /* keydown-global */
