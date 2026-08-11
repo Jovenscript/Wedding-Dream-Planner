@@ -95,6 +95,25 @@ window.__maybeOnboard = maybeOnboard;
 // Uso interno (sem botão visível): no console do navegador digite implantarTudo()
 // para carregar o preset do casamento Carol & Marlon. Invisível para clientes.
 try{ window.presetCasamento = function(){ implantarTudo(); renderAll(); if(typeof switchView==='function') switchView('convidados'); toast('Preset carregado','ok'); }; }catch{}
+// SHELL FX: reveal suave dos cards no scroll + motion do dashboard.
+// Só liga se o navegador suporta IntersectionObserver (senão, tudo fica visível).
+(function initShellFX(){
+  try{
+    if(!('IntersectionObserver' in window)) return;
+    document.documentElement.classList.add('fx');
+    const io=new IntersectionObserver((ents)=>{
+      ents.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    },{ threshold:.08, rootMargin:'0px 0px -6% 0px' });
+    document.querySelectorAll('.card').forEach(c=>io.observe(c));
+  }catch{ document.documentElement.classList.remove('fx'); }
+})();
+// Sidebar → Configurações: troca pra vista Financeiro e rola até o card de config
+(function(){ const b=el('side-config'); if(!b) return;
+  b.addEventListener('click', ()=>{
+    if(typeof switchView==='function') switchView('orcamento');
+    const alvo=el('event-name'); if(alvo){ const card=alvo.closest('.card'); (card||alvo).scrollIntoView({behavior:'smooth', block:'start'}); }
+  });
+})();
 // PWA: registra o service worker (app instalável + offline). Falha silenciosa em file://
 // Atalho de teclado: "/" foca a busca de convidados (padrão de apps profissionais)
 document.addEventListener('keydown', function(e){ /* keydown-global */

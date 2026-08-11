@@ -30,6 +30,22 @@
 <body>
   <canvas id="bg"></canvas>
 
+  <aside class="app-side" aria-label="Menu principal">
+    <div class="side-logo"><span class="side-mark">E</span><span class="side-name">EventFlow</span></div>
+    <nav class="side-nav">
+      <a class="tab side-link" href="#orcamento" data-view="orcamento">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>Financeiro</span></a>
+      <a class="tab side-link" href="#convidados" data-view="convidados">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Pessoas</span></a>
+      <button class="side-link side-btn" id="side-config" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+        <span>Configurações</span></button>
+    </nav>
+    <div class="side-foot">Feito para profissionais<br/>de eventos ✦</div>
+  </aside>
+
   <header class="site-header">
     <p class="eyebrow">✦ EventFlow ✦</p>
     <h1>Event <em>Manager</em></h1>
@@ -113,7 +129,8 @@
         <div class="amt" id="saldo-amt">—</div>
         <div class="f-date" id="saldo-sub" style="margin-top:3px">—</div>
       </div>
-      <div class="fund-form">
+      <details class="disclosure"><summary><span class="disc-plus">＋</span>Adicionar aporte / recurso</summary>
+<div class="fund-form">
         <span class="input-icon" style="min-width:220px;flex:1">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>
           <input id="fund-name" class="name-input" type="text" placeholder="Descrição (ex.: Dinheiro guardado, 13º, pais)" style="width:100%" />
@@ -130,6 +147,7 @@
         <input id="fund-date" class="field" type="date" aria-label="Data do aporte" />
         <button id="fund-add">Adicionar aporte +</button>
       </div>
+</details>
       <div class="fund-list" id="fund-list"></div>
       <p class="tip">Cadastre tudo que vai bancar o evento — dinheiro guardado, valores a receber, investimentos, economia mensal e presentes. A soma vira o saldo disponível, e cada pagamento desconta dele automaticamente.</p>
     </section>
@@ -304,7 +322,8 @@
           </select>
         </div>
 
-        <div class="g-form">
+        <details class="disclosure"><summary><span class="disc-plus">＋</span>Adicionar convidado</summary>
+<div class="g-form">
           <span class="input-icon" style="flex:1;min-width:200px">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
             <input id="g-name" class="name-input" type="text" placeholder="Nome do convidado" style="width:100%" />
@@ -330,6 +349,7 @@
           </select>
           <button id="g-add">Adicionar +</button>
         </div>
+</details>
 
         <div class="toolbar">
           <label class="import-label">
@@ -375,7 +395,8 @@
             <input id="smart-hours" class="field slim" type="number" min="1" max="24" step="1" style="width:64px" aria-label="Duração do evento em horas" /> h</span>
           <span style="font-size:11.5px;color:var(--ink-faint)">A margem entra nos itens marcados; consumos médios ficam em cada item (Editar).</span>
         </div>
-        <div class="fund-form">
+        <details class="disclosure"><summary><span class="disc-plus">＋</span>Adicionar custo do evento</summary>
+<div class="fund-form">
           <span class="input-icon" style="flex:1;min-width:190px">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
             <input id="vc-name" class="name-input" type="text" placeholder="Item (ex.: Chope, Jantar, Lembrancinha)" style="width:100%" />
@@ -408,6 +429,7 @@
           <input id="vc-qty" class="field" type="number" min="1" step="1" value="1" placeholder="Quantidade" style="max-width:120px;display:none" aria-label="Quantidade" title="Quantidade (ex.: 3 garçons)" />
           <button id="vc-add">Adicionar +</button>
         </div>
+</details>
         <div class="fund-list" id="vc-list"></div>
         <p class="tip"><strong>Variável</strong> multiplica pelos confirmados: chope a R$ 23,00/L com 0,5 L por pessoa e 100 confirmados → 50 L e R$ 1.150,00, sozinho. <strong>Fixo</strong> multiplica pela quantidade: 3 garçons × R$ 220,00 → R$ 660,00. Ligue <strong>“No orçamento”</strong> para virar item automático na aba Orçamento — variáveis acompanham cada confirmação.</p>
       </section>
@@ -428,6 +450,7 @@
 
   <div class="modal-backdrop" id="modal-backdrop" aria-hidden="true"></div>
   <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+
 
   <!-- Ordem de carga (dependências):
        config → utils → state → ui → orcamento → pdf → convidados → app (boot) → firebase-sync -->

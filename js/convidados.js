@@ -803,7 +803,7 @@ function switchView(v){
   const isG=v==='convidados';
   el('view-convidados').hidden=!isG;
   el('view-orcamento').hidden=isG;
-  document.querySelectorAll('.nav .tab').forEach(t=>{
+  document.querySelectorAll('.nav .tab, .side-link[data-view]').forEach(t=>{
     const act=t.dataset.view===v;
     t.classList.toggle('active',act);
     if(act) t.setAttribute('aria-current','page'); else t.removeAttribute('aria-current');
@@ -839,7 +839,7 @@ function initConvidadosUI(){
   sm.addEventListener('change',()=>{ state.settings.smart=state.settings.smart||{}; state.settings.smart.margin=Math.max(0,Math.min(100,Number(sm.value)||0)); sm.value=state.settings.smart.margin; save(); renderAll(); toast('Margem atualizada — estimativas recalculadas'); });
   sh.addEventListener('change',()=>{ state.settings.smart=state.settings.smart||{}; state.settings.smart.hours=Math.max(1,Math.min(24,Number(sh.value)||6)); sh.value=state.settings.smart.hours; save(); });
 
-  document.querySelectorAll('.nav .tab[data-view]').forEach(t=>t.addEventListener('click',e=>{ e.preventDefault(); switchView(t.dataset.view); }));
+  document.querySelectorAll('.nav .tab[data-view], .side-link[data-view]').forEach(t=>t.addEventListener('click',e=>{ e.preventDefault(); switchView(t.dataset.view); }));
   el('btn-pdf').addEventListener('click', ()=>window.__genFinancePDF());
   el('btn-explain').addEventListener('click', explainAll);
   switchView(location.hash==='#convidados'?'convidados':'orcamento');

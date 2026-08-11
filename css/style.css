@@ -1318,3 +1318,147 @@ html.is-touch .icon-btn:hover, html.is-touch .icon-btn:active { background: var(
 html.is-touch .beer-toggle, html.is-touch .head-toggle { border-radius: 50%; }
 html.is-touch .wa-btn { border-radius: 999px; }
 html.is-touch .status-sel { border-radius: 999px; padding: 11px 34px 11px 16px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FASE 1 SAAS — APP SHELL DESKTOP + PROGRESSIVE DISCLOSURE + MOTION
+   Guardas: shell só ≥1025px E fora de touch (mobile mantém a bottom nav).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Progressive disclosure (todas as larguras): formulários atrás de "+" ── */
+.disclosure { border: 1.5px dashed var(--olive-mist); border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--ivory-card) 60%, transparent); margin: 6px 0 4px; }
+.disclosure > summary { list-style: none; cursor: pointer; user-select: none;
+  display: flex; align-items: center; gap: 10px; padding: 13px 16px;
+  font-weight: 600; font-size: 14px; color: var(--olive-dark); border-radius: var(--radius-md);
+  transition: background var(--transition); }
+.disclosure > summary::-webkit-details-marker { display: none; }
+.disclosure > summary:hover { background: var(--ivory-deep); }
+.disc-plus { display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%; background: var(--gold-light);
+  color: var(--olive-dark); font-size: 16px; font-weight: 700; line-height: 1;
+  transition: transform .25s cubic-bezier(.4,0,.2,1); }
+.disclosure[open] > summary { border-bottom: 1px dashed var(--olive-mist); border-radius: var(--radius-md) var(--radius-md) 0 0; }
+.disclosure[open] .disc-plus { transform: rotate(45deg); }
+.disclosure > .fund-form, .disclosure > .g-form { border: none; background: transparent; animation: discIn .25s ease; }
+@keyframes discIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+html.is-touch .disclosure > summary { min-height: 54px; font-size: 15px; }
+
+/* ── Motion com propósito (ativa só com html.fx, respeita reduced-motion) ── */
+html.fx .card { opacity: 0; transform: translateY(14px);
+  transition: opacity .5s ease, transform .55s cubic-bezier(.22,.8,.3,1); }
+html.fx .card.in { opacity: 1; transform: none; }
+html.fx .bar > span, html.fx .progress-fill { transition: width .7s cubic-bezier(.3,.8,.3,1); }
+@property --p1 { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+@property --p2 { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+html.fx .donut { transition: --p1 .8s ease, --p2 .8s ease; }
+@media (prefers-reduced-motion: reduce) {
+  html.fx .card { opacity: 1 !important; transform: none !important; transition: none !important; }
+  html.fx .donut, html.fx .bar > span { transition: none !important; }
+}
+
+/* ── APP SHELL (desktop, não-touch) ── */
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   APP SHELL DESKTOP — sidebar como OVERLAY FIXO (não-grid).
+   Assim modais, toast, canvas e bottom-nav mobile continuam funcionando.
+   Ativa só em telas largas sem toque; mobile ignora tudo isto.
+   ═══════════════════════════════════════════════════════════════════════ */
+.app-side { display: none; }   /* escondida por padrão (mobile e telas estreitas) */
+
+@media (min-width: 1025px) {
+  html:not(.is-touch) .app-side {
+    display: flex; flex-direction: column; gap: 18px;
+    position: fixed; top: 0; left: 0; width: 230px; height: 100vh; z-index: 45;
+    padding: 22px 14px;
+    background: color-mix(in srgb, var(--ivory-card) 85%, transparent);
+    backdrop-filter: blur(14px) saturate(1.15);
+    border-right: 1px solid var(--olive-mist);
+  }
+  html:not(.is-touch) .side-logo { display: flex; align-items: center; gap: 10px; padding: 4px 8px; }
+  html:not(.is-touch) .side-mark { width: 38px; height: 38px; border-radius: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--olive); color: var(--ivory);
+    font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 700;
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--gold) 65%, transparent); }
+  html:not(.is-touch) .side-name { font-family: 'Cormorant Garamond', serif; font-size: 21px; color: var(--olive-dark); }
+  html:not(.is-touch) .side-nav { display: flex; flex-direction: column; gap: 6px; }
+  html:not(.is-touch) .side-link { display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px; border-radius: 12px; font-size: 14px; font-weight: 500;
+    color: var(--ink-muted); text-decoration: none; border: none; background: transparent;
+    cursor: pointer; transition: all var(--transition); text-align: left; width: 100%; }
+  html:not(.is-touch) .side-link svg { width: 19px; height: 19px; flex: 0 0 auto; }
+  html:not(.is-touch) .side-link:hover { background: var(--ivory-deep); color: var(--olive-dark); transform: translateX(2px); }
+  html:not(.is-touch) .side-link.active { background: var(--gold-light); color: var(--olive-dark); font-weight: 600;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 55%, transparent); }
+  html:not(.is-touch) .side-foot { margin-top: auto; font-size: 11px; line-height: 1.5; color: var(--ink-faint); padding: 0 8px 4px; }
+
+  /* empurra TODO o conteúdo pra direita da sidebar (sem grid: usa margin no body) */
+  html:not(.is-touch) body { padding-left: 230px; }
+  /* a nav de topo (tabs) some no desktop — a sidebar assume */
+  html:not(.is-touch) .nav { display: none; }
+  /* topbar compacta em vez do hero gigante */
+  html:not(.is-touch) .site-header { text-align: left; padding: 22px 34px 12px; }
+  html:not(.is-touch) .site-header .eyebrow { display: none; }
+  html:not(.is-touch) .site-header h1 { font-size: 27px; margin: 0; }
+  html:not(.is-touch) .site-header .sub { display: none; }
+  html:not(.is-touch) .site-header .header-rule { margin: 10px 0 0; }
+  html:not(.is-touch) #countdown { margin-top: 10px; }
+  html:not(.is-touch) .auth-bar { justify-content: flex-end; gap: 10px; border: none; padding: 0 34px 4px; font-size: 12.5px; }
+  html:not(.is-touch) .container { max-width: 1150px; padding: 8px 34px 60px; }
+  /* cards com elevação no hover */
+  html:not(.is-touch) .card { transition: box-shadow .3s ease, transform .3s ease; }
+  html:not(.is-touch) .card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
+
+  /* o canvas de fundo cobre a área à direita da sidebar */
+  html:not(.is-touch) #bg { left: 230px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   POLISH SAAS DESKTOP — corrige corte lateral + eleva KPIs, cards e dash.
+   Só desktop não-touch. Zero efeito no mobile / nos dados.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (min-width: 1025px) {
+  /* largura fluida: usa o espaço à direita da sidebar sem estourar */
+  html:not(.is-touch) .container { max-width: none; width: auto;
+    padding: 12px clamp(24px, 3.4vw, 48px) 72px; }
+
+  /* CARDS mais sofisticados: cantos maiores, borda sutil, sombra suave */
+  html:not(.is-touch) .card { border-radius: 22px; border: 1px solid color-mix(in srgb, var(--olive-mist) 70%, transparent);
+    box-shadow: 0 1px 2px rgba(74,86,51,.04), 0 8px 30px rgba(74,86,51,.06); overflow: hidden; }
+  html:not(.is-touch) .card-header { padding: 22px 28px 8px; }
+  html:not(.is-touch) .card-header h2 { font-size: 21px; letter-spacing: -.01em; }
+
+  /* KPIs premium: hero-metric com hierarquia, hover, cor no principal */
+  html:not(.is-touch) .summary { gap: 0; background: transparent; padding: 8px 20px 22px; }
+  html:not(.is-touch) .kpi { position: relative; padding: 18px 22px; border: none;
+    border-radius: 16px; transition: background var(--transition); }
+  html:not(.is-touch) .kpi:hover { background: var(--ivory-deep); }
+  html:not(.is-touch) .kpi + .kpi::before { content:''; position:absolute; left:0; top:22%; height:56%; width:1px; background: var(--olive-mist); }
+  html:not(.is-touch) .kpi .label { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 6px; }
+  html:not(.is-touch) .kpi .value { font-size: 27px; letter-spacing: -.02em; line-height: 1.1; }
+  html:not(.is-touch) .kpi .sub { font-size: 12px; margin-top: 3px; }
+  /* primeiro KPI (o total) ganha destaque de "hero metric" */
+  html:not(.is-touch) .summary > .kpi:first-child .value { color: var(--olive-dark); font-size: 30px; }
+
+  /* DASHBOARD grid: painel + donut lado a lado, alinhados e sem corte */
+  html:not(.is-touch) .dash-grid { grid-template-columns: 1.3fr .7fr; align-items: stretch; min-width: 0; }
+  html:not(.is-touch) .dash-grid > * { min-width: 0; }
+  html:not(.is-touch) .donut-wrap { padding: 24px 26px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+  html:not(.is-touch) .donut-wrap svg, html:not(.is-touch) .donut-wrap .donut { max-width: 200px; height: auto; }
+  html:not(.is-touch) .donut-legend { width: 100%; }
+
+  /* barras de progresso mais elegantes (altura + brilho) */
+  html:not(.is-touch) .bar { height: 9px; border-radius: 999px; overflow: hidden; background: var(--olive-mist); }
+  html:not(.is-touch) .bar > span { border-radius: 999px; }
+
+  /* aportes/itens: linhas com respiro e hover */
+  html:not(.is-touch) .fund-row, html:not(.is-touch) table tbody tr { transition: background var(--transition); }
+  html:not(.is-touch) .fund-row:hover, html:not(.is-touch) table tbody tr:hover { background: var(--ivory-deep); }
+
+  /* header: nome do evento com peso editorial */
+  html:not(.is-touch) .site-header h1 { font-size: 29px; font-weight: 600; letter-spacing: -.01em; }
+
+  /* seção com título tipo "sobretítulo" fininho antes do card grande */
+  html:not(.is-touch) .card + .card { margin-top: 22px; }
+}
