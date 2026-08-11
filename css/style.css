@@ -1184,108 +1184,125 @@ html.cloud-wait::after {
 }
 
 
-/* ═══ Espelho por toque: mesmas regras via html.is-touch ═══
-   Garante o layout de app em celulares que reportam largura > 1024 (dpi alto). */
-/* espelho para dispositivos de toque (independe da largura) */
-html.is-touch, html.is-touch body { }
-html.is-touch :root { --radius-md: 18px; --radius-lg: 22px; }html.is-touch html { -webkit-text-size-adjust: 100%; }html.is-touch body { font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; background: var(--ivory); }html.is-touch /* App usa a largura toda; respiro só nas bordas */
-  .container { padding: 0 14px 120px; max-width: 100%; }html.is-touch /* 120px embaixo = espaço da bottom nav */
-
-  /* ── HEADER compacto estilo app ── */
-  .site-header { padding: 18px 14px 4px; text-align: left; }html.is-touch .site-header .eyebrow { font-size: 11px; letter-spacing: .16em; }html.is-touch .site-header h1 { font-size: 30px; margin: 2px 0 4px; }html.is-touch .site-header .sub { display: none; }html.is-touch /* subtítulo longo some no app */
-  .site-header .header-rule { display: none; }html.is-touch .countdown { margin: 8px 0 0; font-size: 13.5px; }html.is-touch /* barra de sessão (nuvem) discreta no topo direito */
-  .auth-bar { justify-content: flex-end; padding: 6px 14px; gap: 8px; font-size: 12.5px; border: none; }html.is-touch .auth-bar #auth-email { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }html.is-touch /* ── CARDS full-width, html.is-touch respiro interno generoso ── */
-  .card { border-radius: var(--radius-lg); margin: 0 0 14px; box-shadow: 0 2px 16px rgba(74,86,51,.08); }html.is-touch .card-header { padding: 20px 18px 12px; flex-wrap: wrap; gap: 6px; align-items: center; }html.is-touch .card-header h2 { font-size: 22px; }html.is-touch .card-header .header-rule { display: none; }html.is-touch .header-action { margin-left: auto; min-height: 42px; padding: 8px 14px; border-radius: 999px; font-size: 13px; }html.is-touch .header-action .ha-txt { display: inline; }html.is-touch /* ── KPIs: 2 colunas grandes, html.is-touch números destacados ── */
-  .summary, html.is-touch .summary.three { grid-template-columns: 1fr 1fr !important; gap: 1px; background: var(--olive-mist); }html.is-touch .kpi { padding: 16px 16px; background: var(--ivory-card); }html.is-touch .kpi .label { font-size: 11px; letter-spacing: .04em; margin-bottom: 4px; }html.is-touch .kpi .value { font-size: 25px; }html.is-touch .kpi .sub { font-size: 11.5px; }html.is-touch /* painel financeiro: donut em cima, html.is-touch largura total */
-  .dash-grid { grid-template-columns: 1fr !important; gap: 0; }html.is-touch .donut-wrap { padding: 22px 16px; }html.is-touch /* ── PROGRESSO / barras ── */
-  .progress-row { font-size: 13.5px; }html.is-touch /* ── FORMULÁRIOS: coluna única, html.is-touch campos altos ── */
-  .toolbar, html.is-touch .fund-form, html.is-touch .g-form, html.is-touch .g-filters { flex-direction: column; align-items: stretch; padding: 16px 18px; gap: 12px; }html.is-touch .fund-form > *, html.is-touch .g-form > *, html.is-touch .toolbar > *, html.is-touch .g-filters > * { width: 100% !important; max-width: none !important; flex: none !important; }html.is-touch .fund-form input, html.is-touch .fund-form select, html.is-touch .g-form input, html.is-touch .g-form select, html.is-touch .money, html.is-touch .name-input, html.is-touch .field, html.is-touch textarea.field, html.is-touch select.field {
-    min-height: 52px; font-size: 16px; border-radius: 14px; padding: 14px 16px;
-  }html.is-touch .input-icon { width: 100%; }html.is-touch .input-icon input { padding-left: 44px; }html.is-touch .search-wrap { min-width: 0; width: 100%; }html.is-touch .toolbar button, html.is-touch .fund-form button, html.is-touch .g-form button, html.is-touch .actions button, html.is-touch #g-add {
-    min-height: 52px; width: 100%; font-size: 16px; border-radius: 14px; font-weight: 600;
-  }html.is-touch .import-label { justify-content: center; min-height: 52px; border-radius: 14px; font-size: 15px; }html.is-touch /* chips: pílulas roláveis grandes */
-  .g-filters .chips, html.is-touch .hist-filters { display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; scrollbar-width: none; }html.is-touch .g-filters .chips::-webkit-scrollbar, html.is-touch .hist-filters::-webkit-scrollbar { display: none; }html.is-touch .chip { padding: 11px 18px; font-size: 14px; border-radius: 999px; white-space: nowrap; flex: 0 0 auto; min-height: 44px; display: inline-flex; align-items: center; }html.is-touch /* ── TABELAS → CARTÕES (grandes e legíveis) ── */
-  table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }html.is-touch table, html.is-touch table tbody, html.is-touch table tr, html.is-touch table td { display: block; width: 100%; }html.is-touch table tr {
-    background: var(--ivory-card); border: 1px solid var(--olive-mist);
+/* ═══ Espelho por toque: regras mobile também via html.is-touch (limpo) ═══ */
+html.is-touch :root { --radius-md: 18px; --radius-lg: 22px; }
+html.is-touch html { -webkit-text-size-adjust: 100%; }
+html.is-touch body { font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; background: var(--ivory); }
+html.is-touch .container { padding: 0 16px 116px; max-width: 100%; }
+html.is-touch .site-header { padding: 18px 14px 4px; text-align: left; }
+html.is-touch .site-header .eyebrow { font-size: 11px; letter-spacing: .16em; }
+html.is-touch .site-header h1 { font-size: 30px; margin: 2px 0 4px; }
+html.is-touch .site-header .sub { display: none; }
+html.is-touch .site-header .header-rule { display: none; }
+html.is-touch .countdown { margin: 8px 0 0; font-size: 13.5px; }
+html.is-touch .auth-bar { justify-content: flex-end; padding: 6px 14px; gap: 8px; font-size: 12.5px; border: none; }
+html.is-touch .auth-bar #auth-email { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.is-touch .card { border-radius: var(--radius-lg); margin: 0 0 14px; box-shadow: 0 2px 16px rgba(74,86,51,.08); }
+html.is-touch .card-header { padding: 20px 18px 12px; flex-wrap: wrap; gap: 6px; align-items: center; }
+html.is-touch .card-header h2 { font-size: 22px; }
+html.is-touch .card-header .header-rule { display: none; }
+html.is-touch .header-action { margin-left: auto; min-height: 42px; padding: 8px 14px; border-radius: 999px; font-size: 13px; }
+html.is-touch .header-action .ha-txt { display: inline; }
+html.is-touch .summary, html.is-touch .summary.three { grid-template-columns: 1fr 1fr !important; gap: 1px; background: var(--olive-mist); }
+html.is-touch .kpi { padding: 15px 16px; background: var(--ivory-card); }
+html.is-touch .kpi .label { font-size: 10.5px; letter-spacing: .04em; margin-bottom: 3px; }
+html.is-touch .kpi .value { font-size: 23px; }
+html.is-touch .kpi .sub { font-size: 11.5px; }
+html.is-touch .dash-grid { grid-template-columns: 1fr !important; gap: 0; }
+html.is-touch .donut-wrap { padding: 22px 16px; }
+html.is-touch .progress-row { font-size: 13.5px; }
+html.is-touch .toolbar, html.is-touch .fund-form, html.is-touch .g-form, html.is-touch .g-filters { flex-direction: column; align-items: stretch; padding: 16px 18px; gap: 12px; }
+html.is-touch .fund-form > *, html.is-touch .g-form > *, html.is-touch .toolbar > *, html.is-touch .g-filters > * { width: 100% !important; max-width: none !important; flex: none !important; }
+html.is-touch .fund-form input, html.is-touch .fund-form select, html.is-touch .g-form input, html.is-touch .g-form select, html.is-touch .money, html.is-touch .name-input, html.is-touch .field, html.is-touch textarea.field, html.is-touch select.field { min-height: 52px; font-size: 16px; border-radius: 14px; padding: 14px 16px; }
+html.is-touch .input-icon { width: 100%; }
+html.is-touch .input-icon input { padding-left: 44px; }
+html.is-touch .search-wrap { min-width: 0; width: 100%; }
+html.is-touch .toolbar button, html.is-touch .fund-form button, html.is-touch .g-form button, html.is-touch .actions button, html.is-touch #g-add { min-height: 52px; width: 100%; font-size: 16px; border-radius: 14px; font-weight: 600; }
+html.is-touch .import-label { justify-content: center; min-height: 52px; border-radius: 14px; font-size: 15px; }
+html.is-touch .g-filters .chips, html.is-touch .hist-filters { display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; scrollbar-width: none; }
+html.is-touch .g-filters .chips::-webkit-scrollbar, html.is-touch .hist-filters::-webkit-scrollbar { display: none; }
+html.is-touch .chip { padding: 11px 18px; font-size: 14px; border-radius: 999px; white-space: nowrap; flex: 0 0 auto; min-height: 44px; display: inline-flex; align-items: center; }
+html.is-touch table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+html.is-touch table, html.is-touch table tbody, html.is-touch table tr, html.is-touch table td { display: block; width: 100%; }
+html.is-touch table tr { background: var(--ivory-card); border: 1px solid var(--olive-mist);
     border-radius: var(--radius-md); box-shadow: 0 2px 10px rgba(74,86,51,.06);
-    padding: 12px 16px 14px; margin-bottom: 12px;
-  }html.is-touch table tr.quitado { border-left: 4px solid var(--ok); }html.is-touch table td {
-    display: flex; justify-content: space-between; align-items: center; gap: 12px;
-    padding: 11px 0; border: none; border-bottom: 1px solid rgba(107,123,74,.10);
-    text-align: right; min-height: 46px; font-size: 15.5px;
-  }html.is-touch table td:last-child { border-bottom: none; padding-bottom: 2px; }html.is-touch table td::before {
-    content: attr(data-label); text-align: left; flex: 0 0 42%;
+    padding: 12px 16px 14px; margin-bottom: 12px; }
+html.is-touch table tr.quitado { border-left: 4px solid var(--ok); }
+html.is-touch table td { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 9px 0; border: none; border-bottom: 1px solid rgba(107,123,74,.10);
+    text-align: right; min-height: 40px; font-size: 15px; }
+html.is-touch table td:last-child { border-bottom: none; padding-bottom: 2px; }
+html.is-touch table td::before { content: attr(data-label); text-align: left; flex: 0 0 42%;
     font-size: 12px; letter-spacing: .02em; text-transform: uppercase;
-    color: var(--ink-faint); font-weight: 700;
-  }html.is-touch /* nome do item/convidado como título do card */
-  table td[data-label="Item"], html.is-touch table td[data-label="Convidado"] { flex-wrap: wrap; padding-top: 2px; }html.is-touch table td[data-label="Item"]::before, html.is-touch table td[data-label="Convidado"]::before { flex-basis: 100%; margin-bottom: 4px; }html.is-touch table td[data-label="Item"] .name, html.is-touch table td[data-label="Convidado"] { width: 100%; text-align: left; font-size: 17px; font-weight: 600; }html.is-touch table td[data-label="Item"] .name-input { width: 100%; font-size: 16px; }html.is-touch table td[data-label="Convidado"] .g-sub { font-size: 13px; }html.is-touch table td .money { width: 100%; max-width: 170px; text-align: right; min-height: 46px; }html.is-touch table td select, html.is-touch table td .field { min-height: 46px; font-size: 15px; }html.is-touch /* ações da linha: botões grandes distribuídos */
-  table td[data-label="Ações"], html.is-touch table td[data-label="Ação"] { flex-wrap: wrap; justify-content: flex-start; }html.is-touch table td[data-label="Ações"]::before, html.is-touch table td[data-label="Ação"]::before { flex-basis: 100%; margin-bottom: 8px; }html.is-touch .row-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 10px; }html.is-touch .icon-btn { width: 48px; height: 48px; font-size: 18px; border-radius: 14px; }html.is-touch .btn-sm { padding: 12px 18px; font-size: 14px; border-radius: 12px; min-height: 46px; }html.is-touch .wa-btn { min-height: 46px; padding: 11px 18px; font-size: 14px; border-radius: 12px; }html.is-touch .beer-toggle { width: 48px; height: 48px; font-size: 20px; border-radius: 14px; }html.is-touch .status { font-size: 13px; padding: 6px 12px; }html.is-touch .pill { font-size: 11.5px; padding: 4px 10px; }html.is-touch /* custos por convidado: cartão em coluna */
-  .vc-row { flex-direction: column; align-items: stretch; gap: 14px; padding: 16px; }html.is-touch .vc-row .vc-calc { justify-content: space-between; gap: 12px; flex-wrap: wrap; }html.is-touch .vc-num .v { font-size: 18px; }html.is-touch /* aportes empilhados grandes */
-  .fund-row { flex-wrap: wrap; padding: 14px 16px; gap: 8px; }html.is-touch .fund-row .f-amt { margin-left: auto; font-size: 17px; }html.is-touch .fund-row .row-actions { width: 100%; }html.is-touch /* ── MODAIS = bottom sheet ── */
-  .modal { max-width: 100%; width: 100%; border-radius: 24px 24px 0 0;
+    color: var(--ink-faint); font-weight: 700; }
+html.is-touch table td[data-label="Item"], html.is-touch table td[data-label="Convidado"] { flex-wrap: wrap; padding-top: 2px; }
+html.is-touch table td[data-label="Item"]::before, html.is-touch table td[data-label="Convidado"]::before { flex-basis: 100%; margin-bottom: 4px; }
+html.is-touch table td[data-label="Item"] .name, html.is-touch table td[data-label="Convidado"] { width: 100%; text-align: left; font-size: 17px; font-weight: 600; }
+html.is-touch table td[data-label="Item"] .name-input { width: 100%; font-size: 16px; }
+html.is-touch table td[data-label="Convidado"] .g-sub { font-size: 13px; }
+html.is-touch table td .money { width: 100%; max-width: 170px; text-align: right; min-height: 46px; }
+html.is-touch table td select, html.is-touch table td .field { min-height: 46px; font-size: 15px; }
+html.is-touch table td[data-label="Ações"], html.is-touch table td[data-label="Ação"] { flex-wrap: wrap; justify-content: flex-start; }
+html.is-touch table td[data-label="Ações"]::before, html.is-touch table td[data-label="Ação"]::before { flex-basis: 100%; margin-bottom: 8px; }
+html.is-touch .row-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 10px; }
+html.is-touch .icon-btn { width: 48px; height: 48px; font-size: 18px; border-radius: 14px; }
+html.is-touch .btn-sm { padding: 12px 18px; font-size: 14px; border-radius: 12px; min-height: 46px; }
+html.is-touch .wa-btn { min-height: 46px; padding: 11px 18px; font-size: 14px; border-radius: 12px; }
+html.is-touch .beer-toggle { width: 48px; height: 48px; font-size: 20px; border-radius: 14px; }
+html.is-touch .status { font-size: 13px; padding: 6px 12px; }
+html.is-touch .pill { font-size: 11.5px; padding: 4px 10px; }
+html.is-touch .vc-row { flex-direction: column; align-items: stretch; gap: 14px; padding: 16px; }
+html.is-touch .vc-row .vc-calc { justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+html.is-touch .vc-num .v { font-size: 18px; }
+html.is-touch .fund-row { flex-wrap: wrap; padding: 14px 16px; gap: 8px; }
+html.is-touch .fund-row .f-amt { margin-left: auto; font-size: 17px; }
+html.is-touch .fund-row .row-actions { width: 100%; }
+html.is-touch .modal { max-width: 100%; width: 100%; border-radius: 24px 24px 0 0;
     position: fixed; left: 0; right: 0; bottom: 0; max-height: 94vh; overflow-y: auto;
     padding: 22px 18px calc(20px + env(safe-area-inset-bottom));
-    animation: sheetUp .3s cubic-bezier(.32,.72,0,1); }html.is-touch .modal::before { content:''; display:block; width:42px; height:5px; border-radius:3px;
-    background: var(--olive-mist); margin: -6px auto 14px; }html.is-touch /* alça de arraste */
-  .modal-backdrop { align-items: flex-end; }html.is-touch .modal-head h3 { font-size: 21px; }html.is-touch .modal .field, html.is-touch .modal input, html.is-touch .modal select, html.is-touch .modal textarea { min-height: 52px; font-size: 16px; border-radius: 14px; }html.is-touch .modal .modal-foot { position: sticky; bottom: 0; background: var(--ivory-card); padding-top: 14px; margin-top: 6px; gap: 10px; }html.is-touch .modal .modal-foot button { min-height: 52px; flex: 1; font-size: 16px; border-radius: 14px; }
-  @keyframes sheetUp {html.is-touch from { transform: translateY(100%);}html.is-touch to { transform: none; } }html.is-touch /* configurações: tudo empilhado e grande */
-  .settings-grid { grid-template-columns: 1fr; gap: 4px; }html.is-touch .setting-item { padding: 14px 4px; font-size: 15px; }html.is-touch .actions { flex-direction: column; align-items: stretch; gap: 10px; }html.is-touch .actions button, html.is-touch .actions .import-label { width: 100%; }html.is-touch /* rodapé com espaço pra bottom nav */
-  .brand { padding: 20px 14px 8px; font-size: 12.5px; }html.is-touch .owner-tools.is-owner { margin: 14px; }
-
-/* espelho para dispositivos de toque (independe da largura) */
-html.is-touch, html.is-touch body { }
-html.is-touch /* a nav de topo antiga vira a bottom nav */
-  .nav {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 100;
+    animation: sheetUp .3s cubic-bezier(.32,.72,0,1); }
+html.is-touch .modal::before { content:''; display:block; width:42px; height:5px; border-radius:3px;
+    background: var(--olive-mist); margin: -6px auto 14px; }
+html.is-touch .modal-backdrop { align-items: flex-end; }
+html.is-touch .modal-head h3 { font-size: 21px; }
+html.is-touch .modal .field, html.is-touch .modal input, html.is-touch .modal select, html.is-touch .modal textarea { min-height: 52px; font-size: 16px; border-radius: 14px; }
+html.is-touch .modal .modal-foot { position: sticky; bottom: 0; background: var(--ivory-card); padding-top: 14px; margin-top: 6px; gap: 10px; }
+html.is-touch .modal .modal-foot button { min-height: 52px; flex: 1; font-size: 16px; border-radius: 14px; }
+html.is-touch from { transform: translateY(100%); }
+html.is-touch to { transform: none; }
+html.is-touch .settings-grid { grid-template-columns: 1fr; gap: 4px; }
+html.is-touch .setting-item { padding: 14px 4px; font-size: 15px; }
+html.is-touch .actions { flex-direction: column; align-items: stretch; gap: 10px; }
+html.is-touch .actions button, html.is-touch .actions .import-label { width: 100%; }
+html.is-touch .brand { padding: 20px 14px 8px; font-size: 12.5px; }
+html.is-touch .owner-tools.is-owner { margin: 14px; }
+html.is-touch .nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 100;
     display: flex; gap: 4px; margin: 0;
     padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
     background: rgba(255,254,249,.94); backdrop-filter: blur(16px) saturate(1.2);
     border-top: 1px solid var(--olive-mist);
-    box-shadow: 0 -6px 24px rgba(74,86,51,.10);
-  }html.is-touch .nav .tab {
-    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-shadow: 0 -6px 24px rgba(74,86,51,.10); }
+html.is-touch .nav .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 3px; padding: 8px 6px 6px; border-radius: 16px; font-size: 11.5px; font-weight: 600;
     color: var(--ink-faint); background: transparent; min-height: 54px;
-    transition: color var(--transition), background var(--transition), transform var(--transition);
-  }html.is-touch .nav .tab .tab-ico { width: 24px; height: 24px; display: block; }html.is-touch .nav .tab.active {
-    color: var(--olive-dark); background: var(--gold-light);
-  }html.is-touch .nav .tab.active .tab-ico { transform: translateY(-1px); }html.is-touch .nav .tab:active { transform: scale(.94); }
-
-/* espelho para dispositivos de toque (independe da largura) */
-html.is-touch, html.is-touch body { }
+    transition: color var(--transition), background var(--transition), transform var(--transition); }
+html.is-touch .nav .tab .tab-ico { width: 24px; height: 24px; display: block; }
+html.is-touch .nav .tab.active { color: var(--olive-dark); background: var(--gold-light); }
+html.is-touch .nav .tab.active .tab-ico { transform: translateY(-1px); }
+html.is-touch .nav .tab:active { transform: scale(.94); }
 html.is-touch .container { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
-  
-/* espelho para dispositivos de toque (independe da largura) */
-html.is-touch, html.is-touch body { }
-html.is-touch input, html.is-touch select, html.is-touch textarea { font-size: 16px !important; }  /* impede zoom automático no foco (iOS) */
-
-/* espelho para dispositivos de toque (independe da largura) */
-html.is-touch, html.is-touch body { }
-html.is-touch .auth-overlay { padding: 0; align-items: stretch; }html.is-touch .auth-card { max-width: 100%; width: 100%; min-height: 100vh; min-height: 100dvh;
+html.is-touch input, html.is-touch select, html.is-touch textarea { font-size: 16px !important; }
+html.is-touch .auth-overlay { padding: 0; align-items: stretch; }
+html.is-touch .auth-card { max-width: 100%; width: 100%; min-height: 100vh; min-height: 100dvh;
     display: flex; flex-direction: column; justify-content: center;
-    border-radius: 0; padding: 32px 22px calc(32px + env(safe-area-inset-bottom)); box-shadow: none; }html.is-touch .auth-card h3 { font-size: 28px; }html.is-touch .auth-card .sub { font-size: 14.5px; }html.is-touch .auth-card .fld input { min-height: 54px; font-size: 16px; border-radius: 14px; }html.is-touch .auth-card .actions-col { gap: 12px; }html.is-touch .auth-card .actions-col button { min-height: 54px; font-size: 16px; border-radius: 14px; }html.is-touch .auth-links { flex-direction: column; gap: 14px; text-align: center; margin-top: 18px; }html.is-touch .auth-links a { font-size: 15px; padding: 6px; }
-
-
-/* Seletor de tema — bolinhas com as duas cores principais de cada paleta */
-.theme-picker { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
-.theme-swatch { display: inline-flex; flex-direction: column; align-items: center; gap: 5px;
-  border: 2px solid transparent; border-radius: 14px; padding: 8px 10px 6px; cursor: pointer;
-  background: var(--ivory-deep); font-size: 11.5px; color: var(--ink-muted); font-weight: 600;
-  transition: all var(--transition); min-width: 62px; }
-.theme-swatch span { width: 34px; height: 34px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--sw1) 0 55%, var(--sw2) 55% 100%);
-  box-shadow: inset 0 0 0 2px rgba(255,255,255,.5); display: block; }
-.theme-swatch:hover { transform: translateY(-2px); }
-.theme-swatch.active { border-color: var(--sw1); background: var(--ivory-card); box-shadow: 0 2px 12px rgba(0,0,0,.08); }
-
-/* Estrela de titular da família (★ mestre) */
-.head-toggle { margin-left: 6px; width: 30px; height: 30px; border-radius: var(--radius-sm);
-  border: 1px solid var(--olive-mist); background: var(--ivory-deep); cursor: pointer;
-  font-size: 15px; line-height: 1; color: var(--ink-faint); transition: all var(--transition); vertical-align: middle; }
-.head-toggle:hover { border-color: var(--gold); transform: translateY(-1px); }
-.head-toggle.on { color: var(--gold); background: var(--gold-light); border-color: var(--gold); }
-@media (max-width: 1024px) { .head-toggle { width: 48px; height: 48px; font-size: 20px; border-radius: 14px; } }
-html.is-touch .head-toggle { width: 48px; height: 48px; font-size: 20px; border-radius: 14px; }
+    border-radius: 0; padding: 32px 22px calc(32px + env(safe-area-inset-bottom)); box-shadow: none; }
+html.is-touch .auth-card h3 { font-size: 28px; }
+html.is-touch .auth-card .sub { font-size: 14.5px; }
+html.is-touch .auth-card .fld input { min-height: 54px; font-size: 16px; border-radius: 14px; }
+html.is-touch .auth-card .actions-col { gap: 12px; }
+html.is-touch .auth-card .actions-col button { min-height: 54px; font-size: 16px; border-radius: 14px; }
+html.is-touch .auth-links { flex-direction: column; gap: 14px; text-align: center; margin-top: 18px; }
+html.is-touch .auth-links a { font-size: 15px; padding: 6px; }
 
 /* ═══ Status coloridos no seletor (verde vem · amarelo pendente · vermelho não vem) ═══ */
 .status-sel { font-weight: 600; border-width: 1.5px; transition: all var(--transition); }

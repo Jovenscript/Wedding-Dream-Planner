@@ -43,7 +43,7 @@ function applyEventName(){
   document.title = (nm ? nm+' — ' : '') + 'EventFlow';
   const inp=el('event-name'); if(inp && document.activeElement!==inp && inp.value!==nm) inp.value=nm;
 }
-function renderAll(){ applyTheme(); applyEventName(); applyCountdown(); try{ if(typeof renderAlerts==='function' && el('alert-list')) renderAlerts(); }catch{} try{ if(typeof renderModules==='function') renderModules(); }catch{} syncVarLinkedItems(); const c=compute(); renderDashboard(c); renderFunds(c); renderItems(c); renderHistory(); renderGuestView(c); }
+function renderAll(){ applyTheme(); applyEventName(); applyCountdown(); try{ const db=el('demo-banner'); if(db) db.hidden = !(state.settings&&state.settings.demo); }catch{} try{ if(typeof renderAlerts==='function' && el('alert-list')) renderAlerts(); }catch{} try{ if(typeof renderModules==='function') renderModules(); }catch{} syncVarLinkedItems(); const c=compute(); renderDashboard(c); renderFunds(c); renderItems(c); renderHistory(); renderGuestView(c); }
 
 /* Primeiro acesso: faz perguntas básicas para o cliente configurar o evento.
    Só aparece uma vez (settings.onboarded) e quando o app está vazio. */

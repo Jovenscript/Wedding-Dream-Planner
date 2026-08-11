@@ -239,6 +239,14 @@ function buildSharePayload(sh){
 
 /* ---------- MODO DEMONSTRAÇÃO ---------- */
 function loadDemoData(){
+  // Guarda um backup dos dados reais ANTES de entrar no demo (para restaurar depois).
+  try{
+    if(!state.settings.demo){
+      const real=JSON.stringify({items:state.items,funds:state.funds,guests:state.guests,varCosts:state.varCosts,
+        tasks:state.tasks,suppliers:state.suppliers,schedule:state.schedule,shares:state.shares,history:state.history,settings:state.settings});
+      localStorage.setItem('@eventflow_prebackup', real);
+    }
+  }catch{}
   // Evento fictício para apresentar sem expor dados reais. Tudo marcado como DEMO.
   state.settings.eventName='✦ DEMONSTRAÇÃO — Casamento Sofia & Lucas';
   state.settings.eventKind='Casamento';
