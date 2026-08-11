@@ -405,7 +405,16 @@ el('fund-add').addEventListener('click', addFundFromForm);
       soundTog.addEventListener('change', ()=>{ state.settings.sound=soundTog.checked; save(); if(soundTog.checked) toast('Sons ativados','ok'); }); }
     const evName=el('event-name');
     if(evName){ evName.value=(state.settings.eventName||''); 
-      const evDate=el('event-date');
+      const demoBtn=el('demo-mode');
+    if(demoBtn) demoBtn.addEventListener('click', async ()=>{
+      const temDados = state.guests.length || state.items.length || state.suppliers?.length;
+      const ok = temDados ? await confirmDialog('Ativar modo demonstração','Isto vai SUBSTITUIR os dados atuais por um evento fictício de exemplo. Faça um backup antes se quiser guardar o que tem. Continuar?',{danger:true,confirmText:'Ativar demo'}) : true;
+      if(ok && typeof loadDemoData==='function') loadDemoData();
+    });
+    const evPlace=el('event-place');
+    if(evPlace){ evPlace.value=(state.settings.eventPlace||'');
+      evPlace.addEventListener('input', ()=>{ state.settings.eventPlace=evPlace.value.trim(); save(); }); }
+    const evDate=el('event-date');
       if(evDate){ evDate.value=(state.settings.eventDate||'');
         evDate.addEventListener('change', ()=>{ state.settings.eventDate=evDate.value; applyCountdown(); save(); }); }
       evName.addEventListener('input', ()=>{

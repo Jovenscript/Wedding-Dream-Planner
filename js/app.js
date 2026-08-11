@@ -43,7 +43,7 @@ function applyEventName(){
   document.title = (nm ? nm+' — ' : '') + 'EventFlow';
   const inp=el('event-name'); if(inp && document.activeElement!==inp && inp.value!==nm) inp.value=nm;
 }
-function renderAll(){ applyTheme(); applyEventName(); applyCountdown(); syncVarLinkedItems(); const c=compute(); renderDashboard(c); renderFunds(c); renderItems(c); renderHistory(); renderGuestView(c); }
+function renderAll(){ applyTheme(); applyEventName(); applyCountdown(); try{ if(typeof renderAlerts==='function' && el('alert-list')) renderAlerts(); }catch{} try{ if(typeof renderModules==='function') renderModules(); }catch{} syncVarLinkedItems(); const c=compute(); renderDashboard(c); renderFunds(c); renderItems(c); renderHistory(); renderGuestView(c); }
 
 /* Primeiro acesso: faz perguntas básicas para o cliente configurar o evento.
    Só aparece uma vez (settings.onboarded) e quando o app está vazio. */
@@ -125,6 +125,9 @@ try{ window.presetCasamento = function(){ implantarTudo(); renderAll(); if(typeo
     }, {passive:true});
   }catch{}
 })();
+// Fallbacks p/ modo local (sem nuvem): compartilhamento exige nuvem; avisa se faltar.
+if(typeof window.publishShare!=='function'){ window.publishShare=function(){ if(!window.FIREBASE_CONFIG) toast('O link externo funciona com a conta na nuvem ativa.','warn'); }; }
+if(typeof window.unpublishShare!=='function'){ window.unpublishShare=function(){}; }
 // PWA: registra o service worker (app instalável + offline). Falha silenciosa em file://
 // Atalho de teclado: "/" foca a busca de convidados (padrão de apps profissionais)
 document.addEventListener('keydown', function(e){ /* keydown-global */

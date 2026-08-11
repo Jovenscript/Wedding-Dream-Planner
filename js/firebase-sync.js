@@ -110,6 +110,16 @@
 
   // Reset total à prova de nuvem: cancela a escuta, apaga o documento e
   // bloqueia novos saves até a página recarregar (senão o onSnapshot repovoa).
+  // Publica/remove a cópia pública e filtrada de um compartilhamento.
+  // Coleção 'shares/{token}' — somente leitura pública (ver regras do Firestore).
+  window.publishShare=async function(sh){
+    try{ if(!db||!sh||!sh.token) return; const payload=buildSharePayload(sh);
+      payload.updatedAt=Date.now();
+      await db.collection('shares').doc(sh.token).set(payload); }catch(e){ console.error('publishShare',e); }
+  };
+  window.unpublishShare=async function(token){
+    try{ if(!db||!token) return; await db.collection('shares').doc(token).delete(); }catch(e){ console.error('unpublishShare',e); }
+  };
   window.__cloudReset=async function(){
     try{
       if(unsub){ unsub(); unsub=null; }

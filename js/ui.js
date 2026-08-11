@@ -69,6 +69,7 @@ function modal(opts){
     const foot = document.createElement('div'); foot.className='modal-foot';
     const cancel = document.createElement('button'); cancel.className='ghost'; cancel.textContent=cancelText;
     const ok = document.createElement('button'); ok.className = danger?'danger':''; ok.textContent=confirmText;
+    if(opts.extraBtn){ const xb=document.createElement('button'); xb.className=opts.extraBtn.danger?'danger':'ghost'; xb.textContent=opts.extraBtn.label; xb.style.marginRight='auto'; xb.addEventListener('click',()=>close(opts.extraBtn.value)); foot.appendChild(xb); }
     foot.appendChild(cancel); foot.appendChild(ok);
     box.appendChild(head); box.appendChild(body); box.appendChild(foot); mBackdrop.appendChild(box);
     function onKey(e){ if(e.key==='Escape') close(null); }

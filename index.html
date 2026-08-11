@@ -39,6 +39,10 @@
       <a class="tab side-link" href="#convidados" data-view="convidados">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <span>Pessoas</span></a>
+      <a class="tab side-link" href="#tarefas" data-view="tarefas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Tarefas</span></a>
+      <a class="tab side-link" href="#cronograma" data-view="cronograma"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Cronograma</span></a>
+      <a class="tab side-link" href="#fornecedores" data-view="fornecedores"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l1-5h16l1 5"/><path d="M4 9v11h16V9"/><path d="M9 13h6"/></svg><span>Fornecedores</span></a>
+      <a class="tab side-link" href="#compartilhamentos" data-view="compartilhamentos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg><span>Compartilhar</span></a>
       <button class="side-link side-btn" id="side-config" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
         <span>Configurações</span></button>
@@ -63,6 +67,17 @@
       <span>Financeiro</span>
     </a>
   </nav>
+
+  <div class="alert-center" id="alert-center">
+    <button class="alert-bell" id="alert-bell" type="button" aria-label="Alertas" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="alert-badge" id="alert-badge" hidden>0</span>
+    </button>
+    <div class="alert-panel" id="alert-panel" hidden role="dialog" aria-label="Alertas">
+      <div class="alert-panel-head">Alertas <span id="alert-count-txt"></span></div>
+      <div class="alert-list" id="alert-list"></div>
+    </div>
+  </div>
 
   <div class="auth-bar" id="auth-bar" aria-live="polite">
     <span class="cloud-dot" id="cloud-dot" aria-hidden="true"></span>
@@ -240,6 +255,10 @@
           <input id="event-date" class="name-input" type="date" style="margin-top:6px" />
         </label>
         <label class="setting-item">
+          <span class="setting-label">Local do evento (opcional)</span>
+          <input id="event-place" class="name-input" type="text" placeholder="ex.: Espaço Villa Jardim" style="margin-top:6px" />
+        </label>
+        <label class="setting-item">
           <input type="checkbox" id="show-over" />
           <span class="setting-label">Mostrar coluna "Falta" como zero quando pago supera o total</span>
         </label>
@@ -256,6 +275,7 @@
         <button id="backup-export" class="secondary">↓ Exportar backup (JSON)</button>
         <label class="import-label secondary" for="backup-file" style="cursor:pointer">↑ Restaurar backup<input id="backup-file" type="file" accept="application/json,.json" hidden /></label>
         <button id="load-examples" class="secondary">Carregar exemplos</button>
+        <button id="demo-mode" class="secondary">▶ Ativar modo demonstração</button>
         <button id="reset-all" class="danger">Reset total (apaga tudo)</button>
       </div>
       <p style="font-size:11.5px;color:var(--ink-faint);margin:4px 2px 0">O backup salva TODO o evento (convidados, orçamento, aportes, configurações) num arquivo. Guarde-o para restaurar em outro aparelho ou desfazer um erro.</p>
@@ -436,6 +456,48 @@
 
     </div>
 
+    <!-- ═══════════ TAREFAS (kanban) ═══════════ -->
+    <div class="view" id="view-tarefas" hidden>
+      <section class="card">
+        <div class="card-header"><h2>Central de Tarefas</h2>
+          <button class="header-action" id="task-add"><span class="ha-txt">+ Nova tarefa</span></button><button class="btn-sm" id="task-csv" style="margin-left:8px">↓ CSV</button></div>
+        <div class="kanban" id="kanban">
+          <div class="kb-col" data-col="todo"><div class="kb-head">A fazer <span class="kb-count" id="kb-c-todo">0</span></div><div class="kb-list" id="kb-todo"></div></div>
+          <div class="kb-col" data-col="doing"><div class="kb-head">Em andamento <span class="kb-count" id="kb-c-doing">0</span></div><div class="kb-list" id="kb-doing"></div></div>
+          <div class="kb-col" data-col="done"><div class="kb-head">Concluído <span class="kb-count" id="kb-c-done">0</span></div><div class="kb-list" id="kb-done"></div></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ═══════════ CRONOGRAMA ═══════════ -->
+    <div class="view" id="view-cronograma" hidden>
+      <section class="card">
+        <div class="card-header"><h2>Cronograma do Evento</h2>
+          <button class="header-action" id="sched-add"><span class="ha-txt">+ Momento</span></button></div>
+        <div class="timeline" id="timeline"></div>
+      </section>
+    </div>
+
+    <!-- ═══════════ FORNECEDORES ═══════════ -->
+    <div class="view" id="view-fornecedores" hidden>
+      <section class="card">
+        <div class="card-header"><h2>Fornecedores</h2>
+          <button class="header-action" id="sup-add"><span class="ha-txt">+ Fornecedor</span></button><button class="btn-sm" id="sup-csv" style="margin-left:8px">↓ CSV</button></div>
+        <div class="sup-grid" id="sup-grid"></div>
+      </section>
+    </div>
+
+    <!-- ═══════════ COMPARTILHAMENTOS ═══════════ -->
+    <div class="view" id="view-compartilhamentos" hidden>
+      <section class="card">
+        <div class="card-header"><h2>Compartilhamentos</h2>
+          <button class="header-action" id="share-add"><span class="ha-txt">+ Novo compartilhamento</span></button></div>
+        <p class="share-intro">Gere um link somente-leitura para profissionais (cerimonialista, buffet, fotógrafo…) verem apenas o que você autorizar — sem acesso ao financeiro nem ao restante do sistema.</p>
+        <div class="share-list" id="share-list"></div>
+      </section>
+    </div>
+
+
     <div class="owner-tools" id="owner-tools" hidden>
       <button id="implant-all" class="secondary">⚙ Implementar tudo (preset do casamento)</button>
       <span class="owner-hint">Visível apenas para as contas de administrador.</span>
@@ -460,6 +522,8 @@
   <script src="js/orcamento.js"></script>
   <script src="js/pdf.js"></script>
   <script src="js/convidados.js"></script>
+  <script src="js/alerts.js"></script>
+  <script src="js/modules.js"></script>
   <script src="js/app.js"></script>
   <script src="js/firebase-sync.js"></script>
 </body>

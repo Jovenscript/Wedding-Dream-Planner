@@ -25,8 +25,18 @@ function seedItems(){ return DEFAULT_ITEMS.map(d=>({id:uid(), name:d.name, categ
    As sementes (itens padrão, custos de referência, lista de convidados)
    deixam de rodar no boot; ficam disponíveis apenas como ações manuais
    (ex.: botão "Carregar exemplos" / "Restaurar padrão"). */
-function blankState(){ const settings={showOver:true, strict:true, smart:{margin:10, hours:6, basis:'lista'}, seedItems:true, seedGuests:true, seedEventCosts:true, seedSmartV2:true}; return { items:[], funds:[], history:[], guests:[], varCosts:[], settings }; }
+function blankState(){ const settings={showOver:true, strict:true, smart:{margin:10, hours:6, basis:'lista'}, seedItems:true, seedGuests:true, seedEventCosts:true, seedSmartV2:true}; return { items:[], funds:[], history:[], guests:[], varCosts:[], tasks:[], suppliers:[], schedule:[], shares:[], settings }; }
 function normFund(f){ const amount=Math.max(0,round2(f.amount)); const o={ id:f.id||uid(), name:f.name||'Aporte', type:f.type||'Outros', amount, used:Math.max(0,Math.min(amount,round2(f.used))), date:f.date||todayISO() }; if(f.ownAuto) o.ownAuto=true; return o; }
+/* Normalizadores dos módulos novos (tarefas, fornecedores, cronograma) */
+function normTask(t){ t=t||{}; const st=['todo','doing','done'].includes(t.status)?t.status:'todo';
+  const pr=['baixa','media','alta'].includes(t.priority)?t.priority:'media';
+  return { id:t.id||uid(), title:String(t.title||'').trim()||'Tarefa', owner:String(t.owner||'').trim(),
+    due:t.due||'', priority:pr, status:st, category:String(t.category||'').trim(), notes:String(t.notes||'').trim() }; }
+function normSupplier(s){ s=s||{}; return { id:s.id||uid(), name:String(s.name||'').trim()||'Fornecedor',
+  category:String(s.category||'Outros').trim(), contact:String(s.contact||'').trim(), phone:String(s.phone||'').trim(),
+  value:Math.max(0,round2(s.value)), paid:Math.max(0,round2(s.paid)), status:String(s.status||'cotacao').trim(), notes:String(s.notes||'').trim() }; }
+function normSchedule(s){ s=s||{}; return { id:s.id||uid(), time:String(s.time||'').trim(), title:String(s.title||'').trim()||'Momento',
+  note:String(s.note||'').trim(), who:String(s.who||'').trim() }; }
 
 // Migração idempotente: aceita array antigo, {items,...} antigo ou o formato novo.
 // Itens legados que só serviam de "cofre" (total 0 e pago > 0) viram aportes automaticamente.
@@ -55,6 +65,11 @@ function migrate(raw){
   });
   history = (history||[]).filter(h=>h&&typeof h==='object').map(h=>({ id:h.id||uid(), ts:h.ts||Date.now(), kind:h.kind||'ajuste', desc:h.desc||'', delta:round2(h.delta) }));
   guests = guests.filter(g=>g&&typeof g==='object').map(normGuest);
+  // Módulos novos (retrocompatível): se não existirem nos dados antigos, viram [].
+  let tasks     = Array.isArray(raw.tasks)     ? raw.tasks.filter(x=>x&&typeof x==='object').map(normTask)       : [];
+  let suppliers = Array.isArray(raw.suppliers) ? raw.suppliers.filter(x=>x&&typeof x==='object').map(normSupplier): [];
+  let schedule  = Array.isArray(raw.schedule)  ? raw.schedule.filter(x=>x&&typeof x==='object').map(normSchedule) : [];
+  let shares    = Array.isArray(raw.shares)    ? raw.shares.filter(x=>x&&typeof x==='object')                    : [];
   // Garante um titular por família (para dados antigos sem isHead): o primeiro da família.
   (function ensureHeads(){
     const grupos={};
@@ -122,7 +137,7 @@ function migrate(raw){
     }
     normItems.length=0; normItems.push(...keep);
   })();
-  const built = { items:normItems, funds:outFunds, history, guests, varCosts, settings };
+  const built = { items:normItems, funds:outFunds, history, guests, varCosts, tasks, suppliers, schedule, shares, settings };
   return { state: built, migrated };
 }
 function loadState(){

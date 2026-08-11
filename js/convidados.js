@@ -799,10 +799,11 @@ async function importGuestsXLSX(file){
 }
 
 /* ── Troca de vistas (Orçamento ⇄ Convidados) ── */
+const ALL_VIEWS=['orcamento','convidados','tarefas','cronograma','fornecedores','compartilhamentos'];
 function switchView(v){
-  const isG=v==='convidados';
-  el('view-convidados').hidden=!isG;
-  el('view-orcamento').hidden=isG;
+  if(!ALL_VIEWS.includes(v)) v='orcamento';
+  ALL_VIEWS.forEach(name=>{ const elm=el('view-'+name); if(elm) elm.hidden = (name!==v); });
+  try{ if(typeof renderModules==='function') renderModules(); }catch{}
   document.querySelectorAll('.nav .tab, .side-link[data-view]').forEach(t=>{
     const act=t.dataset.view===v;
     t.classList.toggle('active',act);

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="is-touch">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5" />
+  <title>EventFlow — Acesso compartilhado</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    body{ padding:0; }
+    .pub-wrap{ max-width:820px; margin:0 auto; padding:20px 16px 60px; }
+    .pub-head{ text-align:center; padding:26px 0 14px; }
+    .pub-head .eyebrow{ font-size:11px; letter-spacing:.16em; color:var(--olive); text-transform:uppercase; }
+    .pub-head h1{ font-family:'Cormorant Garamond',serif; font-size:30px; color:var(--olive-dark); margin:6px 0 2px; }
+    .pub-badge{ display:inline-flex; gap:8px; align-items:center; font-size:12.5px; color:var(--ink-muted);
+      background:var(--gold-light); padding:6px 14px; border-radius:999px; margin-top:8px; }
+    .pub-loading,.pub-error{ text-align:center; padding:60px 20px; color:var(--ink-muted); }
+    .pub-error{ color:var(--danger); }
+    .pub-section{ margin-top:20px; }
+    .pub-section h2{ font-family:'Cormorant Garamond',serif; font-size:22px; color:var(--olive-dark); margin:0 0 10px; }
+    .pub-stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; }
+    .pub-stat{ background:var(--ivory-card); border:1px solid var(--olive-mist); border-radius:14px; padding:14px 16px; }
+    .pub-stat .n{ font-family:'Cormorant Garamond',serif; font-size:26px; font-weight:700; color:var(--olive-dark); }
+    .pub-stat .l{ font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-faint); }
+    .pub-guest{ display:flex; justify-content:space-between; align-items:center; gap:10px;
+      background:var(--ivory-card); border:1px solid var(--olive-mist); border-radius:12px; padding:11px 14px; margin-bottom:8px; }
+    .pub-guest .gn{ font-weight:600; }
+    .pub-guest .gm{ font-size:12px; color:var(--ink-muted); }
+    .pub-guest .gs{ font-size:11.5px; font-weight:600; padding:3px 10px; border-radius:999px; }
+    .gs.st-confirmado{ color:#2E7D46; background:#EAF6EE; } .gs.st-pendente{ color:#A0741E; background:#FBF3DC; } .gs.st-nao{ color:#B23B3B; background:#FBE9E9; }
+    .pub-foot{ text-align:center; margin-top:40px; font-size:12px; color:var(--ink-faint); }
+    .pub-ro{ display:inline-flex; gap:6px; align-items:center; font-size:11.5px; color:var(--ink-faint); }
+  </style>
+</head>
+<body>
+  <div class="pub-wrap">
+    <div class="pub-head">
+      <div class="eyebrow">✦ EventFlow ✦</div>
+      <h1 id="pub-title">Carregando…</h1>
+      <div class="pub-badge" id="pub-role" hidden></div>
+      <div style="margin-top:8px"><span class="pub-ro">🔒 Acesso somente leitura</span></div>
+    </div>
+    <div class="pub-loading" id="pub-loading">Carregando informações compartilhadas…</div>
+    <div class="pub-error" id="pub-error" hidden></div>
+    <div id="pub-content"></div>
+    <div class="pub-foot">Compartilhado com segurança via <strong>EventFlow</strong> · dados financeiros não são acessíveis por este link.</div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script>
+  (function(){
+    const CFG={ apiKey:"AIzaSyAxbgXptautbR5Za8677fMolcWIRtr-D7c", authDomain:"wedding-dreams-71032.firebaseapp.com",
+      projectId:"wedding-dreams-71032", storageBucket:"wedding-dreams-71032.firebasestorage.app",
+      messagingSenderId:"789020951087", appId:"1:789020951087:web:faac7a215d284e472afcda" };
+    const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const fmt=d=>{ if(!d) return ''; const p=String(d).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:d; };
+    const token=(location.hash||'').replace('#','').trim();
+    const loading=document.getElementById('pub-loading'), errEl=document.getElementById('pub-error'), content=document.getElementById('pub-content');
+    function fail(msg){ loading.hidden=true; errEl.hidden=false; errEl.textContent=msg; }
+    if(!token){ fail('Link inválido. Peça um novo link ao organizador do evento.'); return; }
+    try{ firebase.initializeApp(CFG); }catch(e){}
+    const db=firebase.firestore();
+    db.collection('shares').doc(token).get().then(snap=>{
+      if(!snap.exists){ fail('Este link não existe ou foi removido.'); return; }
+      const d=snap.data();
+      if(d.active===false){ fail('Este compartilhamento foi desativado pelo organizador.'); return; }
+      if(d.expires){ const exp=new Date(d.expires+'T23:59:59'); if(exp<new Date()){ fail('Este link expirou.'); return; } }
+      render(d);
+    }).catch(e=>{ fail('Não foi possível carregar. Verifique sua conexão.'); console.error(e); });
+
+    function render(d){
+      loading.hidden=true;
+      document.getElementById('pub-title').textContent=d.event||'Evento';
+      const roleNames={cerimonialista:'Cerimonialista',buffet:'Buffet',fotografo:'Fotógrafo',dj:'DJ / Música',decorador:'Decorador',local:'Local do evento',custom:'Convidado'};
+      const rb=document.getElementById('pub-role'); rb.hidden=false; rb.innerHTML='👤 '+esc(d.name||roleNames[d.role]||'Acesso');
+      let html='';
+      // Estatísticas (total/bebidas)
+      if(d.counts){
+        const c=d.counts;
+        html+='<div class="pub-section"><h2>Resumo de convidados</h2><div class="pub-stats">';
+        const stat=(n,l)=>`<div class="pub-stat"><div class="n">${n??0}</div><div class="l">${l}</div></div>`;
+        html+=stat(c.pessoas,'Pessoas'); html+=stat(c.confirmados,'Confirmados');
+        html+=stat(c.adultos,'Adultos'); html+=stat(c.criancas,'Crianças');
+        if(d.scopes&&d.scopes.includes('drinks')){ html+=stat(c.bebem,'Bebem'); html+=stat(c.naoBebem,'Não bebem'); }
+        html+='</div></div>';
+      }
+      // Lista de convidados
+      if(d.guests){
+        html+='<div class="pub-section"><h2>Convidados ('+d.guests.length+')</h2>';
+        const stLabel={confirmado:'Confirmado',pendente:'Pendente',nao:'Não irá'};
+        d.guests.forEach(g=>{
+          const prof=[]; if(g.ageGroup==='crianca')prof.push('Criança'); else if(g.ageGroup==='bebe')prof.push('Bebê'); else if(g.ageGroup==='adolescente')prof.push('Adolescente'); else prof.push('Adulto');
+          if(g.ageGroup==='adulto') prof.push(g.drinks?'bebe':'não bebe');
+          if(g.group) prof.push(esc(g.group));
+          if(g.companions) prof.push('+'+g.companions+' acomp.');
+          if(g.isHead) prof.unshift('★ Titular');
+          html+=`<div class="pub-guest"><div><div class="gn">${esc(g.name)}</div><div class="gm">${prof.join(' · ')}</div></div>
+            <span class="gs st-${g.status}">${stLabel[g.status]||''}</span></div>`;
+        });
+        html+='</div>';
+      }
+      // Cronograma
+      if(d.schedule && d.schedule.length){
+        html+='<div class="pub-section"><h2>Cronograma</h2><div class="timeline">';
+        d.schedule.sort((a,b)=>(a.time||'').localeCompare(b.time||'')).forEach(s=>{
+          html+=`<div class="tl-row" style="cursor:default"><div class="tl-time">${esc(s.time||'--:--')}</div><div class="tl-dot"></div>
+            <div class="tl-body"><div class="tl-title">${esc(s.title)}</div>${s.who?`<div class="tl-who">${esc(s.who)}</div>`:''}${s.note?`<div class="tl-note">${esc(s.note)}</div>`:''}</div></div>`;
+        });
+        html+='</div></div>';
+      }
+      // Tarefas
+      if(d.tasks && d.tasks.length){
+        html+='<div class="pub-section"><h2>Tarefas</h2>';
+        const stL={todo:'A fazer',doing:'Em andamento',done:'Concluído'};
+        d.tasks.forEach(t=>{ html+=`<div class="pub-guest"><div><div class="gn">${esc(t.title)}</div><div class="gm">${t.owner?esc(t.owner)+' · ':''}${t.due?fmt(t.due):''}</div></div><span class="gs">${stL[t.status]||''}</span></div>`; });
+        html+='</div>';
+      }
+      if(!html) html='<div class="pub-loading">Nenhuma informação foi compartilhada neste link.</div>';
+      content.innerHTML=html;
+    }
+  })();
+  </script>
+</body>
+</html>
