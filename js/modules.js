@@ -94,7 +94,7 @@ async function editSchedule(id){
   save(); renderSchedule(); toast(s?'Momento salvo ✓':'Momento adicionado ✓','ok');
 }
 
-function renderModules(){ try{ renderTasks(); }catch{} try{ renderSchedule(); }catch{} try{ renderSuppliers(); }catch{} try{ renderShares(); }catch{} }
+function renderModules(){ try{ renderTasks(); }catch{} try{ renderSchedule(); }catch{} try{ renderSuppliers(); }catch{} try{ renderShares(); }catch{} try{ renderInvites(); }catch{} }
 
 /* ---------- FORNECEDORES ---------- */
 const SUP_STATUS={ cotacao:{l:'Cotação',c:'#8a9a5b'}, contratado:{l:'Contratado',c:'#3D8A52'}, pago:{l:'Pago',c:'#C9A84C'} };
@@ -321,4 +321,94 @@ function reportTasks(){
   const st={todo:'A fazer',doing:'Em andamento',done:'Concluído'}; const pr={baixa:'Baixa',media:'Média',alta:'Alta'};
   (state.tasks||[]).forEach(t=>rows.push([t.title,t.owner,t.due?fmtDate(t.due):'',pr[t.priority]||'',st[t.status]||'',t.category]));
   downloadCSV('tarefas',rows);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CONVITES DIGITAIS — link por família com abertura de envelope + RSVP.
+   O convidado abre convite.html#token, confirma, e a resposta volta ao app.
+   ═══════════════════════════════════════════════════════════════════════ */
+function inviteUrl(inv){ const base=location.origin+location.pathname.replace(/index\.html?$/,''); return `${base}convite.html#${inv.token}`; }
+
+/* Publica o payload público do convite (dados do casamento + nomes da família). */
+function buildInvitePayload(inv, familia){
+  const s=state.settings||{};
+  return {
+    token:inv.token, kind:'invite',
+    coupleA:s.coupleA||'', coupleB:s.coupleB||'',
+    event:s.eventName||'Nosso Casamento',
+    date:s.eventDate||'', time:s.eventTime||'', place:s.eventPlace||'',
+    mapUrl:s.eventMapUrl||'', dresscode:s.eventDress||'', giftUrl:s.eventGiftUrl||'',
+    message:s.inviteMessage||'', photoUrl:s.invitePhotoUrl||'',
+    familyName:inv.familyName||'', guestNames:(familia||[]).map(g=>g.name),
+    active:inv.active!==false
+  };
+}
+
+function renderInvites(){
+  const wrap=el('inv-list'); if(!wrap) return;
+  // agrupa convidados por família (titular)
+  const groups={};
+  (state.guests||[]).forEach(g=>{ if(g.group){ (groups[g.group]=groups[g.group]||[]).push(g); } });
+  const nomes=Object.keys(groups).sort();
+  if(!nomes.length){ wrap.innerHTML='<div class="inv-empty">Cadastre convidados (com famílias) para gerar convites individuais.</div>'; return; }
+  state.invites=state.invites||[];
+  wrap.innerHTML='';
+  nomes.forEach(fam=>{
+    let inv=state.invites.find(x=>x.familyName===fam);
+    const membros=groups[fam];
+    const titular=membros.find(m=>m.isHead)||membros[0];
+    const resp=inv && inv._answer; // resposta cacheada
+    const card=document.createElement('div'); card.className='inv-card';
+    const statusBadge = resp==='sim'?'<span class="inv-b sim">✓ Confirmou</span>'
+      : resp==='pensando'?'<span class="inv-b pensando">⏳ Vai pensar</span>'
+      : resp==='nao'?'<span class="inv-b nao">✕ Não vai</span>'
+      : (inv?'<span class="inv-b none">Aguardando resposta</span>':'<span class="inv-b none">Sem convite</span>');
+    card.innerHTML=`<div class="inv-top"><span class="inv-fam">${escapeHtml(fam)}</span>${statusBadge}</div>
+      <div class="inv-members">${membros.map(m=>escapeHtml(m.name)).join(' · ')}</div>
+      <div class="inv-actions">${inv
+        ? `<button class="btn-sm" data-act="copy">Copiar link</button>
+           <button class="btn-sm" data-act="wa">Enviar no WhatsApp</button>
+           <button class="btn-sm" data-act="check">Ver resposta</button>
+           <button class="icon-btn" data-act="del" title="Remover convite">✕</button>`
+        : `<button class="btn-sm primary" data-act="create">Gerar convite</button>`}</div>`;
+    if(inv){
+      card.querySelector('[data-act=copy]').addEventListener('click',()=>{ navigator.clipboard?.writeText(inviteUrl(inv)); toast('Link do convite copiado ✓','ok'); });
+      card.querySelector('[data-act=wa]').addEventListener('click',()=>{
+        const txt=encodeURIComponent(`Olá! Você está convidado(a) para o nosso casamento 💍\nAbra seu convite e confirme presença: ${inviteUrl(inv)}`);
+        const phone=(titular.phone||'').replace(/\D/g,'');
+        window.open(phone?`https://wa.me/55${phone}?text=${txt}`:`https://wa.me/?text=${txt}`,'_blank');
+      });
+      card.querySelector('[data-act=check]').addEventListener('click',()=>checkRSVP(inv));
+      card.querySelector('[data-act=del]').addEventListener('click',async ()=>{ if(await confirmDialog('Remover convite','O link deixará de funcionar. Continuar?',{danger:true,confirmText:'Remover'})){ try{ unpublishInvite(inv.token); }catch{} state.invites=state.invites.filter(x=>x.token!==inv.token); save(); renderInvites(); toast('Convite removido'); } });
+    } else {
+      card.querySelector('[data-act=create]').addEventListener('click',()=>{
+        const nova={ token:genToken(), familyName:fam, active:true, createdAt:new Date().toISOString() };
+        state.invites.push(nova); save();
+        try{ publishInvite(nova, membros); }catch{}
+        renderInvites(); toast('Convite gerado ✓','ok');
+        if(navigator.clipboard) navigator.clipboard.writeText(inviteUrl(nova));
+      });
+    }
+    wrap.appendChild(card);
+  });
+}
+
+/* Busca a resposta do convidado no Firestore e atualiza o status no app. */
+async function checkRSVP(inv){
+  if(typeof window.fetchRSVP!=='function'){ toast('Sincronização de RSVP requer a conta na nuvem.','warn'); return; }
+  toast('Buscando resposta…');
+  const r=await window.fetchRSVP(inv.token);
+  if(!r){ toast('Ainda sem resposta para este convite.','warn'); return; }
+  inv._answer=r.answer;
+  // aplica no status dos convidados da família
+  const map={sim:'confirmado', pensando:'pendente', nao:'nao'};
+  const novo=map[r.answer]||'pendente';
+  (state.guests||[]).forEach(g=>{ if(g.group===inv.familyName) g.status=novo; });
+  save(); renderInvites(); renderAll();
+  toast(`Resposta: ${r.answer==='sim'?'Confirmou presença ✓':r.answer==='pensando'?'Vai pensar':'Não vai'}`, r.answer==='nao'?'warn':'ok');
+}
+async function checkAllRSVP(){
+  if(typeof window.fetchRSVP!=='function'){ toast('Requer conta na nuvem ativa.','warn'); return; }
+  let n=0; for(const inv of (state.invites||[])){ const r=await window.fetchRSVP(inv.token); if(r){ inv._answer=r.answer; const map={sim:'confirmado',pensando:'pendente',nao:'nao'}; (state.guests||[]).forEach(g=>{ if(g.group===inv.familyName) g.status=map[r.answer]||'pendente'; }); n++; } }
+  save(); renderInvites(); renderAll(); toast(n?`${n} resposta(s) sincronizada(s) ✓`:'Nenhuma resposta nova','ok');
 }

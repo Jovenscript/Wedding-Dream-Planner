@@ -44,6 +44,7 @@
       <a class="tab side-link" href="#convidados" data-view="convidados">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <span>Pessoas</span></a>
+      <a class="tab side-link" href="#convites" data-view="convites"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M4 7l8 6 8-6"/></svg><span>Convites</span></a>
       <a class="tab side-link" href="#tarefas" data-view="tarefas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Tarefas</span></a>
       <a class="tab side-link" href="#cronograma" data-view="cronograma"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Cronograma</span></a>
       <a class="tab side-link" href="#fornecedores" data-view="fornecedores"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l1-5h16l1 5"/><path d="M4 9v11h16V9"/><path d="M9 13h6"/></svg><span>Fornecedores</span></a>
@@ -263,6 +264,15 @@
           <span class="setting-label">Local do evento (opcional)</span>
           <input id="event-place" class="name-input" type="text" placeholder="ex.: Espaço Villa Jardim" style="margin-top:6px" />
         </label>
+        <div class="setting-item" style="grid-column:1/-1"><span class="setting-label" style="font-weight:700;color:var(--olive-dark)">✦ Dados do convite digital</span></div>
+        <label class="setting-item"><span class="setting-label">Nome (noiv@ 1)</span><input id="couple-a" class="name-input" type="text" placeholder="ex.: Carol" style="margin-top:6px" /></label>
+        <label class="setting-item"><span class="setting-label">Nome (noiv@ 2)</span><input id="couple-b" class="name-input" type="text" placeholder="ex.: Marlon" style="margin-top:6px" /></label>
+        <label class="setting-item"><span class="setting-label">Horário</span><input id="event-time" class="name-input" type="text" placeholder="ex.: 19h00" style="margin-top:6px" /></label>
+        <label class="setting-item"><span class="setting-label">Link do mapa (Google Maps)</span><input id="event-map" class="name-input" type="text" placeholder="https://maps.google.com/..." style="margin-top:6px" /></label>
+        <label class="setting-item"><span class="setting-label">Traje / dress code</span><input id="event-dress" class="name-input" type="text" placeholder="ex.: Traje social / esporte fino" style="margin-top:6px" /></label>
+        <label class="setting-item"><span class="setting-label">Link lista de presentes (opcional)</span><input id="event-gift" class="name-input" type="text" placeholder="https://..." style="margin-top:6px" /></label>
+        <label class="setting-item"><span class="setting-label">URL da foto de destaque (opcional)</span><input id="invite-photo" class="name-input" type="text" placeholder="https://... (imagem do casal)" style="margin-top:6px" /></label>
+        <label class="setting-item" style="grid-column:1/-1"><span class="setting-label">Mensagem do convite</span><textarea id="invite-message" class="field" placeholder="ex.: Com a bênção de Deus e de nossos pais, convidamos você para celebrar o nosso amor." style="margin-top:6px;min-height:70px"></textarea></label>
         <label class="setting-item">
           <input type="checkbox" id="show-over" />
           <span class="setting-label">Mostrar coluna "Falta" como zero quando pago supera o total</span>
@@ -489,6 +499,16 @@
         <div class="card-header"><h2>Fornecedores</h2>
           <button class="header-action" id="sup-add"><span class="ha-txt">+ Fornecedor</span></button><button class="btn-sm" id="sup-csv" style="margin-left:8px">↓ CSV</button></div>
         <div class="sup-grid" id="sup-grid"></div>
+      </section>
+    </div>
+
+    <!-- ═══════════ CONVITES ═══════════ -->
+    <div class="view" id="view-convites" hidden>
+      <section class="card">
+        <div class="card-header"><h2>Convites Digitais</h2>
+          <button class="header-action" id="inv-refresh"><span class="ha-txt">↻ Sincronizar respostas</span></button></div>
+        <p class="share-intro">Gere um convite lindo para cada família. Envie o link no WhatsApp — o convidado abre o envelope, vê o convite e <strong>confirma presença ali mesmo</strong>. A resposta volta automaticamente para cá.</p>
+        <div class="inv-list" id="inv-list"></div>
       </section>
     </div>
 

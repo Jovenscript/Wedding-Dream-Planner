@@ -799,7 +799,7 @@ async function importGuestsXLSX(file){
 }
 
 /* ── Troca de vistas (Orçamento ⇄ Convidados) ── */
-const ALL_VIEWS=['orcamento','convidados','tarefas','cronograma','fornecedores','compartilhamentos'];
+const ALL_VIEWS=['orcamento','convidados','convites','tarefas','cronograma','fornecedores','compartilhamentos'];
 function switchView(v){
   if(!ALL_VIEWS.includes(v)) v='orcamento';
   ALL_VIEWS.forEach(name=>{ const elm=el('view-'+name); if(elm) elm.hidden = (name!==v); });

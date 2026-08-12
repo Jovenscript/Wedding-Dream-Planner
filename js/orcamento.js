@@ -411,6 +411,11 @@ el('fund-add').addEventListener('click', addFundFromForm);
       const ok = temDados ? await confirmDialog('Ativar modo demonstração','Isto vai SUBSTITUIR os dados atuais por um evento fictício de exemplo. Faça um backup antes se quiser guardar o que tem. Continuar?',{danger:true,confirmText:'Ativar demo'}) : true;
       if(ok && typeof loadDemoData==='function') loadDemoData();
     });
+    // Campos do convite digital
+    const bindTxt=(id,key)=>{ const e=el(id); if(e){ e.value=(state.settings[key]||''); e.addEventListener('input',()=>{ state.settings[key]=e.value; save(); }); } };
+    bindTxt('couple-a','coupleA'); bindTxt('couple-b','coupleB'); bindTxt('event-time','eventTime');
+    bindTxt('event-map','eventMapUrl'); bindTxt('event-dress','eventDress'); bindTxt('event-gift','eventGiftUrl');
+    bindTxt('invite-photo','invitePhotoUrl'); bindTxt('invite-message','inviteMessage');
     const evPlace=el('event-place');
     if(evPlace){ evPlace.value=(state.settings.eventPlace||'');
       evPlace.addEventListener('input', ()=>{ state.settings.eventPlace=evPlace.value.trim(); save(); }); }

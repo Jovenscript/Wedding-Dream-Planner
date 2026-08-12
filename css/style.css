@@ -1613,3 +1613,18 @@ html.is-touch .alert-panel { position: fixed; left: 12px; right: 12px; top: 64px
 }
 html.is-touch .kanban { grid-template-columns: 1fr; }
 html.is-touch .sup-grid { grid-template-columns: 1fr; }
+
+/* ═══ CONVITES DIGITAIS (aba no app) ═══ */
+.inv-list { display: flex; flex-direction: column; gap: 12px; padding: 8px 22px 24px; }
+.inv-card { background: var(--ivory-card); border: 1px solid var(--olive-mist); border-radius: 16px; padding: 16px 18px; }
+.inv-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; gap: 10px; }
+.inv-fam { font-weight: 600; font-size: 15.5px; }
+.inv-members { font-size: 12.5px; color: var(--ink-muted); margin-bottom: 12px; }
+.inv-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.inv-b { font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.inv-b.sim { color: #2E7D46; background: #EAF6EE; } .inv-b.pensando { color: #A0741E; background: #FBF3DC; }
+.inv-b.nao { color: #B23B3B; background: #FBE9E9; } .inv-b.none { color: var(--ink-faint); background: var(--ivory-deep); }
+.inv-empty { padding: 30px 22px; text-align: center; color: var(--ink-faint); font-size: 14px; }
+.btn-sm.primary { background: var(--olive); color: #fff; border-color: var(--olive); }
+@media (max-width:1024px){ .inv-actions .btn-sm { flex: 1; min-width: 42%; } }
+html.is-touch .inv-actions .btn-sm { flex: 1; min-width: 42%; }

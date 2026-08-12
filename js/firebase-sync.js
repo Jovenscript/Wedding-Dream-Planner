@@ -120,6 +120,17 @@
   window.unpublishShare=async function(token){
     try{ if(!db||!token) return; await db.collection('shares').doc(token).delete(); }catch(e){ console.error('unpublishShare',e); }
   };
+  // Convites: publica payload público e busca a resposta (RSVP) do convidado.
+  window.publishInvite=async function(inv, familia){
+    try{ if(!db||!inv||!inv.token) return; const p=buildInvitePayload(inv, familia); p.updatedAt=Date.now();
+      await db.collection('shares').doc(inv.token).set(p); }catch(e){ console.error('publishInvite',e); }
+  };
+  window.unpublishInvite=async function(token){
+    try{ if(!db||!token) return; await db.collection('shares').doc(token).delete(); await db.collection('rsvp').doc(token).delete(); }catch(e){ console.error(e); }
+  };
+  window.fetchRSVP=async function(token){
+    try{ if(!db||!token) return null; const s=await db.collection('rsvp').doc(token).get(); return s.exists? s.data() : null; }catch(e){ console.error('fetchRSVP',e); return null; }
+  };
   window.__cloudReset=async function(){
     try{
       if(unsub){ unsub(); unsub=null; }

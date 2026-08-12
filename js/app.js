@@ -128,6 +128,9 @@ try{ window.presetCasamento = function(){ implantarTudo(); renderAll(); if(typeo
 // Fallbacks p/ modo local (sem nuvem): compartilhamento exige nuvem; avisa se faltar.
 if(typeof window.publishShare!=='function'){ window.publishShare=function(){ if(!window.FIREBASE_CONFIG) toast('O link externo funciona com a conta na nuvem ativa.','warn'); }; }
 if(typeof window.unpublishShare!=='function'){ window.unpublishShare=function(){}; }
+if(typeof window.publishInvite!=='function'){ window.publishInvite=function(){ if(!window.FIREBASE_CONFIG) toast('Convites funcionam com a conta na nuvem ativa.','warn'); }; }
+if(typeof window.unpublishInvite!=='function'){ window.unpublishInvite=function(){}; }
+if(typeof window.fetchRSVP!=='function'){ window.fetchRSVP=null; }
 // PWA: registra o service worker (app instalável + offline). Falha silenciosa em file://
 // Atalho de teclado: "/" foca a busca de convidados (padrão de apps profissionais)
 document.addEventListener('keydown', function(e){ /* keydown-global */
