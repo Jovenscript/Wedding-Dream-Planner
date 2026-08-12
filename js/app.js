@@ -131,6 +131,51 @@ if(typeof window.unpublishShare!=='function'){ window.unpublishShare=function(){
 if(typeof window.publishInvite!=='function'){ window.publishInvite=function(){ if(!window.FIREBASE_CONFIG) toast('Convites funcionam com a conta na nuvem ativa.','warn'); }; }
 if(typeof window.unpublishInvite!=='function'){ window.unpublishInvite=function(){}; }
 if(typeof window.fetchRSVP!=='function'){ window.fetchRSVP=null; }
+
+// ═══ WIRING CENTRAL — liga notificações, botões dos módulos e navegação ═══
+// (Este bloco reúne toda a inicialização de interação num só lugar seguro.)
+(function wireEverything(){
+  try{
+    // Central de Alertas / Notificações
+    if(typeof initAlerts==='function') initAlerts();
+    // Kanban drag-and-drop
+    if(typeof initKanbanDnD==='function') initKanbanDnD();
+    // helper de clique seguro
+    const on=(id,fn)=>{ const b=el(id); if(b) b.addEventListener('click', fn); };
+    // botões "+" dos módulos
+    on('task-add',   ()=>editTask());
+    on('sched-add',  ()=>editSchedule());
+    on('sup-add',    ()=>editSupplier());
+    on('share-add',  ()=>editShare());
+    on('inv-refresh',()=>checkAllRSVP());
+    // relatórios CSV
+    on('task-csv', ()=>reportTasks());
+    on('sup-csv',  ()=>reportSuppliers());
+    on('guests-csv',()=>reportGuests());
+    // Modo demonstração — ativar
+    on('demo-mode', async ()=>{
+      const temDados = state.guests.length || state.items.length || (state.suppliers&&state.suppliers.length);
+      const ok = temDados ? await confirmDialog('Ativar modo demonstração','Isto vai guardar seus dados atuais e mostrar um evento fictício de exemplo. Você poderá voltar aos seus dados a qualquer momento. Continuar?',{confirmText:'Ativar demo'}) : true;
+      if(ok && typeof loadDemoData==='function') loadDemoData();
+    });
+    // Modo demonstração — sair (restaura backup)
+    on('demo-exit', async ()=>{
+      const temBackup = !!localStorage.getItem('@eventflow_prebackup');
+      const msg = temBackup ? 'Isto vai remover os dados fictícios e RESTAURAR os seus dados reais. Continuar?' : 'Isto vai remover os dados fictícios de demonstração. Continuar?';
+      if(await confirmDialog('Sair do modo demonstração', msg, {confirmText:'Sair do demo'})){
+        try{ const bk=localStorage.getItem('@eventflow_prebackup');
+          if(bk){ localStorage.setItem('@wedding_planner_v3', bk); localStorage.removeItem('@eventflow_prebackup'); }
+          else { localStorage.removeItem('@wedding_planner_v3'); }
+        }catch{}
+        location.reload();
+      }
+    });
+    // Configurações via bottom nav (mobile)
+    on('nav-config', ()=>{ if(typeof switchView==='function') switchView('orcamento');
+      const alvo=el('event-name'); if(alvo){ const card=alvo.closest('.card'); (card||alvo).scrollIntoView({behavior:'smooth',block:'start'}); } });
+  }catch(e){ console.error('wireEverything', e); }
+})();
+
 // PWA: registra o service worker (app instalável + offline). Falha silenciosa em file://
 // Atalho de teclado: "/" foca a busca de convidados (padrão de apps profissionais)
 document.addEventListener('keydown', function(e){ /* keydown-global */

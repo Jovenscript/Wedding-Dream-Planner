@@ -44,21 +44,30 @@ function buildAlerts(){
   return out;
 }
 
+const ALERT_SEEN_KEY='@eventflow_alerts_seen';
+function getSeenAlerts(){ try{ return JSON.parse(localStorage.getItem(ALERT_SEEN_KEY)||'[]'); }catch{ return []; } }
+function setSeenAlerts(ids){ try{ localStorage.setItem(ALERT_SEEN_KEY, JSON.stringify(ids)); }catch{} }
+function alertId(a){ return a.kind+'|'+a.html.replace(/<[^>]+>/g,'').replace(/[\d.,]+/g,'#').slice(0,60); }
+
 function renderAlerts(){
   const list=el('alert-list'), badge=el('alert-badge'), cnt=el('alert-count-txt');
   if(!list) return;
   const alerts=buildAlerts();
+  const seen=getSeenAlerts();
+  const novos=alerts.filter(a=>!seen.includes(alertId(a)));
   list.innerHTML='';
   if(alerts.length===0){
     list.innerHTML='<div class="alert-empty">Nenhum alerta no momento. Tudo em ordem ✦</div>';
     if(badge){ badge.hidden=true; }
   } else {
     alerts.forEach(a=>{
-      const it=document.createElement('div'); it.className='alert-item '+a.kind;
-      it.innerHTML=`<span class="ai-ico">${a.icon}</span><span class="ai-txt">${a.html}</span>`;
+      const isNew=!seen.includes(alertId(a));
+      const it=document.createElement('div'); it.className='alert-item '+a.kind+(isNew?' is-new':'');
+      it.innerHTML=`<span class="ai-ico">${a.icon}</span><span class="ai-txt">${a.html}</span>${isNew?'<span class="ai-new">novo</span>':''}`;
       list.appendChild(it);
     });
-    if(badge){ badge.textContent=alerts.length; badge.hidden=false; }
+    // badge conta só os NÃO vistos
+    if(badge){ if(novos.length>0){ badge.textContent=novos.length; badge.hidden=false; } else { badge.hidden=true; } }
   }
   if(cnt) cnt.textContent = alerts.length? `(${alerts.length})` : '';
 }
@@ -70,7 +79,13 @@ function initAlerts(){
     e.stopPropagation();
     const open=panel.hidden;
     panel.hidden=!open; bell.setAttribute('aria-expanded', String(open));
-    if(open) renderAlerts();
+    if(open){
+      renderAlerts();
+      // marca todos os alertas atuais como vistos, mas o badge só some ao FECHAR
+      // (assim o usuário vê os selos "novo" enquanto o painel está aberto)
+      const atuais=buildAlerts().map(alertId);
+      setTimeout(()=>{ setSeenAlerts(atuais); const badge=el('alert-badge'); if(badge) badge.hidden=true; }, 1200);
+    }
   });
   document.addEventListener('click', (e)=>{
     if(!panel.hidden && !panel.contains(e.target) && e.target!==bell && !bell.contains(e.target)){
