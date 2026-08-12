@@ -119,7 +119,7 @@ try{ window.presetCasamento = function(){ implantarTudo(); renderAll(); if(typeo
   try{
     if(matchMedia('(pointer:coarse)').matches) return;
     document.addEventListener('pointermove', (e)=>{
-      const card=e.target.closest && e.target.closest('.card'); if(!card) return;
+      const t=e.target; if(!t || typeof t.closest!=='function') return; const card=t.closest('.card'); if(!card) return;
       const r=card.getBoundingClientRect();
       card.style.setProperty('--mx', ((e.clientX-r.left)/r.width*100)+'%');
     }, {passive:true});
