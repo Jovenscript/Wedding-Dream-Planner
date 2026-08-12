@@ -1632,3 +1632,32 @@ html.is-touch .sup-grid { grid-template-columns: 1fr; }
 .btn-sm.primary { background: var(--olive); color: #fff; border-color: var(--olive); }
 @media (max-width:1024px){ .inv-actions .btn-sm { flex: 1; min-width: 42%; } }
 html.is-touch .inv-actions .btn-sm { flex: 1; min-width: 42%; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CORREÇÃO DE RESPONSIVIDADE — evita overflow horizontal em telas estreitas
+   (360px e menores). O bug clássico de CSS grid: itens têm min-width:auto,
+   que impede encolher abaixo do conteúdo. min-width:0 libera o encolhimento.
+   Aplica em TODAS as larguras e aparelhos.
+   ═══════════════════════════════════════════════════════════════════════ */
+html, body { max-width: 100%; overflow-x: hidden; }
+.container { min-width: 0; }
+.container > * { min-width: 0; max-width: 100%; }
+.card, .view, .summary, .kpi, .dash-grid, .dash-grid > * { min-width: 0; }
+/* qualquer grid/flex interno também não estoura */
+.summary, .info-grid, .sup-grid, .kanban { max-width: 100%; }
+/* tabelas largas rolam em vez de estourar a tela */
+.table-wrap, .guest-table-wrap { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* imagens e mídia nunca ultrapassam */
+img, svg, canvas, video { max-width: 100%; }
+/* palavras/URLs longas quebram em vez de empurrar a largura */
+.kpi .value, .card-header h2, .guest-name, .sup-name, .inv-fam { overflow-wrap: anywhere; }
+
+/* Respiro lateral confortável em telas estreitas */
+@media (max-width: 380px){
+  html.is-touch .container { padding-left: 12px; padding-right: 12px; }
+  html.is-touch .card-header { padding-left: 16px; padding-right: 16px; }
+  html.is-touch .summary { padding-left: 4px; padding-right: 4px; }
+  html.is-touch .kpi { padding-left: 14px; padding-right: 14px; }
+  /* botão de ação do cabeçalho não estica demais */
+  html.is-touch .header-action { max-width: 100%; }
+}
