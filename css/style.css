@@ -1669,3 +1669,75 @@ img, svg, canvas, video { max-width: 100%; }
   text-transform: uppercase; letter-spacing: .06em; color: #fff; background: var(--gold);
   padding: 2px 7px; border-radius: 999px; }
 .alert-item.is-new .ai-txt { padding-right: 44px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MENU DRAWER MOBILE (hambúrguer) — substitui a bottom nav
+   A sidebar (.app-side) vira um painel deslizante lateral no mobile.
+   ═══════════════════════════════════════════════════════════════════════ */
+.hamburger { display: none; }
+.drawer-overlay { display: none; }
+.drawer-close { display: none; }
+
+/* No mobile / telas sem sidebar fixa (≤1024px OU touch) */
+@media (max-width: 1024px) {
+  /* botão hambúrguer fixo no canto superior */
+  .hamburger { display: flex; position: fixed; top: 14px; left: 14px; z-index: 90;
+    width: 46px; height: 46px; border-radius: 13px; align-items: center; justify-content: center;
+    background: rgba(255,254,249,.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--olive-mist); color: var(--olive-dark);
+    box-shadow: 0 4px 16px rgba(74,86,51,.14); cursor: pointer;
+    transition: transform var(--transition), background var(--transition); }
+  .hamburger:active { transform: scale(.92); }
+  .hamburger svg { width: 22px; height: 22px; }
+
+  /* a sidebar vira drawer deslizante (fora da tela por padrão) */
+  .app-side { display: flex !important; flex-direction: column; gap: 6px;
+    position: fixed; top: 0; left: 0; bottom: 0; width: min(280px, 82vw); z-index: 200;
+    padding: 20px 14px calc(20px + env(safe-area-inset-bottom));
+    background: var(--ivory-card);
+    box-shadow: 4px 0 30px rgba(0,0,0,.18);
+    transform: translateX(-105%); transition: transform .32s cubic-bezier(.4,0,.2,1);
+    overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .app-side.open { transform: translateX(0); }
+
+  /* overlay escuro atrás do drawer */
+  .drawer-overlay { display: block; position: fixed; inset: 0; z-index: 190;
+    background: rgba(42,52,25,.5); backdrop-filter: blur(2px);
+    opacity: 0; transition: opacity .3s ease; }
+  .drawer-overlay.show { opacity: 1; }
+
+  /* botão fechar dentro do drawer */
+  .drawer-close { display: flex; position: absolute; top: 14px; right: 14px;
+    width: 34px; height: 34px; border-radius: 50%; align-items: center; justify-content: center;
+    background: var(--ivory-deep); border: none; color: var(--ink-muted); font-size: 16px;
+    cursor: pointer; transition: background var(--transition); }
+  .drawer-close:active { background: var(--olive-mist); }
+
+  /* logo e links do drawer com bom toque */
+  .app-side .side-logo { display: flex; align-items: center; gap: 10px; padding: 6px 8px 14px; }
+  .app-side .side-mark { width: 40px; height: 40px; border-radius: 12px; display: inline-flex;
+    align-items: center; justify-content: center; background: var(--olive); color: var(--ivory);
+    font-family: 'Cormorant Garamond', serif; font-size: 23px; font-weight: 700;
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--gold) 65%, transparent); }
+  .app-side .side-name { font-family: 'Cormorant Garamond', serif; font-size: 22px; color: var(--olive-dark); }
+  .app-side .side-nav { display: flex; flex-direction: column; gap: 4px; }
+  .app-side .side-link { display: flex !important; align-items: center; gap: 14px;
+    padding: 14px 14px; border-radius: 13px; font-size: 16px; font-weight: 500;
+    color: var(--ink); text-decoration: none; border: none; background: transparent;
+    cursor: pointer; text-align: left; width: 100%; min-height: 52px;
+    transition: background var(--transition); }
+  .app-side .side-link svg { width: 22px; height: 22px; flex: 0 0 auto; color: var(--olive); }
+  .app-side .side-link:active { background: var(--ivory-deep); }
+  .app-side .side-link.active { background: var(--gold-light); color: var(--olive-dark); font-weight: 600; }
+  .app-side .side-link.active svg { color: var(--olive-dark); }
+  .app-side .side-foot { margin-top: auto; padding: 14px 8px 6px; font-size: 11.5px; color: var(--ink-faint); line-height: 1.5; }
+
+  /* conteúdo não fica mais atrás de bottom nav; ajusta padding topo pro hambúrguer */
+  .site-header { padding-top: 20px; }
+  .container { padding-bottom: 40px; }
+}
+
+/* Garante que no mobile a app-side não use as regras de overlay fixo do desktop */
+@media (min-width: 1025px) {
+  html:not(.is-touch) .hamburger, html:not(.is-touch) .drawer-overlay, html:not(.is-touch) .drawer-close { display: none !important; }
+}

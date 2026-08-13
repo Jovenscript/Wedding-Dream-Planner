@@ -186,9 +186,19 @@ if(typeof window.fetchRSVP!=='function'){ window.fetchRSVP=null; }
         location.reload();
       }
     });
-    // Configurações via bottom nav (mobile)
-    on('nav-config', ()=>{ if(typeof switchView==='function') switchView('orcamento');
-      const alvo=el('event-name'); if(alvo){ const card=alvo.closest('.card'); (card||alvo).scrollIntoView({behavior:'smooth',block:'start'}); } });
+    // ── MENU DRAWER (hambúrguer no mobile) ──
+    const drawer=el('app-side'), overlay=el('drawer-overlay'), burger=el('hamburger'), closeBtn=el('drawer-close');
+    function openDrawer(){ if(!drawer) return; drawer.classList.add('open'); if(overlay){ overlay.hidden=false; requestAnimationFrame(()=>overlay.classList.add('show')); } if(burger) burger.setAttribute('aria-expanded','true'); }
+    function closeDrawer(){ if(!drawer) return; drawer.classList.remove('open'); if(overlay){ overlay.classList.remove('show'); setTimeout(()=>{ overlay.hidden=true; }, 300); } if(burger) burger.setAttribute('aria-expanded','false'); }
+    if(burger) burger.addEventListener('click', openDrawer);
+    if(overlay) overlay.addEventListener('click', closeDrawer);
+    if(closeBtn) closeBtn.addEventListener('click', closeDrawer);
+    // fechar drawer ao escolher qualquer item do menu
+    if(drawer) drawer.querySelectorAll('.side-link[data-view], #side-config').forEach(link=>{
+      link.addEventListener('click', ()=>{ setTimeout(closeDrawer, 120); });
+    });
+    // config no drawer (side-config já existe)
+    window.__closeDrawer = closeDrawer;
   }catch(e){ console.error('wireEverything', e); }
 })();
 
