@@ -43,7 +43,17 @@ function applyEventName(){
   document.title = (nm ? nm+' — ' : '') + 'EventFlow';
   const inp=el('event-name'); if(inp && document.activeElement!==inp && inp.value!==nm) inp.value=nm;
 }
-function renderAll(){ applyTheme(); applyEventName(); applyCountdown(); try{ const db=el('demo-banner'); if(db) db.hidden = !(state.settings&&state.settings.demo); }catch{} try{ if(typeof renderAlerts==='function' && el('alert-list')) renderAlerts(); }catch{} try{ if(typeof renderModules==='function') renderModules(); }catch{} syncVarLinkedItems(); const c=compute(); renderDashboard(c); renderFunds(c); renderItems(c); renderHistory(); renderGuestView(c); }
+function renderAll(){
+  const safe=(fn,name)=>{ try{ fn(); }catch(e){ console.error('renderAll:'+name, e); } };
+  safe(applyTheme,'applyTheme'); safe(applyEventName,'applyEventName'); safe(applyCountdown,'applyCountdown');
+  safe(()=>{ const db=el('demo-banner'); if(db) db.hidden = !(state.settings&&state.settings.demo); },'demoBanner');
+  safe(()=>{ if(typeof renderAlerts==='function' && el('alert-list')) renderAlerts(); },'renderAlerts');
+  safe(()=>{ if(typeof renderModules==='function') renderModules(); },'renderModules');
+  safe(syncVarLinkedItems,'syncVar');
+  let c; try{ c=compute(); }catch(e){ console.error('compute',e); return; }
+  safe(()=>renderDashboard(c),'renderDashboard'); safe(()=>renderFunds(c),'renderFunds');
+  safe(()=>renderItems(c),'renderItems'); safe(renderHistory,'renderHistory'); safe(()=>renderGuestView(c),'renderGuestView');
+}
 
 /* Primeiro acesso: faz perguntas básicas para o cliente configurar o evento.
    Só aparece uma vez (settings.onboarded) e quando o app está vazio. */
@@ -105,6 +115,12 @@ try{ window.presetCasamento = function(){ implantarTudo(); renderAll(); if(typeo
       ents.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
     },{ threshold:.08, rootMargin:'0px 0px -6% 0px' });
     document.querySelectorAll('.card').forEach(c=>io.observe(c));
+    // Segurança: revela cards que já estão visíveis na tela no carregamento,
+    // e revela QUALQUER card não revelado após 1.5s (nunca fica invisível).
+    setTimeout(()=>{ document.querySelectorAll('.card:not(.in)').forEach(c=>{
+      const r=c.getBoundingClientRect(); if(r.top < window.innerHeight && r.bottom > 0) c.classList.add('in');
+    }); }, 100);
+    setTimeout(()=>{ document.querySelectorAll('.card:not(.in)').forEach(c=>c.classList.add('in')); }, 1500);
   }catch{ document.documentElement.classList.remove('fx'); }
 })();
 // Sidebar → Configurações: troca pra vista Financeiro e rola até o card de config
