@@ -804,8 +804,6 @@ function switchView(v){
   if(!ALL_VIEWS.includes(v)) v='orcamento';
   ALL_VIEWS.forEach(name=>{ const elm=el('view-'+name); if(elm) elm.hidden = (name!==v); });
   try{ if(typeof renderModules==='function') renderModules(); }catch{}
-  // Revela os cards da view ativa (senão ficam invisíveis por causa do fx reveal).
-  try{ const vw=el('view-'+v); if(vw) vw.querySelectorAll('.card').forEach(card=>card.classList.add('in')); }catch{}
   document.querySelectorAll('.nav .tab, .side-link[data-view]').forEach(t=>{
     const act=t.dataset.view===v;
     t.classList.toggle('active',act);

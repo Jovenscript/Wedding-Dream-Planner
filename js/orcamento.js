@@ -175,35 +175,41 @@ function renderDashboard(c){
     if(done && !state.settings.__celebratedPaid){ state.settings.__celebratedPaid=true; setTimeout(()=>{ celebrate(); toast('Parabéns! Tudo pago 🎉','ok'); }, 200); save(); }
     if(!done && state.settings.__celebratedPaid){ state.settings.__celebratedPaid=false; }
   }catch{}
-  setKPI('k-total',  toBRL(c.totalExpense));
-  setKPI('k-paid',   toBRL(c.totalPaid));
-  setKPI('k-pending',toBRL(c.pending));
-  setKPI('k-saldo',  toBRL(c.saldo), c.saldo<0?'neg':(c.saldo>0?'pos':null));
-  setKPI('k-funds',  toBRL(c.totalFunds));
+  // ── Linha 1 (bata o olho): projetado · pago(real) · falta · caixa ──
+  setKPI('k-total',  toBRL(c.considered));                                   // Orçamento projetado (considerado)
+  setKPI('k-paid',   toBRL(c.totalPaid), c.totalPaid>0?'pos':null);          // Já pago (real)
+  setKPI('k-pending',toBRL(c.consideredPending));                            // Falta pagar
+  setKPI('k-saldo',  toBRL(c.saldo), c.saldo<0?'neg':(c.saldo>0?'pos':null));// Saldo em caixa
+  // ── Linha 2 (contexto): estimado variável · fora do cálculo · falta arrecadar ──
+  setKPI('k-estim',  toBRL(c.estimatedTotal), c.estimatedTotal>0?'accent':null);
+  setKPI('k-fora',   toBRL(c.foraDoCalculo),  c.foraDoCalculo>0?'accent':null);
   setKPI('k-falta',  toBRL(c.faltaArrecadar), c.faltaArrecadar>0?'neg':'pos');
+  // Compat: se os KPIs antigos ainda existirem no DOM, mantém coerência (no-op se removidos)
+  setKPI('k-funds',  toBRL(c.totalFunds));
   setKPI('k-surplus',toBRL(c.surplus), c.surplus>0?'pos':null);
+  const foraCard=el('k-fora'); if(foraCard&&foraCard.closest('.kpi')) foraCard.closest('.kpi').classList.toggle('muted', !(c.foraDoCalculo>0));
 
-  el('bar-pago').style.width = c.pctPago.toFixed(2)+'%';
-  el('bar-pago-legend').textContent = `${c.pctPago.toFixed(0)}% pago`;
-  el('bar-gar').style.width = c.pctGarantido.toFixed(2)+'%';
-  el('bar-gar-legend').textContent = `${c.pctGarantido.toFixed(0)}% garantido`;
+  el('bar-pago').style.width = c.pctPagoConsid.toFixed(2)+'%';
+  el('bar-pago-legend').textContent = `${c.pctPagoConsid.toFixed(0)}% pago`;
+  el('bar-gar').style.width = c.pctGarantidoConsid.toFixed(2)+'%';
+  el('bar-gar-legend').textContent = `${c.pctGarantidoConsid.toFixed(0)}% garantido`;
 
-  const total=c.totalExpense;
-  const segPago = total>0 ? c.totalPaid/total*100 : 0;
-  const segRes  = total>0 ? c.coveredUnpaid/total*100 : 0;
+  const total=c.considered;
+  const segPago = total>0 ? c.consideredPaid/total*100 : 0;
+  const segRes  = total>0 ? c.coveredUnpaidC/total*100 : 0;
   const donut=el('donut');
   donut.style.setProperty('--p1', segPago.toFixed(3));
   donut.style.setProperty('--p2', (segPago+segRes).toFixed(3));
-  el('donut-big').textContent = `${c.pctPago.toFixed(0)}%`;
+  el('donut-big').textContent = `${c.pctPagoConsid.toFixed(0)}%`;
   el('donut-small').textContent = total>0 ? 'pago' : 'sem itens';
-  el('leg-pago').textContent = toBRL(c.totalPaid);
-  el('leg-res').textContent  = toBRL(c.coveredUnpaid);
-  el('leg-falta').textContent= toBRL(c.uncovered);
+  el('leg-pago').textContent = toBRL(c.consideredPaid);
+  el('leg-res').textContent  = toBRL(c.coveredUnpaidC);
+  el('leg-falta').textContent= toBRL(c.uncoveredC);
 }
 
 function renderFunds(c){
-  const amtEl=el('saldo-amt'); if(amtEl){ amtEl.textContent=toBRL(c.saldo); amtEl.classList.toggle('neg', c.saldo<0); }
-  { const ss=el('saldo-sub'); if(ss) ss.innerHTML = `Em caixa agora: <strong>${toBRL(c.saldo)}</strong>  ·  já pago: ${toBRL(c.paidOwn)}  ·  total reunido: ${toBRL(round2(c.saldo+c.paidOwn))}`; }
+  const amtEl=el('saldo-amt'); amtEl.textContent=toBRL(c.saldo); amtEl.classList.toggle('neg', c.saldo<0);
+  el('saldo-sub').innerHTML = `Em caixa agora: <strong>${toBRL(c.saldo)}</strong>  ·  já pago: ${toBRL(c.paidOwn)}  ·  total reunido: ${toBRL(round2(c.saldo+c.paidOwn))}`;
   const list=el('fund-list');
   if(!state.funds.length){ list.innerHTML=`<div class="empty">Nenhum aporte ainda. Cadastre dinheiro guardado, valores a receber, contribuições e economias — tudo vira saldo disponível.</div>`; return; }
   list.innerHTML='';
@@ -235,20 +241,84 @@ function statusOf(it){
   return               {cls:'danger',label:'Sem valor'};
 }
 
+const KIND_CHIP = {
+  fixo:     {label:'Fixo',     cls:'k-fixo', title:'Valor fixo — conhecido ou calculável com segurança.'},
+  variavel: {label:'Variável', cls:'k-var',  title:'Variável — depende do consumo (calculado pelos convidados).'},
+  estimado: {label:'Estimado', cls:'k-est',  title:'Estimado — previsão que ainda pode mudar.'}
+};
+/* Detalhe inline do item: de onde veio o valor (sem fazer conta de cabeça). */
+function itemDetailHTML(it){
+  const money=v=>toBRL(v);
+  if(it.varId){
+    const v=(state.varCosts||[]).find(x=>x.id===it.varId);
+    if(v && typeof varCalc==='function' && typeof guestStats==='function'){
+      const c=varCalc(v, guestStats());
+      const fq=n=>String(n).replace('.',',');
+      const ab=(typeof unitAbbr==='function')?unitAbbr(v.unit):v.unit;
+      const lines=[];
+      if(v.mode==='fixo'){ lines.push(['Cálculo', `${c.qty} × ${money(v.unitValue)} = ${money(c.total)}`]); }
+      else{
+        lines.push(['Base', `${c.target} pessoa(s) × ${fq(v.perGuest)} ${escapeHtml(ab)} = ${fq(c.base)} ${escapeHtml(ab)}`]);
+        if(c.marginPct) lines.push(['Margem de segurança', `+${fq(c.marginPct)}% → ${fq(c.qty)} ${escapeHtml(ab)}`]);
+        lines.push(['Quantidade', `${fq(c.qty)} ${escapeHtml(ab)}`]);
+        lines.push(['Valor', v.unitValue>0?`${fq(c.qty)} × ${money(v.unitValue)} = ${money(c.total)}`:'informe o preço unitário em Convidados']);
+      }
+      const rows=lines.map(l=>`<div class="calc-line"><span>${escapeHtml(l[0])}</span><b>${l[1]}</b></div>`).join('');
+      return `<div class="calc-box est"><div class="calc-badge">◔ Estimativa — muda conforme os confirmados. Não é dívida.</div>${rows}<div class="calc-tip">Ajuste consumo, público e preço em <b>Convidados › Custos por Convidado</b>.</div></div>`;
+    }
+  }
+  const t=it.total||0, own=it.paid||0, ext=it.paidExt||0, paid=round2(own+ext), falta=Math.max(0,round2(t-paid));
+  const est = itemKind(it)==='estimado';
+  const lines=[
+    [est?'Previsto (estimado)':'Previsto (total)', money(t)],
+    ['Pago (real)', money(paid)+(ext>0?` · ${money(ext)} de terceiro${it.sponsor?` (${escapeHtml(it.sponsor)})`:''}`:'')],
+    ['Falta pagar', money(falta)]
+  ];
+  const rows=lines.map(l=>`<div class="calc-line"><span>${escapeHtml(l[0])}</span><b>${l[1]}</b></div>`).join('');
+  return `<div class="calc-box${est?' est':''}">${est?'<div class="calc-badge">◔ Estimativa — pode mudar. Não é dívida.</div>':''}${rows}</div>`;
+}
+/* Alterna a participação do item no total (não remove, não some). Simulação. */
+function toggleIncluded(id){
+  const it=state.items.find(x=>x.id===id); if(!it) return;
+  it.included = (it.included===false);          // excluído → volta; incluído → sai
+  save(); renderAll();
+  toast(it.included===false ? `“${it.name}” fora do cálculo` : `“${it.name}” de volta ao cálculo`);
+}
+/* Cicla a classificação de um item MANUAL (fixo → variável → estimado). */
+function cycleKind(id){
+  const it=state.items.find(x=>x.id===id); if(!it || it.varId) return;   // auto: travado (vem de Convidados)
+  const order=['fixo','variavel','estimado']; const cur=itemKind(it);
+  it.kind = order[(order.indexOf(cur)+1)%order.length];
+  save(); renderAll();
+}
 function renderItems(c){
   const tbody=el('tbody'); tbody.innerHTML='';
   if(!state.items.length){ tbody.innerHTML=`<tr><td colspan="7"><div class="empty">Nenhum item. Adicione fornecedores e serviços no campo acima.</div></td></tr>`; return; }
   state.items.forEach(it=>{
+    const included = it.included!==false;
     const t=it.total||0, p=round2((it.paid||0)+(it.paidExt||0));
     const remaining=Math.max(0, round2(t-p));
     const quit=(t>0 && p>=t);
-    const row=document.createElement('tr'); if(quit) row.className='quitado';
+    const kind=itemKind(it);
+    const row=document.createElement('tr'); row.className=(quit?'quitado ':'')+(included?'':'excluded');
 
     const tdName=document.createElement('td');
-    tdName.innerHTML=`<div class="name">${quit?'<span style="color:var(--ok)" aria-hidden="true">✓</span>':''}<input class="name-input" type="text" value="${escapeHtml(it.name)}" aria-label="Nome do item"></div>`;
+    tdName.innerHTML=
+      `<div class="name">`+
+        `<label class="inc-toggle" title="${included?'Incluído no total — desmarque para simular sem este item':'Fora do cálculo — marque para incluir de novo'}">`+
+          `<input type="checkbox" ${included?'checked':''} aria-label="Incluir no total"><span class="inc-box" aria-hidden="true"></span>`+
+        `</label>`+
+        `${quit?'<span style="color:var(--ok)" aria-hidden="true">✓</span>':''}`+
+        `<input class="name-input" type="text" value="${escapeHtml(it.name)}" aria-label="Nome do item">`+
+        `<button class="detail-btn" title="Ver de onde vem o valor" aria-label="Detalhes do cálculo">▾</button>`+
+      `</div>`;
     tdName.setAttribute('data-label','Item'); row.appendChild(tdName);
 
-    const tdCat=document.createElement('td'); tdCat.innerHTML=`<span class="pill">${escapeHtml(it.category||'—')}</span>${it.varId?'<span class="auto-tag" title="Calculado pelos convidados confirmados — edite em Convidados › Custos por Convidado">auto</span>':''}`; tdCat.setAttribute('data-label','Categoria'); row.appendChild(tdCat);
+    const km=KIND_CHIP[kind]||KIND_CHIP.fixo;
+    const chipTag = it.varId
+      ? `<span class="kind-chip ${km.cls}" title="${km.title}">${km.label}</span>`
+      : `<button class="kind-chip ${km.cls} clickable" title="${km.title} · clique para mudar (Fixo → Variável → Estimado)">${km.label}</button>`;
+    const tdCat=document.createElement('td'); tdCat.innerHTML=`${chipTag}<span class="pill">${escapeHtml(it.category||'—')}</span>${it.varId?'<span class="auto-tag" title="Calculado pelos convidados confirmados — edite em Convidados › Custos por Convidado">auto</span>':''}`; tdCat.setAttribute('data-label','Categoria'); row.appendChild(tdCat);
 
     const tdTotal=document.createElement('td');
     const totalInput=document.createElement('input'); totalInput.type='text'; totalInput.className='money'; totalInput.setAttribute('inputmode','decimal'); totalInput.setAttribute('aria-label','Valor total');
@@ -258,7 +328,8 @@ function renderItems(c){
     const tdPaid=document.createElement('td');
     let tag=''; if(quit) tag='<span class="paid-tag full">Quitado</span>'; else if(p>0) tag='<span class="paid-tag partial">Pago parcial</span>';
     const spTag = (it.sponsor||(it.paidExt||0)>0) ? `<span class="pill" title="Pagamento de terceiro — não usa o seu saldo" style="margin-left:6px;background:var(--gold-light);color:var(--olive-dark)">paga: ${escapeHtml(it.sponsor||'terceiro')}</span>` : '';
-    tdPaid.innerHTML=`<span class="money-falta">${toBRL(p)}</span>${tag}${spTag}`;
+    const foraTag = included ? '' : `<span class="fora-tag" title="Não está entrando na soma do total agora">Fora do cálculo</span>`;
+    tdPaid.innerHTML=`<span class="money-falta">${toBRL(p)}</span>${tag}${spTag}${foraTag}`;
     tdPaid.setAttribute('data-label','Pago'); row.appendChild(tdPaid);
 
     const tdLeft=document.createElement('td');
@@ -276,6 +347,20 @@ function renderItems(c){
     tdAct.setAttribute('data-label','Ações'); tdAct.appendChild(acts); row.appendChild(tdAct);
 
     tbody.appendChild(row);
+
+    // Linha de detalhe (inline, escondida): de onde veio o valor
+    const detRow=document.createElement('tr'); detRow.className='detail-row'; detRow.hidden=true;
+    const detCell=document.createElement('td'); detCell.colSpan=7; detCell.innerHTML=itemDetailHTML(it);
+    detRow.appendChild(detCell); tbody.appendChild(detRow);
+
+    // Incluir/não incluir no total (simulação — não remove o item)
+    tdName.querySelector('.inc-toggle input').addEventListener('change', ()=>toggleIncluded(it.id));
+    // Abrir/fechar detalhe
+    const detBtn=tdName.querySelector('.detail-btn');
+    detBtn.addEventListener('click', ()=>{ detRow.hidden=!detRow.hidden; detBtn.classList.toggle('open', !detRow.hidden); });
+    // Trocar classificação (só itens manuais)
+    const chipBtn=tdCat.querySelector('.kind-chip.clickable');
+    if(chipBtn) chipBtn.addEventListener('click', ()=>cycleKind(it.id));
 
     const nameInp=tdName.querySelector('.name-input');
     if(it.varId){ nameInp.disabled=true; nameInp.title='Nome automático — edite em Convidados › Custos por Convidado'; }
@@ -330,7 +415,7 @@ strictToggle.addEventListener('change',   ()=>{ state.settings.strict=strictTogg
 el('add').addEventListener('click', ()=>{
   const inp=el('new-name'); const name=(inp.value||'').trim();
   if(!name){ inp.focus(); return; }
-  state.items.push({id:uid(), name, category:'Outros', total:0, paid:0, paidAt:null});
+  state.items.push({id:uid(), name, category:'Outros', total:0, paid:0, paidAt:null, included:true, kind:null});
   logHist('ajuste', `Item adicionado — ${name}`, 0);
   inp.value=''; save(); renderAll(); toast('Item adicionado');
   setTimeout(()=>window.scrollTo({top:document.body.scrollHeight, behavior:'smooth'}),0);

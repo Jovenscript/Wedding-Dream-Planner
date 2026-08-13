@@ -22,10 +22,7 @@ const mBackdrop = el('modal-backdrop');
 function modal(opts){
   return new Promise(resolve=>{
     const { title='', message='', fields=[], note='', confirmText='Confirmar', cancelText='Cancelar', danger=false, validate, dynamicNote } = opts;
-    // Ao abrir um novo modal, garante estado limpo imediatamente (evita conflito
-    // com o timeout de fechamento de um modal anterior que apagaria este).
     mBackdrop.innerHTML = '';
-    mBackdrop.classList.add('show');
     const box  = document.createElement('div'); box.className='modal'; box.setAttribute('role','dialog'); box.setAttribute('aria-modal','true'); box.setAttribute('aria-label', title||'Janela');
     const head = document.createElement('div'); head.className='modal-head'; head.innerHTML = `<h3>${escapeHtml(title)}</h3>`;
     const body = document.createElement('div'); body.className='modal-body';
@@ -77,7 +74,7 @@ function modal(opts){
     box.appendChild(head); box.appendChild(body); box.appendChild(foot); mBackdrop.appendChild(box);
     function onKey(e){ if(e.key==='Escape') close(null); }
     function onBackdrop(ev){ if(ev.target===mBackdrop) close(null); }
-    function close(val){ mBackdrop.classList.remove('show'); const myBox=box; setTimeout(()=>{ if(myBox.parentNode===mBackdrop && !mBackdrop.classList.contains('show')) mBackdrop.innerHTML=''; },200); document.removeEventListener('keydown',onKey); mBackdrop.removeEventListener('click',onBackdrop); resolve(val); }
+    function close(val){ mBackdrop.classList.remove('show'); setTimeout(()=>{ mBackdrop.innerHTML=''; },200); document.removeEventListener('keydown',onKey); mBackdrop.removeEventListener('click',onBackdrop); resolve(val); }
     function doConfirm(){ if(validate){ const err=validate(values); if(err){ errEl.textContent=err; errEl.style.display=''; return; } } close({...values}); }
     if(opts.hideCancel) cancel.style.display='none';
     cancel.addEventListener('click', ()=>close(null));

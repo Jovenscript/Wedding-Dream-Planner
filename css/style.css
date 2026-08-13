@@ -1662,84 +1662,82 @@ img, svg, canvas, video { max-width: 100%; }
   html.is-touch .header-action { max-width: 100%; }
 }
 
-/* Selo "novo" nas notificações não vistas */
-.alert-item { position: relative; }
-.alert-item.is-new { background: color-mix(in srgb, var(--gold-light) 40%, transparent); }
-.ai-new { position: absolute; top: 10px; right: 14px; font-size: 9px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .06em; color: #fff; background: var(--gold);
-  padding: 2px 7px; border-radius: 999px; }
-.alert-item.is-new .ai-txt { padding-right: 44px; }
+/* ═══════════════════════════════════════════════════════════════════
+   FINANCEIRO PRO — resumo em hierarquia, classificação, incluir no total,
+   detalhe inline. (Reorganização do módulo Financeiro — não remove nada.)
+   ═══════════════════════════════════════════════════════════════════ */
 
-/* ═══════════════════════════════════════════════════════════════════════
-   MENU DRAWER MOBILE (hambúrguer) — substitui a bottom nav
-   A sidebar (.app-side) vira um painel deslizante lateral no mobile.
-   ═══════════════════════════════════════════════════════════════════════ */
-.hamburger { display: none; }
-.drawer-overlay { display: none; }
-.drawer-close { display: none; }
+/* Faixa de contexto (linha 2 do resumo): cards menores e discretos */
+.summary-meta{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:12px; }
+.summary-meta .kpi.kpi-sm{ padding:12px 14px; background:var(--ivory-deep); box-shadow:none; border:1px solid var(--olive-mist); }
+.summary-meta .kpi-sm .value{ font-size:1.15rem; }
+.summary-meta .kpi-sm .label{ font-size:11px; }
+.kpi.kpi-lead{ outline:2px solid var(--gold-light); }
+.kpi.muted{ opacity:.55; }
+@media (max-width:640px){ .summary-meta{ grid-template-columns:1fr; } }
 
-/* No mobile / telas sem sidebar fixa (≤1024px OU touch) */
-@media (max-width: 1024px) {
-  /* botão hambúrguer fixo no canto superior */
-  .hamburger { display: flex; position: fixed; top: 14px; left: 14px; z-index: 90;
-    width: 46px; height: 46px; border-radius: 13px; align-items: center; justify-content: center;
-    background: rgba(255,254,249,.92); backdrop-filter: blur(12px);
-    border: 1px solid var(--olive-mist); color: var(--olive-dark);
-    box-shadow: 0 4px 16px rgba(74,86,51,.14); cursor: pointer;
-    transition: transform var(--transition), background var(--transition); }
-  .hamburger:active { transform: scale(.92); }
-  .hamburger svg { width: 22px; height: 22px; }
+/* Micro-selos de natureza do valor (real / estimativa) */
+.chip-real,.chip-est{ font-size:9.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  padding:1px 6px; border-radius:999px; vertical-align:middle; }
+.chip-real{ background:#e6f2e8; color:var(--ok); }
+.chip-est{ background:#fdf4e3; color:var(--warn); }
 
-  /* a sidebar vira drawer deslizante (fora da tela por padrão) */
-  .app-side { display: flex !important; flex-direction: column; gap: 6px;
-    position: fixed; top: 0; left: 0; bottom: 0; width: min(280px, 82vw); z-index: 200;
-    padding: 20px 14px calc(20px + env(safe-area-inset-bottom));
-    background: var(--ivory-card);
-    box-shadow: 4px 0 30px rgba(0,0,0,.18);
-    transform: translateX(-105%); transition: transform .32s cubic-bezier(.4,0,.2,1);
-    overflow-y: auto; -webkit-overflow-scrolling: touch; }
-  .app-side.open { transform: translateX(0); }
+/* Chip de classificação da despesa (Fixo / Variável / Estimado) */
+.kind-chip{ display:inline-block; font-size:10px; font-weight:700; letter-spacing:.03em;
+  padding:2px 8px; border-radius:999px; margin-right:6px; border:1px solid transparent; white-space:nowrap; }
+.kind-chip.k-fixo{ background:var(--olive-mist); color:var(--olive-dark); }
+.kind-chip.k-var{  background:#eaf1f7; color:#3B5BA5; }
+.kind-chip.k-est{  background:#fdf4e3; color:var(--warn); }
+.kind-chip.clickable{ cursor:pointer; }
+.kind-chip.clickable:hover{ filter:brightness(.97); border-color:currentColor; }
 
-  /* overlay escuro atrás do drawer */
-  .drawer-overlay { display: block; position: fixed; inset: 0; z-index: 190;
-    background: rgba(42,52,25,.5); backdrop-filter: blur(2px);
-    opacity: 0; pointer-events: none; transition: opacity .3s ease; }
-  .drawer-overlay.show { opacity: 1; pointer-events: auto; }
-  /* o atributo hidden sempre esconde o overlay de verdade (não bloqueia cliques) */
-  .drawer-overlay[hidden] { display: none !important; }
+/* Toggle "incluir no total" (caixa custom, acessível) */
+.inc-toggle{ display:inline-flex; align-items:center; cursor:pointer; margin-right:2px; flex:0 0 auto; }
+.inc-toggle input{ position:absolute; opacity:0; width:0; height:0; }
+.inc-toggle .inc-box{ width:18px; height:18px; border-radius:6px; border:2px solid var(--olive);
+  display:inline-block; position:relative; transition:.15s; }
+.inc-toggle input:checked + .inc-box{ background:var(--olive); }
+.inc-toggle input:checked + .inc-box::after{ content:''; position:absolute; left:5px; top:1px;
+  width:5px; height:10px; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg); }
+.inc-toggle input:focus-visible + .inc-box{ box-shadow:0 0 0 3px var(--gold-light); }
 
-  /* botão fechar dentro do drawer */
-  .drawer-close { display: flex; position: absolute; top: 14px; right: 14px;
-    width: 34px; height: 34px; border-radius: 50%; align-items: center; justify-content: center;
-    background: var(--ivory-deep); border: none; color: var(--ink-muted); font-size: 16px;
-    cursor: pointer; transition: background var(--transition); }
-  .drawer-close:active { background: var(--olive-mist); }
+/* Item fora do cálculo: continua na lista, só apagado e marcado */
+tr.excluded{ opacity:.62; }
+tr.excluded .name-input{ text-decoration:line-through; text-decoration-color:var(--ink-faint); }
+tr.excluded .money{ opacity:.7; }
+.fora-tag{ display:inline-block; margin-left:6px; font-size:10px; font-weight:700;
+  padding:2px 8px; border-radius:999px; background:var(--ivory-deep); color:var(--ink-muted);
+  border:1px dashed var(--ink-faint); white-space:nowrap; }
 
-  /* logo e links do drawer com bom toque */
-  .app-side .side-logo { display: flex; align-items: center; gap: 10px; padding: 6px 8px 14px; }
-  .app-side .side-mark { width: 40px; height: 40px; border-radius: 12px; display: inline-flex;
-    align-items: center; justify-content: center; background: var(--olive); color: var(--ivory);
-    font-family: 'Cormorant Garamond', serif; font-size: 23px; font-weight: 700;
-    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--gold) 65%, transparent); }
-  .app-side .side-name { font-family: 'Cormorant Garamond', serif; font-size: 22px; color: var(--olive-dark); }
-  .app-side .side-nav { display: flex; flex-direction: column; gap: 4px; }
-  .app-side .side-link { display: flex !important; align-items: center; gap: 14px;
-    padding: 14px 14px; border-radius: 13px; font-size: 16px; font-weight: 500;
-    color: var(--ink); text-decoration: none; border: none; background: transparent;
-    cursor: pointer; text-align: left; width: 100%; min-height: 52px;
-    transition: background var(--transition); }
-  .app-side .side-link svg { width: 22px; height: 22px; flex: 0 0 auto; color: var(--olive); }
-  .app-side .side-link:active { background: var(--ivory-deep); }
-  .app-side .side-link.active { background: var(--gold-light); color: var(--olive-dark); font-weight: 600; }
-  .app-side .side-link.active svg { color: var(--olive-dark); }
-  .app-side .side-foot { margin-top: auto; padding: 14px 8px 6px; font-size: 11.5px; color: var(--ink-faint); line-height: 1.5; }
+/* Botão de detalhe inline (caret) */
+.detail-btn{ background:none; border:none; cursor:pointer; color:var(--ink-faint);
+  font-size:14px; line-height:1; padding:2px 4px; border-radius:6px; transition:.15s; flex:0 0 auto; }
+.detail-btn:hover{ color:var(--olive); background:var(--olive-mist); }
+.detail-btn.open{ transform:rotate(180deg); color:var(--olive); }
 
-  /* conteúdo não fica mais atrás de bottom nav; ajusta padding topo pro hambúrguer */
-  .site-header { padding-top: 20px; }
-  .container { padding-bottom: 40px; }
+/* Linha de detalhe (de onde veio o valor) */
+tr.detail-row > td{ background:var(--ivory-deep); padding:0; border-top:none; }
+.calc-box{ padding:12px 16px; margin:0; border-left:3px solid var(--olive); }
+.calc-box.est{ border-left-color:var(--warn); }
+.calc-badge{ display:inline-block; font-size:11px; font-weight:700; color:var(--warn);
+  background:#fdf4e3; padding:2px 8px; border-radius:6px; margin-bottom:8px; }
+.calc-line{ display:flex; justify-content:space-between; gap:16px; font-size:13px;
+  padding:4px 0; border-bottom:1px dashed var(--olive-mist); }
+.calc-line:last-child{ border-bottom:none; }
+.calc-line span{ color:var(--ink-muted); }
+.calc-line b{ color:var(--ink); font-variant-numeric:tabular-nums; text-align:right; }
+.calc-tip{ font-size:11.5px; color:var(--ink-faint); margin-top:8px; }
+
+/* Coluna Item: alinhar toggle + nome + caret sem quebrar no mobile */
+td .name{ display:flex; align-items:center; gap:8px; flex-wrap:nowrap; }
+td .name .name-input{ flex:1 1 auto; min-width:0; }
+
+/* Detalhe inline: largura total no modo card (mobile / touch), sem rótulo vazio */
+@media (max-width:760px){
+  tr.detail-row, tr.detail-row td{ display:block; width:100%; }
+  tr.detail-row td::before{ display:none !important; content:none !important; }
+  tr.detail-row td{ padding:0 !important; }
 }
-
-/* Garante que no mobile a app-side não use as regras de overlay fixo do desktop */
-@media (min-width: 1025px) {
-  html:not(.is-touch) .hamburger, html:not(.is-touch) .drawer-overlay, html:not(.is-touch) .drawer-close { display: none !important; }
-}
+html.is-touch tr.detail-row, html.is-touch tr.detail-row td{ display:block; width:100%; }
+html.is-touch tr.detail-row td::before{ display:none !important; content:none !important; }
+html.is-touch tr.detail-row td{ padding:0 !important; }

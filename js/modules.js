@@ -1,19 +1,3 @@
-/* Cópia robusta: tenta a API moderna, cai para o método antigo se falhar. */
-function copyToClipboard(txt, okMsg){
-  const done=()=>{ if(okMsg && typeof toast==='function') toast(okMsg,'ok'); };
-  try{
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopy(txt,done));
-    } else { fallbackCopy(txt,done); }
-  }catch{ fallbackCopy(txt,done); }
-}
-function fallbackCopy(txt, done){
-  try{ const ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
-    document.body.appendChild(ta); ta.focus(); ta.select();
-    document.execCommand('copy'); ta.remove(); if(done) done();
-  }catch{ if(typeof toast==='function') toast('Copie o link manualmente.','warn'); }
-}
-
 /* ═══════════════════════════════════════════════════════════════════════
    MÓDULOS SAAS — Tarefas (kanban), Cronograma, Fornecedores, Compartilhamentos.
    Todos operam sobre state.tasks / .schedule / .suppliers / .shares e chamam save().
@@ -190,7 +174,7 @@ function renderShares(){
         <button class="btn-sm" data-act="regen">Novo link</button>
         <button class="icon-btn" data-act="del" title="Excluir">✕</button>
       </div>`;
-    card.querySelector('[data-act=copy]').addEventListener('click',()=>{ copyToClipboard(shareUrl(sh), 'Link copiado ✓'); });
+    card.querySelector('[data-act=copy]').addEventListener('click',()=>{ navigator.clipboard?.writeText(shareUrl(sh)); toast('Link copiado ✓','ok'); });
     card.querySelector('[data-act=edit]').addEventListener('click',()=>editShare(sh.id));
     card.querySelector('[data-act=toggle]').addEventListener('click',()=>{ sh.active=!on; save(); renderShares(); try{ publishShare(sh); }catch{} toast(on?'Compartilhamento desativado':'Compartilhamento ativado','ok'); });
     card.querySelector('[data-act=regen]').addEventListener('click',async ()=>{ const old=sh.token; if(await confirmDialog('Gerar novo link','O link atual deixará de funcionar. Continuar?',{confirmText:'Gerar novo'})){ try{ unpublishShare(old); }catch{} sh.token=genToken(); save(); renderShares(); try{ publishShare(sh); }catch{} toast('Novo link gerado ✓','ok'); } });
@@ -227,7 +211,7 @@ async function editShare(id){
     // mostra o link já pronto pra copiar
     const url=shareUrl(nova);
     if(await confirmDialog('Link gerado ✓', 'Compartilhe este link somente-leitura:\n\n'+url, {confirmText:'Copiar link', cancelText:'Fechar'})){
-      copyToClipboard(url, 'Link copiado ✓');
+      navigator.clipboard?.writeText(url); toast('Link copiado ✓','ok');
     }
   }
 }
@@ -388,7 +372,7 @@ function renderInvites(){
            <button class="icon-btn" data-act="del" title="Remover convite">✕</button>`
         : `<button class="btn-sm primary" data-act="create">Gerar convite</button>`}</div>`;
     if(inv){
-      card.querySelector('[data-act=copy]').addEventListener('click',()=>{ copyToClipboard(inviteUrl(inv), 'Link do convite copiado ✓'); });
+      card.querySelector('[data-act=copy]').addEventListener('click',()=>{ navigator.clipboard?.writeText(inviteUrl(inv)); toast('Link do convite copiado ✓','ok'); });
       card.querySelector('[data-act=wa]').addEventListener('click',()=>{
         const txt=encodeURIComponent(`Olá! Você está convidado(a) para o nosso casamento 💍\nAbra seu convite e confirme presença: ${inviteUrl(inv)}`);
         const phone=(titular.phone||'').replace(/\D/g,'');
@@ -402,7 +386,7 @@ function renderInvites(){
         state.invites.push(nova); save();
         try{ publishInvite(nova, membros); }catch{}
         renderInvites(); toast('Convite gerado ✓','ok');
-        copyToClipboard(inviteUrl(nova));
+        if(navigator.clipboard) navigator.clipboard.writeText(inviteUrl(nova));
       });
     }
     wrap.appendChild(card);
