@@ -1703,8 +1703,10 @@ img, svg, canvas, video { max-width: 100%; }
   /* overlay escuro atrás do drawer */
   .drawer-overlay { display: block; position: fixed; inset: 0; z-index: 190;
     background: rgba(42,52,25,.5); backdrop-filter: blur(2px);
-    opacity: 0; transition: opacity .3s ease; }
-  .drawer-overlay.show { opacity: 1; }
+    opacity: 0; pointer-events: none; transition: opacity .3s ease; }
+  .drawer-overlay.show { opacity: 1; pointer-events: auto; }
+  /* o atributo hidden sempre esconde o overlay de verdade (não bloqueia cliques) */
+  .drawer-overlay[hidden] { display: none !important; }
 
   /* botão fechar dentro do drawer */
   .drawer-close { display: flex; position: absolute; top: 14px; right: 14px;
