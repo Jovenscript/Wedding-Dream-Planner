@@ -20,7 +20,7 @@ const DEFAULT_ITEMS = [
   {name:'Vestido da noiva',  category:'Trajes'},      {name:'Terno do noivo',    category:'Trajes'},
   {name:'Maquiagem & cabelo',category:'Beleza'},      {name:'Igreja',            category:'Cerimônia'}
 ];
-function seedItems(){ return DEFAULT_ITEMS.map(d=>({id:uid(), name:d.name, category:d.category, total:0, paid:0, paidAt:null})); }
+function seedItems(){ return DEFAULT_ITEMS.map(d=>({id:uid(), name:d.name, category:d.category, total:0, paid:0, paidAt:null, included:true, kind:null})); }
 /* Estado NOVO nasce vazio — cada conta/casal começa do zero.
    As sementes (itens padrão, custos de referência, lista de convidados)
    deixam de rodar no boot; ficam disponíveis apenas como ações manuais
@@ -60,7 +60,7 @@ function migrate(raw){
       const f = normFund({name:it.name, type:'Outros', amount:p, date:it.paidAt||todayISO()});
       outFunds.push(f); migrated.push(f);
     } else {
-      normItems.push({ id:it.id||uid(), name:it.name||'Item', category:it.category||'Outros', total:t, paid:p, paidExt:Math.max(0,round2(it.paidExt)), sponsor:String(it.sponsor||'').trim(), varId:it.varId||null, paidFrom:it.paidFrom||null, paidAt:it.paidAt||null });
+      normItems.push({ id:it.id||uid(), name:it.name||'Item', category:it.category||'Outros', total:t, paid:p, paidExt:Math.max(0,round2(it.paidExt)), sponsor:String(it.sponsor||'').trim(), varId:it.varId||null, paidFrom:it.paidFrom||null, paidAt:it.paidAt||null, included: it.included!==false, kind: (it.kind==='fixo'||it.kind==='variavel'||it.kind==='estimado')?it.kind:null });
     }
   });
   history = (history||[]).filter(h=>h&&typeof h==='object').map(h=>({ id:h.id||uid(), ts:h.ts||Date.now(), kind:h.kind||'ajuste', desc:h.desc||'', delta:round2(h.delta) }));
@@ -231,9 +231,40 @@ function compute(){
   const coveredUnpaid= clamp(Math.min(Math.max(0,saldo), pending), 0, pending);
   const uncovered    = Math.max(0, round2(pending - coveredUnpaid));
 
+  /* ═══════════ Escopo do orçamento (incluir/não incluir no total) ═══════════
+     "considerado" = só os itens marcados para entrar no cálculo. Itens fora
+     do cálculo NÃO somem e NÃO mexem no dinheiro real (saldo/pago continuam
+     valendo tudo que já saiu do caixa) — apenas saem do total considerado.
+     Isto sustenta as simulações: marcar/desmarcar recalcula o total na hora. */
+  const consideredItems  = state.items.filter(it=>it.included!==false);
+  const considered       = round2(consideredItems.reduce((a,it)=>a+(it.total||0),0));      // orçamento projetado considerado
+  const foraDoCalculo    = Math.max(0, round2(totalExpense - considered));                  // valores fora do cálculo
+  const consideredPaid   = round2(consideredItems.reduce((a,it)=>a+(it.paid||0)+(it.paidExt||0),0));
+  const consideredPending= Math.max(0, round2(considered - consideredPaid));                // falta pagar (do considerado)
+  const estimatedTotal   = round2(consideredItems.filter(it=>itemKind(it)!=='fixo').reduce((a,it)=>a+(it.total||0),0)); // custos variáveis/estimados
+  const fixedTotal       = Math.max(0, round2(considered - estimatedTotal));
+  const pctPagoConsid    = considered>0 ? clamp(consideredPaid/considered*100,0,100) : 0;
+  const pctGarantidoConsid = considered>0 ? clamp(coverage/considered*100,0,100) : 0;
+  const coveredUnpaidC   = clamp(Math.min(Math.max(0,saldo), consideredPending), 0, consideredPending);
+  const uncoveredC       = Math.max(0, round2(consideredPending - coveredUnpaidC));
+
   return { totalExpense, totalPaid, paidOwn, paidExt, pending,
            totalFunds, usedFunds, saldo, coverage, faltaArrecadar, surplus,
-           pctPago, pctGarantido, coveredUnpaid, uncovered };
+           pctPago, pctGarantido, coveredUnpaid, uncovered,
+           considered, foraDoCalculo, consideredPaid, consideredPending,
+           estimatedTotal, fixedTotal, pctPagoConsid, pctGarantidoConsid,
+           coveredUnpaidC, uncoveredC };
+}
+
+/* Classificação efetiva de um item de despesa (para o chip e o resumo):
+   'fixo'     → valor conhecido/calculável com segurança
+   'variavel' → depende de consumo/condição futura (itens 'auto' de Convidados)
+   'estimado' → previsão manual enquanto o valor real não é conhecido
+   Se o usuário fixou it.kind, respeita; senão deriva do vínculo com Convidados. */
+function itemKind(it){
+  if(it.kind==='fixo'||it.kind==='variavel'||it.kind==='estimado') return it.kind;
+  if(it.varId){ const v=(state.varCosts||[]).find(x=>x.id===it.varId); return (v && v.mode==='fixo')?'fixo':'variavel'; }
+  return 'fixo';
 }
 
 /* Saldo disponível de UM recurso específico (amount − used). */
