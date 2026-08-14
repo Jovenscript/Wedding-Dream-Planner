@@ -20,7 +20,19 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <script src="js/config.js"></script>
+    <script>
+    /* MODO ADMIN VISUALIZAÇÃO — link público sem login */
+    window.READONLY = true;
+    window.FIREBASE_CONFIG = false; /* desliga o sync normal (que precisa de login) */
+    document.documentElement.classList.add('readonly-mode');
+    (function(){
+      var t = (location.hash||'').replace('#','').trim();
+      if(!t){ document.write('<div style="padding:60px 20px;text-align:center;font-family:system-ui;color:#666">Link inválido. Peça um novo link ao organizador.</div>'); return; }
+      window.__ADMIN_TOKEN = t;
+    })();
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script>/* Detecta dispositivo de toque e marca html.is-touch — garante o layout
     de APP mesmo em celulares que reportam largura grande (devicePixelRatio alto). */
     (function(){ try{ var touch = ('ontouchstart' in window) || (navigator.maxTouchPoints>0) || matchMedia('(pointer:coarse)').matches; if(touch) document.documentElement.classList.add('is-touch'); }catch(e){} })();</script>
@@ -47,6 +59,8 @@
 </head>
 <body>
   <canvas id="bg"></canvas>
+
+  <div class="readonly-banner" id="ro-banner"><svg class="ro-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>🔒 <strong>Modo Visualização</strong> — Você tem acesso somente para visualização deste evento.</span></div>
 
   <button class="hamburger" id="hamburger" type="button" aria-label="Abrir menu" aria-expanded="false">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -534,15 +548,6 @@
         <p class="share-intro">Gere um link somente-leitura para profissionais (cerimonialista, buffet, fotógrafo…) verem apenas o que você autorizar — sem acesso ao financeiro nem ao restante do sistema.</p>
         <div class="share-list" id="share-list"></div>
       </section>
-    
-      <section class="card" style="margin-top:20px">
-        <div class="card-header">
-          <h2>🔐 Acessos completos (Cerimonialista)</h2>
-          <button class="header-action" id="admin-add"><span class="ha-txt">+ Novo acesso</span></button>
-        </div>
-        <p class="share-intro">Dê à cerimonialista ou wedding planner acesso <strong>completo ao sistema em tempo real</strong>, exatamente como você o vê — só que <strong>somente para visualização</strong>. Ela não poderá editar, adicionar ou excluir nada. Você controla quais páginas ela vê.</p>
-        <div class="inv-list" id="admin-list"></div>
-      </section>
     </div>
 
 
@@ -573,6 +578,103 @@
   <script src="js/alerts.js"></script>
   <script src="js/modules.js"></script>
   <script src="js/app.js"></script>
-  <script src="js/firebase-sync.js"></script>
+  
+
+<script>
+/* ═══ LOADER ADMIN — busca snapshot público em tempo real ═══ */
+(function adminLoader(){
+  if(!window.__ADMIN_TOKEN) return;
+  var t = window.__ADMIN_TOKEN;
+  var CFG = { apiKey:"AIzaSyAxbgXptautbR5Za8677fMolcWIRtr-D7c", authDomain:"wedding-dreams-71032.firebaseapp.com",
+    projectId:"wedding-dreams-71032", storageBucket:"wedding-dreams-71032.firebasestorage.app",
+    messagingSenderId:"789020951087", appId:"1:789020951087:web:faac7a215d284e472afcda" };
+  try{ firebase.initializeApp(CFG); }catch(e){}
+  var db = firebase.firestore();
+
+  // Escuta em tempo real o snapshot admin: shares/admin_{token}
+  var docRef = db.collection('shares').doc('admin_' + t);
+  var firstLoad = true;
+  docRef.onSnapshot(function(snap){
+    if(!snap.exists){
+      document.body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-family:system-ui;color:#666"><h2 style="color:#3D4A28">Link inválido ou revogado</h2><p>Este acesso não é mais válido. Peça um novo link ao organizador.</p></div>';
+      return;
+    }
+    var d = snap.data();
+    if(d.active === false){
+      document.body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-family:system-ui;color:#666"><h2 style="color:#3D4A28">Acesso desativado</h2><p>Este acesso foi desativado pelo organizador.</p></div>';
+      return;
+    }
+    if(d.expires){ var exp=new Date(d.expires+'T23:59:59'); if(exp<new Date()){
+      document.body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-family:system-ui;color:#666"><h2 style="color:#3D4A28">Acesso expirado</h2></div>'; return;
+    }}
+
+    // Aplica as PERMISSÕES: esconde as views não autorizadas
+    window.__ADMIN_SCOPES = d.scopes || [];
+    applyScopes(d.scopes || []);
+
+    // Recebe os dados completos do casal (campo `data`)
+    if(d.data){
+      // Injeta no state global do app
+      window.state = d.data;
+      try{ state = window.state; }catch(e){}
+      // Renderiza (em tempo real!)
+      // Fecha qualquer modal do onboarding (não deve aparecer em readonly)
+      try{ document.querySelectorAll('.modal-backdrop').forEach(function(bd){ bd.classList.remove('show'); bd.innerHTML=''; }); }catch(e){}
+      if(typeof renderAll === 'function') renderAll();
+      if(typeof switchView === 'function' && firstLoad){
+        var first = pickFirstAllowedView(d.scopes||[]);
+        if(first) switchView(first);
+        firstLoad = false;
+      }
+      // Atualiza o nome do casamento no banner/header
+      try{
+        var ttl=document.getElementById('event-title');
+        if(ttl && d.data.settings && d.data.settings.eventName) ttl.textContent = d.data.settings.eventName;
+      }catch(e){}
+    }
+  }, function(err){
+    console.error('admin snapshot error', err);
+    document.body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-family:system-ui;color:#666"><h2 style="color:#B23B3B">Erro ao carregar</h2><p>Não foi possível carregar o evento. Tente recarregar a página.</p></div>';
+  });
+
+  function applyScopes(scopes){
+    // Cada view do app mapeia para um escopo:
+    var viewScope = {
+      'orcamento':'financeiro',
+      'convidados':'convidados',
+      'convites':'convites',
+      'tarefas':'tarefas',
+      'cronograma':'cronograma',
+      'fornecedores':'fornecedores',
+      'compartilhamentos':null  // NUNCA visível pra admin (é gestão de compartilhamento do dono)
+    };
+    Object.keys(viewScope).forEach(function(view){
+      var scope = viewScope[view];
+      var allowed = scope===null ? false : scopes.includes(scope);
+      // esconde link da sidebar
+      document.querySelectorAll('[data-view="'+view+'"]').forEach(function(el){
+        el.style.display = allowed ? '' : 'none';
+      });
+      // esconde a view em si
+      var v = document.getElementById('view-'+view);
+      if(v && !allowed){ v.hidden = true; v.style.display='none'; }
+    });
+    // Config sempre escondida no admin
+    var cfg = document.getElementById('nav-config');
+    if(cfg) cfg.style.display = 'none';
+    var sideCfg = document.getElementById('side-config');
+    if(sideCfg) sideCfg.style.display = 'none';
+    // Botão "Sair" da conta também não faz sentido
+    var logout = document.querySelector('[data-act="logout"]');
+    if(logout) logout.style.display = 'none';
+  }
+  function pickFirstAllowedView(scopes){
+    var order = ['orcamento','convidados','convites','cronograma','tarefas','fornecedores'];
+    var viewScope = {'orcamento':'financeiro','convidados':'convidados','convites':'convites','cronograma':'cronograma','tarefas':'tarefas','fornecedores':'fornecedores'};
+    for(var i=0;i<order.length;i++){ if(scopes.includes(viewScope[order[i]])) return order[i]; }
+    return null;
+  }
+})();
+</script>
 </body>
 </html>

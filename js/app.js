@@ -1,3 +1,76 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   MODO SOMENTE-LEITURA (Admin/Cerimonialista)
+   Quando window.READONLY=true (setado por admin.html), TODAS as funções
+   de escrita/edição são bloqueadas. Mostra um toast e não faz nada.
+   A proteção REAL fica nas regras do Firestore (que rejeitam writes
+   sem uid dono). Isto aqui é a UX para nunca deixar tentar.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function readonlyShield(){
+  if(!window.READONLY) return;
+
+  function blocked(msg){
+    if(typeof toast==='function') toast(msg||'Você possui acesso somente para visualização.', 'warn');
+    return undefined;
+  }
+
+  // Espera o restante dos scripts carregar, então "envolve" as funções perigosas
+  function wrapDangerous(){
+    const targets = [
+      // salvar/sincronizar
+      'save', 'saveNow', 'commitState',
+      // itens/aportes
+      'addItem', 'removeItem', 'editItem', 'markPaid', 'markUnpaid', 'payItem',
+      'addFund', 'removeFund', 'editFund',
+      // convidados
+      'addGuest', 'removeGuest', 'editGuest', 'toggleGuestStatus',
+      // módulos
+      'editTask', 'removeTask', 'editSchedule', 'removeSchedule',
+      'editSupplier', 'removeSupplier',
+      'editShare', 'removeShare', 'unpublishShare',
+      'publishInvite', 'unpublishInvite',
+      // demo
+      'loadDemoData', 'maybeOnboard'
+    ];
+    targets.forEach(fnName=>{
+      const fn = window[fnName];
+      if(typeof fn === 'function'){
+        window[fnName] = function(){
+          blocked();
+          return typeof fn.returnDefault === 'function' ? undefined : (Array.isArray(fn.returnDefault) ? [] : undefined);
+        };
+      }
+    });
+
+    // Também intercepta cliques em botões de ação (add-, edit-, delete-)
+    document.addEventListener('click', function(e){
+      if(!window.READONLY) return;
+      const t = e.target.closest('button, a');
+      if(!t) return;
+      // Botões de nav (mudar de view) e o hambúrguer devem funcionar
+      const isNav = t.classList.contains('side-link') || t.classList.contains('tab') || t.id==='hamburger' || t.id==='drawer-close' || t.id==='alert-bell';
+      if(isNav) return;
+      // Ações claramente de escrita
+      const isWrite = t.id && /^(add|new-|g-add|task-add|sched-add|sup-add|share-add|inv-refresh|demo-)/i.test(t.id)
+        || t.dataset.act && /^(edit|del|remove|create|save|pay|new)/i.test(t.dataset.act)
+        || /adicionar|editar|remover|excluir|criar|salvar|pagar/i.test((t.textContent||'').trim().toLowerCase());
+      if(isWrite){
+        e.preventDefault();
+        e.stopPropagation();
+        blocked();
+      }
+    }, true); // capture=true para pegar ANTES do listener normal
+
+    // Bloqueia onboarding IMEDIATAMENTE (antes do resto carregar)
+    window.maybeOnboard = function(){ /* no-op em readonly */ };
+    // Marca visualmente: adiciona "readonly-mode" no <html> pra CSS reagir
+    document.documentElement.classList.add('readonly-mode');
+  }
+
+  // Roda depois que tudo carregou
+  if(document.readyState==='complete') wrapDangerous();
+  else window.addEventListener('load', wrapDangerous);
+})();
+
 /* ═════════════════════════════════════════════════════════════════════
    app.js — maestro da aplicação
    O QUE: renderAll() (redesenha as duas vistas a partir do compute) e o
@@ -164,6 +237,7 @@ if(typeof window.fetchRSVP!=='function'){ window.fetchRSVP=null; }
     on('sup-add',    ()=>editSupplier());
     on('share-add',  ()=>editShare());
     on('inv-refresh',()=>checkAllRSVP());
+    on('admin-add', ()=>editAdminAccess());
     // relatórios CSV
     on('task-csv', ()=>reportTasks());
     on('sup-csv',  ()=>reportSuppliers());

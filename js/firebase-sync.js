@@ -95,6 +95,8 @@
       guests:state.guests, varCosts:state.varCosts, settings:state.settings,
       __pushId:lastPushId, updatedAt:Date.now() }));
     await ref.set(data);
+    // Também atualiza os snapshots admin (em tempo real p/ cerimonialista)
+    try{ if(window.syncAdminSnapshots) window.syncAdminSnapshots(); }catch(e){}
   }
   // Hook chamado por state.save() a cada alteração (debounce de ~0,9s).
   window.__cloudSave=function(){
@@ -121,6 +123,74 @@
     try{ if(!db||!token) return; await db.collection('shares').doc(token).delete(); }catch(e){ console.error('unpublishShare',e); }
   };
   // Convites: publica payload público e busca a resposta (RSVP) do convidado.
+
+  // ═══════════ ACESSO ADMIN (link espelho do sistema) ═══════════
+  // Cria/atualiza o documento shares/admin_{token} com os dados completos do casamento
+  // A cerimonialista abre admin.html#TOKEN e vê os dados em tempo real (via onSnapshot).
+  window.publishAdminAccess = async function(access){
+    try{
+      if(!db || !access || !access.token) return;
+      const payload = {
+        kind: 'admin',
+        name: access.name || '',
+        scopes: access.scopes || [],
+        active: access.active !== false,
+        expires: access.expires || null,
+        createdAt: access.createdAt || new Date().toISOString(),
+        // Snapshot dos dados: espelho fiel do state
+        data: sanitizeStateForAdmin(access.scopes || []),
+        updatedAt: Date.now()
+      };
+      await db.collection('shares').doc('admin_' + access.token).set(payload);
+    }catch(e){ console.error('publishAdminAccess', e); }
+  };
+
+  window.unpublishAdminAccess = async function(token){
+    try{ if(!db || !token) return;
+      await db.collection('shares').doc('admin_' + token).delete();
+    }catch(e){ console.error('unpublishAdminAccess', e); }
+  };
+
+  // Chamado a cada save() do dono: atualiza TODOS os snapshots admin ativos
+  window.syncAdminSnapshots = async function(){
+    try{
+      if(!db) return;
+      const accesses = (state && state.adminAccess) || [];
+      for(const a of accesses){
+        if(a.active === false) continue;
+        const payload = {
+          kind: 'admin',
+          scopes: a.scopes || [],
+          data: sanitizeStateForAdmin(a.scopes || []),
+          updatedAt: Date.now()
+        };
+        // merge: preserva `name`, `active`, `expires`, `createdAt`
+        await db.collection('shares').doc('admin_' + a.token).set(payload, {merge:true});
+      }
+    }catch(e){ console.error('syncAdminSnapshots', e); }
+  };
+
+  // Sanitiza state: remove só o que NÃO pode ir (por escopo negado)
+  function sanitizeStateForAdmin(scopes){
+    // Espelho COMPLETO por padrão — remove campos NÃO autorizados
+    const s = JSON.parse(JSON.stringify(state || {}));
+    // Se financeiro não autorizado: remove items, funds, varCosts, history, e sanitiza suppliers
+    if(!scopes.includes('financeiro')){
+      delete s.items; delete s.funds; delete s.varCosts; delete s.history;
+      if(s.suppliers){ s.suppliers = s.suppliers.map(x=>{ const c={...x}; delete c.total; delete c.paid; delete c.value; return c; }); }
+    }
+    if(!scopes.includes('convidados')) delete s.guests;
+    if(!scopes.includes('convites'))   delete s.invites;
+    if(!scopes.includes('tarefas'))    delete s.tasks;
+    if(!scopes.includes('cronograma')) delete s.schedule;
+    if(!scopes.includes('fornecedores')) delete s.suppliers;
+    // NUNCA vazam:
+    delete s.shares;         // gestão de compartilhamento é privada
+    delete s.adminAccess;    // lista de acessos admin é privada
+    // settings: mantém nome/data/local (público via convite), tira outros privados
+    return s;
+  }
+
   window.publishInvite=async function(inv, familia){
     try{ if(!db||!inv||!inv.token) return; const p=buildInvitePayload(inv, familia); p.updatedAt=Date.now();
       await db.collection('shares').doc(inv.token).set(p); }catch(e){ console.error('publishInvite',e); }

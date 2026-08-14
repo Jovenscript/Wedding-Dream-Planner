@@ -110,7 +110,7 @@ async function editSchedule(id){
   save(); renderSchedule(); toast(s?'Momento salvo ✓':'Momento adicionado ✓','ok');
 }
 
-function renderModules(){ try{ renderTasks(); }catch{} try{ renderSchedule(); }catch{} try{ renderSuppliers(); }catch{} try{ renderShares(); }catch{} try{ renderInvites(); }catch{} }
+function renderModules(){ try{ renderTasks(); }catch{} try{ renderSchedule(); }catch{} try{ renderSuppliers(); }catch{} try{ renderShares(); }catch{} try{ renderInvites(); }catch{} try{ renderAdminAccesses(); }catch{} }
 
 /* ---------- FORNECEDORES ---------- */
 const SUP_STATUS={ cotacao:{l:'Cotação',c:'#8a9a5b'}, contratado:{l:'Contratado',c:'#3D8A52'}, pago:{l:'Pago',c:'#C9A84C'} };
@@ -378,6 +378,127 @@ function buildInvitePayload(inv, familia){
     familyName:inv.familyName||'', guestNames:(familia||[]).map(g=>g.name),
     active:inv.active!==false
   };
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ACESSOS ADMIN — links de visualização completa do sistema
+   Cerimonialista/wedding planner abre admin.html#TOKEN e vê tudo em
+   tempo real, no formato original do app, com edições bloqueadas.
+   ═══════════════════════════════════════════════════════════════════════ */
+const ADMIN_SCOPES = [
+  {key:'financeiro',   label:'💰 Financeiro (itens, valores, aportes, saldo)'},
+  {key:'convidados',   label:'👥 Convidados (lista completa)'},
+  {key:'convites',     label:'💌 Convites e RSVP'},
+  {key:'cronograma',   label:'📅 Cronograma do dia'},
+  {key:'tarefas',      label:'✅ Tarefas (checklist)'},
+  {key:'fornecedores', label:'🏢 Fornecedores (com contatos)'},
+];
+
+function adminAccessUrl(a){
+  const base = location.origin + location.pathname.replace(/index\.html?$/, '');
+  return base + 'admin.html#' + a.token;
+}
+
+function renderAdminAccesses(){
+  const wrap = el('admin-list'); if(!wrap) return;
+  const list = state.adminAccess || [];
+  if(!list.length){
+    wrap.innerHTML = '<div class="inv-empty">Nenhum acesso admin criado. Clique em "+ Novo acesso" para dar à cerimonialista acesso completo ao sistema (somente visualização).</div>';
+    return;
+  }
+  wrap.innerHTML = '';
+  list.forEach(a=>{
+    const card = document.createElement('div');
+    card.className = 'inv-card';
+    const scopesTxt = (a.scopes||[]).map(s=>{ const sc=ADMIN_SCOPES.find(x=>x.key===s); return sc?sc.label.replace(/^[^A-Z]+/,'').split(' (')[0]:s; }).join(' · ');
+    const statusBadge = a.active===false
+      ? '<span class="inv-b nao">✕ Desativado</span>'
+      : '<span class="inv-b sim">● Ativo</span>';
+    card.innerHTML = `
+      <div class="inv-top">
+        <span class="inv-fam">${escapeHtml(a.name||'Acesso sem nome')}</span>
+        ${statusBadge}
+      </div>
+      <div class="inv-members">${escapeHtml(scopesTxt || 'nenhum acesso liberado')}</div>
+      ${a.expires ? `<div class="inv-members" style="color:var(--warn)">⏳ Expira em ${escapeHtml(a.expires)}</div>` : ''}
+      <div class="inv-actions">
+        <button class="btn-sm" data-act="copy">Copiar link</button>
+        <button class="btn-sm" data-act="edit">Permissões</button>
+        <button class="btn-sm" data-act="toggle">${a.active===false?'Ativar':'Desativar'}</button>
+        <button class="icon-btn" data-act="del" title="Remover acesso">✕</button>
+      </div>`;
+    card.querySelector('[data-act=copy]').addEventListener('click', ()=>{
+      copyToClipboard(adminAccessUrl(a), 'Link admin copiado ✓');
+    });
+    card.querySelector('[data-act=edit]').addEventListener('click', ()=> editAdminAccess(a));
+    card.querySelector('[data-act=toggle]').addEventListener('click', async ()=>{
+      a.active = a.active === false;
+      save(); renderAdminAccesses();
+      try{ if(a.active===false && window.unpublishAdminAccess){ /* mantém doc mas com active:false */
+        publishAdminAccess(a);
+      } else if(window.publishAdminAccess){ publishAdminAccess(a); }
+      }catch{}
+      toast(a.active?'Acesso ativado':'Acesso desativado', 'ok');
+    });
+    card.querySelector('[data-act=del]').addEventListener('click', async ()=>{
+      if(await confirmDialog('Remover acesso','O link deixará de funcionar imediatamente. Continuar?', {danger:true, confirmText:'Remover'})){
+        try{ if(window.unpublishAdminAccess) window.unpublishAdminAccess(a.token); }catch{}
+        state.adminAccess = state.adminAccess.filter(x=>x.token!==a.token);
+        save(); renderAdminAccesses();
+        toast('Acesso removido');
+      }
+    });
+    wrap.appendChild(card);
+  });
+}
+
+async function editAdminAccess(existing){
+  const isNew = !existing;
+  const fields = [
+    {key:'name', label:'Nome / empresa', value:existing?existing.name:'', placeholder:'ex.: Ana Cerimonial'},
+    {key:'expires', label:'Expira em (opcional, deixe vazio para nunca)', type:'date', value:existing?(existing.expires||''):''},
+  ];
+  // Toggle por escopo
+  ADMIN_SCOPES.forEach(sc=>{
+    fields.push({
+      key: 'scope_'+sc.key,
+      label: sc.label,
+      type: 'select', options: ['Não','Sim'],
+      value: existing && (existing.scopes||[]).includes(sc.key) ? 'Sim' : 'Não'
+    });
+  });
+  const data = await modal({
+    title: isNew ? 'Novo acesso admin' : 'Editar acesso',
+    message: 'Este link dá à pessoa acesso completo ao sistema, em tempo real, exatamente como você o vê — mas somente para visualização. Ela não pode editar, adicionar ou excluir nada.',
+    fields,
+    confirmText: isNew ? 'Criar acesso' : 'Salvar alterações'
+  });
+  if(!data) return;
+  const scopes = ADMIN_SCOPES.filter(sc => data['scope_'+sc.key]==='Sim').map(sc=>sc.key);
+  if(!scopes.length){ toast('Selecione ao menos uma seção para liberar', 'warn'); return; }
+
+  state.adminAccess = state.adminAccess || [];
+  if(existing){
+    existing.name = data.name; existing.scopes = scopes; existing.expires = data.expires || null;
+    save(); renderAdminAccesses();
+    try{ if(window.publishAdminAccess) window.publishAdminAccess(existing); }catch{}
+    toast('Acesso atualizado ✓', 'ok');
+  } else {
+    const nova = {
+      token: genToken(),
+      name: data.name || 'Cerimonialista',
+      scopes,
+      expires: data.expires || null,
+      active: true,
+      createdAt: new Date().toISOString()
+    };
+    state.adminAccess.push(nova);
+    save(); renderAdminAccesses();
+    try{ if(window.publishAdminAccess) window.publishAdminAccess(nova); }catch{}
+    toast('Acesso criado ✓ Link copiado.', 'ok');
+    copyToClipboard(adminAccessUrl(nova), '');
+  }
 }
 
 function renderInvites(){

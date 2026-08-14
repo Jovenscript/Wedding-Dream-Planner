@@ -1827,3 +1827,100 @@ html.is-touch table td[data-label] > * {
 /* toggles e ações se agrupam bem em block */
 html.is-touch #g-tbody .head-toggle,
 html.is-touch #g-tbody .beer-toggle { margin: 4px 6px 0 0 !important; vertical-align: middle; }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MODO SOMENTE-LEITURA (aplicado por window.READONLY via classe no html)
+   ═══════════════════════════════════════════════════════════════════════ */
+html.readonly-mode #add,
+html.readonly-mode #g-add,
+html.readonly-mode #task-add,
+html.readonly-mode #sched-add,
+html.readonly-mode #sup-add,
+html.readonly-mode #share-add,
+html.readonly-mode #demo-mode,
+html.readonly-mode #import-btn,
+html.readonly-mode #new-item-form,
+html.readonly-mode .add-form,
+html.readonly-mode [data-act="edit"],
+html.readonly-mode [data-act="del"],
+html.readonly-mode [data-act="remove"],
+html.readonly-mode [data-act="create"],
+html.readonly-mode [data-act="pay"] { display: none !important; }
+
+/* Formulários de adicionar viram informativos discretos */
+html.readonly-mode input[id="new-name"],
+html.readonly-mode input[id="g-name"] { display: none !important; }
+
+/* Badge global: "Modo visualização" sempre visível no topo */
+.readonly-banner {
+  position: sticky; top: 0; z-index: 90;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 10px 16px; text-align: center;
+  background: linear-gradient(90deg, var(--olive-dark), var(--olive));
+  color: var(--ivory); font-size: 13.5px; font-weight: 500;
+  box-shadow: 0 2px 12px rgba(74,86,51,.2);
+}
+.readonly-banner strong { color: var(--gold-lt); font-weight: 700; }
+.readonly-banner .ro-icon { width: 16px; height: 16px; }
+html.readonly-mode .demo-banner { display: none !important; }
+html:not(.readonly-mode) .readonly-banner { display: none; }
+
+/* Cards ficam com cursor default (não parecem clicáveis pra editar) */
+html.readonly-mode .item-name,
+html.readonly-mode .guest-name-cell { pointer-events: none; }
+
+/* Modais de edição não abrem no readonly (já bloqueado no JS, mas garantia visual) */
+html.readonly-mode .modal-backdrop { pointer-events: none; }
+
+/* ═══ Refino: mais botões escondidos em readonly ═══ */
+html.readonly-mode #new-item-form,
+html.readonly-mode label:has(#new-name),
+html.readonly-mode label:has(#g-name),
+html.readonly-mode .new-guest-form,
+html.readonly-mode .add-guest-row,
+html.readonly-mode #g-search + button,
+html.readonly-mode [id$="-add"]:not(#alert-add),
+html.readonly-mode .header-action[id*="add"],
+html.readonly-mode .header-action[id*="csv"],
+html.readonly-mode .fund-add-form,
+html.readonly-mode .var-add-form,
+html.readonly-mode #import-btn,
+html.readonly-mode #demo-mode,
+html.readonly-mode #demo-exit,
+html.readonly-mode .demo-banner,
+html.readonly-mode [data-act="edit"],
+html.readonly-mode [data-act="delete"],
+html.readonly-mode [data-act="pay"],
+html.readonly-mode [data-act="unpay"],
+html.readonly-mode [data-act="head"],
+html.readonly-mode .head-toggle,
+html.readonly-mode .beer-toggle,
+html.readonly-mode .row-actions,
+html.readonly-mode .g-actions,
+html.readonly-mode .fund-actions,
+html.readonly-mode select[data-status] { display: none !important; }
+
+/* Inputs de status ficam apenas como badges (não editáveis) */
+html.readonly-mode select { pointer-events: none; opacity: .7; }
+
+/* Botões "Adicionar" que ficam soltos com "+" */
+html.readonly-mode button.plus-btn,
+html.readonly-mode button:has(> .add-icon) { display: none !important; }
+
+
+/* Esconde os disclosures de "Adicionar" no readonly */
+html.readonly-mode details.disclosure:has(> summary:has(.disc-plus)),
+html.readonly-mode details:has(> summary:matches(:contains("Adicionar"))) { display: none !important; }
+/* Fallback: qualquer summary que tenha .disc-plus */
+html.readonly-mode summary .disc-plus,
+html.readonly-mode summary:has(.disc-plus) { display: none !important; }
+html.readonly-mode details.disclosure { display: none !important; }
+
+
+/* Esconde importação e backup no readonly (são ações de escrita) */
+html.readonly-mode label:has(#import-xlsx),
+html.readonly-mode #import-xlsx,
+html.readonly-mode #backup-export,
+html.readonly-mode #backup-import,
+html.readonly-mode label[for="import-xlsx"] { display: none !important; }

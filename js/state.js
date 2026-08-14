@@ -25,7 +25,7 @@ function seedItems(){ return DEFAULT_ITEMS.map(d=>({id:uid(), name:d.name, categ
    As sementes (itens padrão, custos de referência, lista de convidados)
    deixam de rodar no boot; ficam disponíveis apenas como ações manuais
    (ex.: botão "Carregar exemplos" / "Restaurar padrão"). */
-function blankState(){ const settings={showOver:true, strict:true, smart:{margin:10, hours:6, basis:'lista'}, seedItems:true, seedGuests:true, seedEventCosts:true, seedSmartV2:true}; return { items:[], funds:[], history:[], guests:[], varCosts:[], tasks:[], suppliers:[], schedule:[], shares:[], settings }; }
+function blankState(){ const settings={showOver:true, strict:true, smart:{margin:10, hours:6, basis:'lista'}, seedItems:true, seedGuests:true, seedEventCosts:true, seedSmartV2:true}; return { items:[], funds:[], history:[], guests:[], varCosts:[], tasks:[], suppliers:[], schedule:[], shares:[], adminAccess:[], settings }; }
 function normFund(f){ const amount=Math.max(0,round2(f.amount)); const o={ id:f.id||uid(), name:f.name||'Aporte', type:f.type||'Outros', amount, used:Math.max(0,Math.min(amount,round2(f.used))), date:f.date||todayISO() }; if(f.ownAuto) o.ownAuto=true; return o; }
 /* Normalizadores dos módulos novos (tarefas, fornecedores, cronograma) */
 function normTask(t){ t=t||{}; const st=['todo','doing','done'].includes(t.status)?t.status:'todo';
