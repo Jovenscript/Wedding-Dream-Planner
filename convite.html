@@ -34,80 +34,172 @@ body{ font-family:'Inter',sans-serif; color:var(--ink); background:#1a1f12; -web
 @keyframes float{ 0%{ transform:translateY(20px) scale(0); opacity:0; } 10%{ opacity:.9; }
   90%{ opacity:.9; } 100%{ transform:translateY(-110vh) scale(1); opacity:0; } }
 
-/* ══════════════ CENA DO ENVELOPE 3D ══════════════ */
-#stage{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
-  padding:24px; perspective:1400px; transition:opacity 1s ease, visibility 1s; }
-#stage.gone{ opacity:0; visibility:hidden; }
+/* ══════════════ CENA DE ABERTURA — envelope físico em camadas ══════════════ */
+#stage{ position:fixed; inset:0; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:0 24px; perspective:1400px; perspective-origin:50% 40%;
+  transition:opacity 1s cubic-bezier(.4,0,.2,1), visibility 1s;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(107,123,74,.15) 0%, transparent 60%),
+    radial-gradient(circle at 50% 50%, #2a3419 0%, #1a1f12 60%, #10160a 100%); }
+#stage.gone{ opacity:0; visibility:hidden; pointer-events:none; }
+
+/* Estados da máquina — cada estado ativa animações diferentes */
+#stage[data-state="closed"] .envelope{ animation:envFloat 6s ease-in-out infinite; }
+#stage[data-state="opening_seal"] .seal{ animation:sealBreak .5s cubic-bezier(.22,1,.36,1) forwards; }
+#stage[data-state="opening_flap"] .seal{ opacity:0; transform:translate(-50%,-50%) scale(.5) translateZ(20px); }
+#stage[data-state="opening_flap"] .flap{ animation:flapOpen .85s cubic-bezier(.5,.05,.3,.98) forwards; }
+#stage[data-state="revealing_card"] .seal{ opacity:0; }
+#stage[data-state="revealing_card"] .flap{ transform:rotateX(-170deg); }
+#stage[data-state="revealing_card"] .card-slot{ animation:cardRise 1s cubic-bezier(.22,1,.36,1) forwards; }
+#stage[data-state="card_revealed"] .seal{ opacity:0; }
+#stage[data-state="card_revealed"] .flap{ transform:rotateX(-170deg); }
+#stage[data-state="card_revealed"] .card-slot{ transform:translateY(-70%) scale(1); box-shadow:0 24px 40px rgba(0,0,0,.5); }
+#stage[data-state="entering"] .seal{ opacity:0; }
+#stage[data-state="entering"] .flap{ transform:rotateX(-170deg); }
+#stage[data-state="entering"] .card-slot{ animation:cardEnter 1.1s cubic-bezier(.16,1,.3,1) forwards; }
+#stage[data-state="entering"] .envelope-body{ animation:envelopeFade .8s ease-out forwards; }
+#stage[data-state="entering"] .env-hint{ opacity:0; }
+
+/* Envelope: composição em camadas com profundidade */
 .env-scene{ text-align:center; transform-style:preserve-3d; }
+.envelope{ position:relative; width:min(360px, 82vw); aspect-ratio: 3 / 2;
+  transform-style:preserve-3d; transform:rotateX(4deg);
+  cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; }
+.envelope.locked{ cursor:default; }
 
-.envelope{ position:relative; width:min(360px,84vw); height:min(244px,58vw); cursor:pointer;
-  transform-style:preserve-3d; transform:rotateX(12deg) rotateY(0deg);
-  animation:envFloat 6s ease-in-out infinite, envEnter 1.4s cubic-bezier(.2,.9,.2,1);
-  transition:transform .5s ease; }
-@keyframes envEnter{ from{ opacity:0; transform:rotateX(40deg) translateY(60px) scale(.85); } }
-@keyframes envFloat{ 0%,100%{ transform:rotateX(12deg) translateY(0); } 50%{ transform:rotateX(12deg) translateY(-12px); } }
-.envelope:hover{ transform:rotateX(8deg) scale(1.02); }
+@keyframes envFloat{ 0%,100%{ transform:rotateX(4deg) translateY(0); } 50%{ transform:rotateX(4deg) translateY(-8px); } }
 
-/* corpo do envelope com camadas e sombra 3D */
-.env-back{ position:absolute; inset:0; border-radius:12px;
-  background:linear-gradient(150deg, #f0e8d4, #e2d6ba);
-  box-shadow:0 40px 80px rgba(0,0,0,.5), 0 10px 30px rgba(0,0,0,.3);
-  border:1px solid rgba(201,168,76,.4); }
-.letter{ position:absolute; left:6%; right:6%; top:10%; bottom:6%; border-radius:8px;
-  background:linear-gradient(160deg, #fffdf8, #f6efe0);
-  box-shadow:0 4px 20px rgba(0,0,0,.12); z-index:2;
-  transform:translateY(0) translateZ(2px); transition:transform 1.3s cubic-bezier(.5,0,.2,1);
-  display:flex; flex-direction:column; align-items:center; justify-content:center; padding:18px; overflow:hidden; }
-.letter::before{ content:''; position:absolute; inset:0; background:
-  radial-gradient(circle at 50% 0%, rgba(201,168,76,.12), transparent 60%); }
-.letter .mono-ring{ width:64px; height:64px; border:1.5px solid var(--gold); border-radius:50%;
-  display:flex; align-items:center; justify-content:center; margin-bottom:12px; }
-.letter .mono-ring span{ font-size:26px; color:var(--gold); font-weight:600; }
-.letter .l-title{ font-size:13px; letter-spacing:.28em; text-transform:uppercase; color:var(--ink-soft); }
-/* frente do envelope (bolso) */
-.env-front{ position:absolute; left:0; right:0; bottom:0; height:64%; z-index:4;
-  background:linear-gradient(150deg, #ece0c6, #ddd0b2);
-  clip-path:polygon(0 100%, 0 20%, 50% 92%, 100% 20%, 100% 100%);
-  border-radius:0 0 12px 12px;
-  box-shadow:inset 0 2px 12px rgba(255,255,255,.3); }
-.env-front::after{ content:''; position:absolute; inset:0;
-  background:linear-gradient(105deg, transparent 40%, rgba(255,255,255,.25) 50%, transparent 60%); }
-/* aba superior 3D que abre */
+/* Sombra projetada no chão */
+.env-shadow{ position:absolute; left:8%; right:8%; bottom:-14px; height:26px; z-index:0;
+  background:radial-gradient(ellipse, rgba(0,0,0,.55), transparent 70%);
+  filter:blur(10px); transform:scaleY(.6); }
+
+/* Corpo do envelope agrupado — some suavemente quando entra no convite */
+.envelope-body{ position:absolute; inset:0; transform-style:preserve-3d; }
+@keyframes envelopeFade{ to{ opacity:0; transform:scale(1.15); } }
+
+/* CAMADA 1: fundo/traseira do envelope */
+.env-back{ position:absolute; inset:0; border-radius:6px;
+  background:linear-gradient(160deg, #efe5cf 0%, #e0d3b6 55%, #d3c4a3 100%);
+  box-shadow:0 30px 60px rgba(0,0,0,.5), 0 12px 24px rgba(0,0,0,.35);
+  border:1px solid rgba(154,131,84,.35); }
+/* textura sutil de papel */
+.env-back::before{ content:''; position:absolute; inset:0; border-radius:6px;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255,255,255,.06) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(0,0,0,.04) 0%, transparent 40%);
+  mix-blend-mode:overlay; }
+
+/* CAMADA 2: interior do envelope (revelado quando aba abre) */
+.env-inner{ position:absolute; left:2%; right:2%; top:8%; bottom:35%; border-radius:3px;
+  background:linear-gradient(180deg, #2a2517 0%, #3a3220 40%, #4a3f28 100%);
+  box-shadow:inset 0 4px 12px rgba(0,0,0,.6), inset 0 -2px 6px rgba(255,255,255,.05); }
+
+/* CAMADA 3: o cartão que sobe (posicionado ATRÁS da frente do envelope) */
+.card-slot{ position:absolute; left:8%; right:8%; top:26%; bottom:10%; z-index:2;
+  transform:translateY(6%) scale(.94); transform-origin:50% 100%;
+  will-change:transform; }
+.card{ width:100%; height:100%; border-radius:6px; position:relative; overflow:hidden;
+  background:linear-gradient(160deg, #fffdf5 0%, #f7f0dd 100%);
+  box-shadow:0 6px 14px rgba(0,0,0,.3), 0 2px 6px rgba(0,0,0,.2);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:14px 18px; text-align:center; }
+.card::before{ content:''; position:absolute; inset:0;
+  background:linear-gradient(160deg, rgba(201,168,76,.08), transparent 50%); }
+.card-monogram{ font-family:'Cormorant Garamond',serif; font-size:22px; color:var(--gold-dark, #a9832f); font-weight:700; letter-spacing:.15em; margin-bottom:4px; }
+.card-title{ font-family:'Cormorant Garamond',serif; font-size:15px; color:var(--olive-dark, #3D4A28); font-weight:500; letter-spacing:.25em; text-transform:uppercase; }
+.card-couple{ font-family:'Cormorant Garamond',serif; font-size:19px; color:var(--olive-dark, #3D4A28); font-weight:600; margin-top:6px; }
+.card-amp{ color:var(--gold, #C9A84C); font-style:italic; }
+.card-ornament{ width:30px; height:1px; background:var(--gold, #C9A84C); margin:8px auto; }
+
+@keyframes cardRise{
+  0%   { transform:translateY(6%) scale(.94) rotate(-.4deg); }
+  30%  { transform:translateY(-20%) scale(.97) rotate(.3deg); }
+  70%  { transform:translateY(-55%) scale(.99) rotate(-.2deg); }
+  100% { transform:translateY(-70%) scale(1) rotate(0deg); }
+}
+@keyframes cardEnter{
+  0%   { transform:translateY(-70%) scale(1); opacity:1; }
+  60%  { transform:translateY(-40%) scale(1.6); opacity:.9; }
+  100% { transform:translateY(-10%) scale(2.6); opacity:0; }
+}
+
+/* CAMADA 4: bolso frontal do envelope (esconde o cartão inicialmente) */
+.env-front{ position:absolute; left:0; right:0; bottom:0; height:60%; z-index:3;
+  background:linear-gradient(160deg, #e6d9bc 0%, #d5c6a4 100%);
+  clip-path:polygon(0 100%, 0 22%, 50% 96%, 100% 22%, 100% 100%);
+  border-radius:0 0 6px 6px;
+  box-shadow:inset 0 3px 8px rgba(255,255,255,.25);
+  border-bottom:1px solid rgba(154,131,84,.4);
+  border-left:1px solid rgba(154,131,84,.3);
+  border-right:1px solid rgba(154,131,84,.3); }
+/* linhas de vinco laterais para dar aparência física */
+.env-front::before{ content:''; position:absolute; inset:0;
+  background:
+    linear-gradient(105deg, transparent 42%, rgba(255,255,255,.18) 50%, transparent 58%),
+    linear-gradient(to bottom right, rgba(0,0,0,.08), transparent 40%),
+    linear-gradient(to bottom left, rgba(0,0,0,.08), transparent 40%); }
+
+/* CAMADA 5: aba superior (a que rotaciona) */
 .flap{ position:absolute; left:0; right:0; top:0; height:58%; z-index:5;
   transform-origin:top center; transform:rotateX(0deg); transform-style:preserve-3d;
-  transition:transform 1.1s cubic-bezier(.6,0,.25,1); }
+  will-change:transform; pointer-events:none; }
 .flap-face{ position:absolute; inset:0; backface-visibility:hidden;
-  background:linear-gradient(150deg, #e8dcc0, #d6c8a8);
+  background:linear-gradient(160deg, #ecdec2 0%, #dbcba7 100%);
   clip-path:polygon(0 0, 100% 0, 50% 96%);
-  box-shadow:0 4px 16px rgba(0,0,0,.15); }
+  box-shadow:0 3px 8px rgba(0,0,0,.15); }
 .flap-face::after{ content:''; position:absolute; inset:0; clip-path:polygon(0 0, 100% 0, 50% 96%);
-  background:linear-gradient(160deg, rgba(255,255,255,.3), transparent 50%); }
+  background:linear-gradient(160deg, rgba(255,255,255,.28) 0%, transparent 60%); }
+/* Face traseira da aba (fica visível quando abre) */
+.flap-back{ position:absolute; inset:0; backface-visibility:hidden;
+  transform:rotateX(180deg);
+  background:linear-gradient(180deg, #3a3220 0%, #4a3f28 100%);
+  clip-path:polygon(0 0, 100% 0, 50% 96%);
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.4); }
+@keyframes flapOpen{
+  0%   { transform:rotateX(0deg); }
+  100% { transform:rotateX(-170deg); }
+}
 
-/* lacre de cera com brilho */
-.seal{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) translateZ(6px); z-index:6;
-  width:74px; height:74px; border-radius:50%;
-  background:radial-gradient(circle at 36% 30%, #e0c063, var(--gold) 45%, #9a7628 90%);
+/* CAMADA 6: selo/lacre */
+.seal{ position:absolute; left:50%; top:44%; transform:translate(-50%,-50%) translateZ(4px); z-index:6;
+  width:58px; height:58px; border-radius:50%;
+  background:radial-gradient(circle at 36% 30%, #e6c86e, #c9a84c 45%, #8a6b23 90%);
   display:flex; align-items:center; justify-content:center;
-  box-shadow:0 8px 20px rgba(154,118,40,.6), inset 0 3px 6px rgba(255,255,255,.5), inset 0 -3px 8px rgba(0,0,0,.25);
-  transition:transform .6s cubic-bezier(.5,0,.2,1), opacity .5s; animation:sealPulse 3s ease-in-out infinite; }
-@keyframes sealPulse{ 0%,100%{ box-shadow:0 8px 20px rgba(154,118,40,.6), inset 0 3px 6px rgba(255,255,255,.5), inset 0 -3px 8px rgba(0,0,0,.25), 0 0 0 0 rgba(201,168,76,.4); }
-  50%{ box-shadow:0 8px 24px rgba(154,118,40,.7), inset 0 3px 6px rgba(255,255,255,.5), inset 0 -3px 8px rgba(0,0,0,.25), 0 0 0 12px rgba(201,168,76,0); } }
-.seal span{ font-family:'Cormorant Garamond',serif; color:#fff8e6; font-size:32px; font-weight:600;
-  text-shadow:0 2px 3px rgba(0,0,0,.3); }
-.seal::before{ content:''; position:absolute; inset:6px; border:1px solid rgba(255,255,255,.35); border-radius:50%; }
+  box-shadow:0 4px 10px rgba(120,90,30,.55), inset 0 2px 3px rgba(255,255,255,.5), inset 0 -2px 5px rgba(0,0,0,.3);
+  transition:opacity .4s ease; will-change:transform, opacity; }
+.seal::before{ content:''; position:absolute; inset:5px; border:1px solid rgba(255,248,220,.5); border-radius:50%; pointer-events:none; }
+.seal-text{ font-family:'Cormorant Garamond',serif; color:#fff8dc; font-size:20px; font-weight:700;
+  letter-spacing:.05em; text-shadow:0 1px 2px rgba(0,0,0,.35); }
+@keyframes sealBreak{
+  0%   { transform:translate(-50%,-50%) rotate(0deg) scale(1) translateZ(4px); }
+  40%  { transform:translate(-50%, -55%) rotate(-8deg) scale(1.05) translateZ(4px); }
+  100% { transform:translate(-50%, -80%) rotate(-25deg) scale(.7) translateZ(4px); opacity:0; }
+}
 
-/* estado ABERTO */
-.envelope.open{ animation:none; transform:rotateX(10deg); }
-.envelope.open .flap{ transform:rotateX(178deg); z-index:1; }
-.envelope.open .seal{ transform:translate(-50%,-50%) scale(.3); opacity:0; }
-.envelope.open .letter{ transform:translateY(-72%) translateZ(20px); box-shadow:0 30px 60px rgba(0,0,0,.4); z-index:7; }
+/* Micro-resposta ao toque */
+.envelope.tap-pulse{ animation:tapPulse .18s ease-out; }
+@keyframes tapPulse{
+  0%   { transform:rotateX(4deg) scale(1); }
+  50%  { transform:rotateX(4deg) scale(1.015); }
+  100% { transform:rotateX(4deg) scale(1); }
+}
 
-.env-hint{ margin-top:34px; font-size:13px; letter-spacing:.06em; color:rgba(235,215,156,.85);
-  opacity:0; animation:hintIn 1.2s ease 1s forwards; }
-.env-hint .tap{ display:inline-block; animation:tapBounce 1.8s ease-in-out infinite; }
+/* Texto de instrução */
+.env-hint{ margin-top:38px; font-size:11px; letter-spacing:.4em; color:rgba(240,220,160,.7);
+  text-transform:uppercase; font-weight:500; opacity:0;
+  animation:hintIn 1.2s ease 1.2s forwards; transition:opacity .4s ease; }
+#stage[data-state="closed"] .env-hint .arrow{ display:inline-block; margin-left:8px; animation:arrowBob 1.8s ease-in-out infinite; }
+#stage:not([data-state="closed"]) .env-hint{ opacity:0; transition:opacity .3s ease; }
 @keyframes hintIn{ to{ opacity:1; } }
-@keyframes tapBounce{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-6px);} }
+@keyframes arrowBob{ 0%,100%{ transform:translateY(0); opacity:.7; } 50%{ transform:translateY(4px); opacity:1; } }
 
+/* Reduced motion: mantém sequência, mas mais rápido e sem 3D exagerado */
+@media (prefers-reduced-motion: reduce){
+  #stage[data-state="closed"] .envelope{ animation:none; }
+  @keyframes flapOpen{ 0%{transform:rotateX(0)} 100%{transform:rotateX(-170deg)} }
+  @keyframes cardRise{ 100%{transform:translateY(-58%) scale(1)} }
+}
 /* ══════════════ CONVITE (conteúdo) ══════════════ */
 #invite{ position:relative; z-index:10; opacity:0; transition:opacity 1s ease .3s; }
 #invite.show{ opacity:1; }
@@ -198,20 +290,31 @@ body{ font-family:'Inter',sans-serif; color:var(--ink); background:#1a1f12; -web
   <div class="particles" id="particles"></div>
 </div>
 
-<!-- ENVELOPE -->
-<div id="stage">
+<!-- ENVELOPE — cena de abertura em camadas -->
+<div id="stage" data-state="closed">
   <div class="env-scene">
     <div class="envelope" id="envelope">
-      <div class="env-back"></div>
-      <div class="letter" id="letter">
-        <div class="mono-ring"><span id="l-mono">✦</span></div>
-        <div class="l-title">nosso convite</div>
+      <div class="env-shadow"></div>
+      <div class="envelope-body">
+        <div class="env-back"></div>
+        <div class="env-inner"></div>
+        <div class="card-slot" id="card-slot">
+          <div class="card">
+            <div class="card-monogram" id="card-mono">C · M</div>
+            <div class="card-ornament"></div>
+            <div class="card-title">Convite</div>
+            <div class="card-couple"><span id="card-a">Caroline</span> <span class="card-amp">&</span> <span id="card-b">Marlon</span></div>
+          </div>
+        </div>
+        <div class="env-front"></div>
+        <div class="flap" id="flap">
+          <div class="flap-back"></div>
+          <div class="flap-face"></div>
+        </div>
+        <div class="seal" id="seal"><span class="seal-text" id="seal-text">CM</span></div>
       </div>
-      <div class="env-front"></div>
-      <div class="flap" id="flap"><div class="flap-face"></div></div>
-      <div class="seal" id="seal"><span id="seal-letter">✦</span></div>
     </div>
-    <div class="env-hint">toque para abrir <span class="tap">✦</span></div>
+    <div class="env-hint" id="env-hint">Toque para abrir<span class="arrow">↓</span></div>
   </div>
 </div>
 
@@ -303,13 +406,45 @@ body{ font-family:'Inter',sans-serif; color:var(--ink); background:#1a1f12; -web
   try{ firebase.initializeApp(CFG); }catch(e){}
   const db=firebase.firestore(); let DATA=null;
 
-  // ENVELOPE
+  // ══ MÁQUINA DE ESTADOS DA ABERTURA ══
+  // CLOSED → OPENING_SEAL → OPENING_FLAP → REVEALING_CARD → CARD_REVEALED → ENTERING → OPEN
   const stage=document.getElementById('stage'), envelope=document.getElementById('envelope');
-  let opened=false;
-  envelope.addEventListener('click',()=>{
-    if(opened) return; opened=true; envelope.classList.add('open');
-    setTimeout(()=>{ stage.classList.add('gone'); document.getElementById('invite').classList.add('show'); initReveal(); },1300);
-  });
+  let isOpening=false;
+  function setState(s){ stage.setAttribute('data-state', s); }
+
+  function openSequence(){
+    if(isOpening) return; isOpening=true;
+    envelope.classList.add('locked');
+
+    // 1) resposta física ao toque (0-150ms)
+    envelope.classList.add('tap-pulse');
+    setTimeout(()=>envelope.classList.remove('tap-pulse'), 200);
+
+    // 2) selo reage (150-650ms)
+    setTimeout(()=>{ setState('opening_seal'); }, 150);
+
+    // 3) aba abre em perspectiva 3D (650-1500ms)
+    setTimeout(()=>{ setState('opening_flap'); }, 650);
+
+    // 4) pausa curta, depois cartão começa a subir (1500-2500ms)
+    setTimeout(()=>{ setState('revealing_card'); }, 1500);
+
+    // 5) cartão estabiliza (2500-2800ms)
+    setTimeout(()=>{ setState('card_revealed'); }, 2500);
+
+    // 6) pausa de revelação (400ms), depois transição final (2800-4000ms)
+    setTimeout(()=>{ setState('entering'); }, 2900);
+
+    // 7) troca para o convite (3900ms)
+    setTimeout(()=>{
+      stage.classList.add('gone');
+      document.getElementById('invite').classList.add('show');
+      initReveal();
+      setState('open');
+    }, 3900);
+  }
+  envelope.addEventListener('click', openSequence);
+
 
   const loading=document.getElementById('inv-loading'), errBox=document.getElementById('inv-error'), body=document.getElementById('inv-body');
   function fail(m){ loading.hidden=true; errBox.hidden=false; errBox.textContent=m; }
@@ -321,8 +456,14 @@ body{ font-family:'Inter',sans-serif; color:var(--ink); background:#1a1f12; -web
   }).catch(e=>{ fail('Não foi possível carregar o convite.'); console.error(e); });
 
   function initials(d){ return ((d.coupleA?.[0]||'')+(d.coupleB?.[0]||''))||'✦'; }
-  function fillEnvelope(){ const i=initials(DATA);
-    document.getElementById('l-mono').textContent=i; document.getElementById('seal-letter').textContent=i; }
+  function fillEnvelope(){ const a=DATA.coupleA||'', b=DATA.coupleB||'';
+    const initials = ((a[0]||'')+(b[0]||''))||'✦';
+    const sealEl=document.getElementById('seal-text'); if(sealEl) sealEl.textContent = initials.toUpperCase();
+    const monoEl=document.getElementById('card-mono'); if(monoEl) monoEl.textContent = a && b ? (a[0].toUpperCase()+' · '+b[0].toUpperCase()) : initials.toUpperCase();
+    const cA=document.getElementById('card-a'); const cB=document.getElementById('card-b');
+    if(cA && a) cA.textContent = a;
+    if(cB && b) cB.textContent = b;
+  }
 
   function render(d){
     loading.hidden=true; body.hidden=false;
