@@ -28,6 +28,22 @@
     if(window.FIREBASE_CONFIG) document.documentElement.classList.add('cloud-wait');
     // Segurança: se a nuvem demorar demais, revela a tela mesmo assim (nunca fica em branco).
     setTimeout(function(){ document.documentElement.classList.remove('cloud-wait'); }, 6000);</script>
+  <style id="critical-mobile-fixes">
+    /* Correções críticas de overflow no mobile (inline p/ máxima especificidade) */
+    @media (max-width: 1024px) {
+      #g-tbody td { display: block !important; padding: 8px 14px !important; }
+      #g-tbody td[data-label]::before { display: block !important; margin-bottom: 4px !important; }
+      #g-tbody td > * { max-width: 100% !important; vertical-align: middle; }
+      #g-tbody .head-toggle, #g-tbody .beer-toggle { margin: 4px 4px 0 0 !important; }
+      #g-tbody .row-actions { flex-wrap: wrap !important; }
+      #g-tbody select { max-width: calc(100% - 100px); }
+    }
+    html.is-touch #g-tbody td { display: block !important; padding: 8px 14px !important; }
+    html.is-touch #g-tbody td[data-label]::before { display: block !important; margin-bottom: 4px !important; }
+    html.is-touch #g-tbody td > * { max-width: 100% !important; vertical-align: middle; }
+    html.is-touch #g-tbody .head-toggle, html.is-touch #g-tbody .beer-toggle { margin: 4px 4px 0 0 !important; }
+    html.is-touch #g-tbody .row-actions { flex-wrap: wrap !important; }
+  </style>
 </head>
 <body>
   <canvas id="bg"></canvas>

@@ -204,20 +204,23 @@ async function editShare(id){
   const sh=id?(state.shares||[]).find(x=>x.id===id):null;
   // passo 1: quem é
   const who=await modal({ title: sh?'Editar compartilhamento':'Novo compartilhamento',
-    message:'Para quem é este acesso? Ele poderá ver apenas o que você marcar — nunca o financeiro.',
+    message:'Gere um link somente-leitura para esta pessoa ver as páginas do seu evento. O financeiro nunca é compartilhado.',
     fields:[
       {key:'name',label:'Nome / empresa',value:sh?sh.name:'',placeholder:'ex.: Ana Cerimonial'},
       {key:'role',label:'Tipo de profissional',type:'select',options:Object.values(SHARE_ROLES).map(r=>r.label),value:sh?(SHARE_ROLES[sh.role]||SHARE_ROLES.custom).label:'Cerimonialista'},
-      {key:'guests',label:'Compartilhar LISTA de convidados (nomes, confirmação, perfil)',type:'select',options:['Não','Sim'],value:(sh&&sh.scopes&&sh.scopes.includes('guests'))?'Sim':'Não'},
-      {key:'guests_count',label:'Compartilhar TOTAL de convidados (só números)',type:'select',options:['Não','Sim'],value:(sh&&sh.scopes&&sh.scopes.includes('guests_count'))?'Sim':'Não'},
-      {key:'drinks',label:'Compartilhar consumo de bebidas',type:'select',options:['Não','Sim'],value:(sh&&sh.scopes&&sh.scopes.includes('drinks'))?'Sim':'Não'},
-      {key:'schedule',label:'Compartilhar cronograma',type:'select',options:['Não','Sim'],value:(sh&&sh.scopes&&sh.scopes.includes('schedule'))?'Sim':'Não'},
-      {key:'tasks',label:'Compartilhar tarefas',type:'select',options:['Não','Sim'],value:(sh&&sh.scopes&&sh.scopes.includes('tasks'))?'Sim':'Não'},
+      // NOVO: escolha as PÁGINAS que a pessoa poderá ver (modo visualização)
+      {key:'dashboard',label:'📊 Painel geral (visão do evento, sem financeiro)',type:'select',options:['Não','Sim'],value:(sh&&sh.scopes&&sh.scopes.includes('dashboard'))?'Sim':'Não'},
+      {key:'guests',label:'👥 Lista de convidados (nomes, confirmação, perfil)',type:'select',options:['Não','Sim'],value:(sh&&sh.scopes&&sh.scopes.includes('guests'))?'Sim':'Não'},
+      {key:'guests_count',label:'🔢 Só o TOTAL de convidados (números, sem nomes)',type:'select',options:['Não','Sim'],value:(sh&&sh.scopes&&sh.scopes.includes('guests_count'))?'Sim':'Não'},
+      {key:'drinks',label:'🍹 Consumo estimado de bebidas',type:'select',options:['Não','Sim'],value:(sh&&sh.scopes&&sh.scopes.includes('drinks'))?'Sim':'Não'},
+      {key:'schedule',label:'📅 Cronograma do dia',type:'select',options:['Não','Sim'],value:(sh&&sh.scopes&&sh.scopes.includes('schedule'))?'Sim':'Não'},
+      {key:'tasks',label:'✅ Tarefas (checklist de organização)',type:'select',options:['Não','Sim'],value:(sh&&sh.scopes&&sh.scopes.includes('tasks'))?'Sim':'Não'},
+      {key:'suppliers',label:'🏢 Fornecedores (contatos, sem valores)',type:'select',options:['Não','Sim'],value:(sh&&sh.scopes&&sh.scopes.includes('suppliers'))?'Sim':'Não'},
       {key:'expires',label:'Validade (opcional)',type:'date',value:sh?sh.expires:''}
     ], confirmText:sh?'Salvar':'Gerar link', cancelText:'Cancelar' });
   if(!who) return;
   const roleKey=Object.keys(SHARE_ROLES).find(k=>SHARE_ROLES[k].label===who.role)||'custom';
-  const scopes=['guests','guests_count','drinks','schedule','tasks'].filter(s=>who[s]==='Sim');
+  const scopes=['dashboard','guests','guests_count','drinks','schedule','tasks','suppliers'].filter(s=>who[s]==='Sim');
   // financeiro NUNCA entra — não há opção para isso, por design.
   if(sh){ sh.name=who.name; sh.role=roleKey; sh.scopes=scopes; sh.expires=who.expires; save(); renderShares(); try{ publishShare(sh); }catch{} toast('Compartilhamento atualizado ✓','ok'); }
   else {
@@ -248,7 +251,24 @@ function buildSharePayload(sh){
   }
   if(scopes.includes('schedule')) out.schedule=(state.schedule||[]).map(x=>({time:x.time,title:x.title,who:x.who,note:x.note}));
   if(scopes.includes('tasks')) out.tasks=(state.tasks||[]).map(x=>({title:x.title,status:x.status,owner:x.owner,due:x.due,priority:x.priority}));
-  // NUNCA: items, funds, varCosts, suppliers financeiro, settings privados.
+  if(scopes.includes('suppliers')){
+    // Fornecedores SEM VALORES — só nome, categoria e contato
+    out.suppliers=(state.suppliers||[]).map(x=>({name:x.name,category:x.category,phone:x.phone,email:x.email,status:x.status,notes:x.notes}));
+  }
+  if(scopes.includes('dashboard')){
+    // Painel geral: contagem de convidados + progresso de tarefas + próximos momentos
+    try{ const gs=guestStats(); const ts=(state.tasks||[]);
+      const tasksDone=ts.filter(t=>t.status==='done').length;
+      const next=(state.schedule||[]).slice().sort((a,b)=>String(a.time).localeCompare(String(b.time))).slice(0,3);
+      out.dashboard={ eventName:(state.settings&&state.settings.eventName)||'',
+        eventDate:(state.settings&&state.settings.eventDate)||'',
+        eventPlace:(state.settings&&state.settings.eventPlace)||'',
+        totalConvidados:gs.pPeople, confirmados:gs.conf,
+        totalTarefas:ts.length, tarefasFeitas:tasksDone,
+        proximosMomentos:next.map(x=>({time:x.time,title:x.title})) };
+    }catch{}
+  }
+  // NUNCA: items, funds, varCosts (financeiro completo), settings privados.
   return out;
 }
 

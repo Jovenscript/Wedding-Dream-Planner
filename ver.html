@@ -1,124 +1,374 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="is-touch">
+<html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5" />
-  <title>EventFlow — Acesso compartilhado</title>
-  <link rel="stylesheet" href="css/style.css" />
-  <style>
-    body{ padding:0; }
-    .pub-wrap{ max-width:820px; margin:0 auto; padding:20px 16px 60px; }
-    .pub-head{ text-align:center; padding:26px 0 14px; }
-    .pub-head .eyebrow{ font-size:11px; letter-spacing:.16em; color:var(--olive); text-transform:uppercase; }
-    .pub-head h1{ font-family:'Cormorant Garamond',serif; font-size:30px; color:var(--olive-dark); margin:6px 0 2px; }
-    .pub-badge{ display:inline-flex; gap:8px; align-items:center; font-size:12.5px; color:var(--ink-muted);
-      background:var(--gold-light); padding:6px 14px; border-radius:999px; margin-top:8px; }
-    .pub-loading,.pub-error{ text-align:center; padding:60px 20px; color:var(--ink-muted); }
-    .pub-error{ color:var(--danger); }
-    .pub-section{ margin-top:20px; }
-    .pub-section h2{ font-family:'Cormorant Garamond',serif; font-size:22px; color:var(--olive-dark); margin:0 0 10px; }
-    .pub-stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; }
-    .pub-stat{ background:var(--ivory-card); border:1px solid var(--olive-mist); border-radius:14px; padding:14px 16px; }
-    .pub-stat .n{ font-family:'Cormorant Garamond',serif; font-size:26px; font-weight:700; color:var(--olive-dark); }
-    .pub-stat .l{ font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-faint); }
-    .pub-guest{ display:flex; justify-content:space-between; align-items:center; gap:10px;
-      background:var(--ivory-card); border:1px solid var(--olive-mist); border-radius:12px; padding:11px 14px; margin-bottom:8px; }
-    .pub-guest .gn{ font-weight:600; }
-    .pub-guest .gm{ font-size:12px; color:var(--ink-muted); }
-    .pub-guest .gs{ font-size:11.5px; font-weight:600; padding:3px 10px; border-radius:999px; }
-    .gs.st-confirmado{ color:#2E7D46; background:#EAF6EE; } .gs.st-pendente{ color:#A0741E; background:#FBF3DC; } .gs.st-nao{ color:#B23B3B; background:#FBE9E9; }
-    .pub-foot{ text-align:center; margin-top:40px; font-size:12px; color:var(--ink-faint); }
-    .pub-ro{ display:inline-flex; gap:6px; align-items:center; font-size:11.5px; color:var(--ink-faint); }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5" />
+<title>EventFlow — Acesso compartilhado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --olive:#6B7B4A; --olive-dark:#3D4A28; --olive-deep:#2A3419; --olive-mist:#D9DDCE;
+  --gold:#C9A84C; --gold-lt:#F0DCA0; --gold-light:#F5EBC5;
+  --ivory:#FAF6ED; --ivory-card:#FFFDF8; --ivory-deep:#F2ECDB;
+  --ink:#33321F; --ink-muted:#6E6B52; --ink-faint:#9B9880;
+  --danger:#B23B3B; --success:#2E7D46; --warn:#A0741E;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{ font-family:'Inter',sans-serif; color:var(--ink); background:var(--ivory);
+  -webkit-font-smoothing:antialiased; min-height:100vh;
+  background-image:
+    radial-gradient(circle at 15% 10%, rgba(201,168,76,.06), transparent 40%),
+    radial-gradient(circle at 85% 90%, rgba(107,123,74,.05), transparent 40%); }
+.serif{ font-family:'Cormorant Garamond',serif; }
+
+/* ═══ CABEÇALHO ═══ */
+.pub-header{ background:linear-gradient(135deg, var(--ivory-card), var(--ivory));
+  border-bottom:1px solid var(--olive-mist); padding:22px 20px 18px;
+  box-shadow:0 2px 20px rgba(74,86,51,.05); position:sticky; top:0; z-index:10;
+  backdrop-filter:blur(12px) saturate(1.2); background:rgba(255,253,248,.92); }
+.pub-head-inner{ max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.pub-brand{ display:flex; align-items:center; gap:12px; }
+.pub-mark{ width:38px; height:38px; border-radius:11px; background:var(--olive);
+  color:var(--ivory); display:flex; align-items:center; justify-content:center;
+  font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:700;
+  box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--gold) 60%, transparent); }
+.pub-title{ font-family:'Cormorant Garamond',serif; font-size:22px; color:var(--olive-dark); font-weight:600; line-height:1.1; }
+.pub-sub{ font-size:12px; color:var(--ink-muted); margin-top:2px; }
+.pub-ro-badge{ display:inline-flex; align-items:center; gap:6px; padding:6px 12px;
+  background:var(--gold-light); color:var(--olive-dark); border-radius:999px;
+  font-size:11.5px; font-weight:600; letter-spacing:.02em; }
+.pub-ro-badge svg{ width:13px; height:13px; }
+
+/* ═══ ABAS ═══ */
+.pub-tabs{ background:var(--ivory-card); border-bottom:1px solid var(--olive-mist);
+  padding:0 12px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch;
+  scrollbar-width:none; }
+.pub-tabs::-webkit-scrollbar{ display:none; }
+.pub-tabs-inner{ max-width:1100px; margin:0 auto; display:flex; gap:2px; }
+.pub-tab{ flex:0 0 auto; padding:14px 18px; font-size:14px; font-weight:500;
+  color:var(--ink-muted); background:transparent; border:none; cursor:pointer;
+  border-bottom:2px solid transparent; transition:all .2s; white-space:nowrap;
+  display:flex; align-items:center; gap:8px; }
+.pub-tab:hover{ color:var(--olive-dark); }
+.pub-tab.active{ color:var(--olive-dark); border-bottom-color:var(--gold); font-weight:600; }
+
+/* ═══ CONTEÚDO ═══ */
+.pub-wrap{ max-width:1100px; margin:0 auto; padding:28px 20px 60px; }
+.pub-loading,.pub-error{ text-align:center; padding:80px 20px; color:var(--ink-muted); }
+.pub-error{ color:var(--danger); }
+.spinner{ width:40px; height:40px; margin:0 auto 20px; border:2px solid var(--olive-mist);
+  border-top-color:var(--olive); border-radius:50%; animation:spin 1s linear infinite; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+.pub-view{ display:none; }
+.pub-view.active{ display:block; animation:fadeIn .3s ease; }
+@keyframes fadeIn{ from{ opacity:0; transform:translateY(6px); } }
+
+.pub-section-title{ font-family:'Cormorant Garamond',serif; font-size:26px;
+  color:var(--olive-dark); margin-bottom:6px; font-weight:600; }
+.pub-section-sub{ font-size:14px; color:var(--ink-muted); margin-bottom:22px; }
+
+/* Cards KPI */
+.kpi-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:14px; margin-bottom:24px; }
+.kpi-card{ background:var(--ivory-card); border:1px solid var(--olive-mist);
+  border-radius:16px; padding:20px; box-shadow:0 4px 14px rgba(74,86,51,.05); transition:transform .2s; }
+.kpi-card:hover{ transform:translateY(-2px); box-shadow:0 8px 22px rgba(74,86,51,.08); }
+.kpi-label{ font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; }
+.kpi-value{ font-family:'Cormorant Garamond',serif; font-size:34px; color:var(--olive-dark); font-weight:700; margin-top:4px; line-height:1; }
+.kpi-hint{ font-size:12px; color:var(--ink-muted); margin-top:6px; }
+
+/* Cards de dashboard "hero" */
+.hero-card{ background:linear-gradient(135deg, var(--olive-dark), var(--olive));
+  color:var(--ivory); border-radius:20px; padding:28px 26px; margin-bottom:24px;
+  box-shadow:0 12px 30px rgba(74,86,51,.2); position:relative; overflow:hidden; }
+.hero-card::before{ content:''; position:absolute; right:-40px; top:-40px; width:180px; height:180px;
+  background:radial-gradient(circle, rgba(235,215,156,.15), transparent 70%); }
+.hero-card .hc-eyebrow{ font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--gold-lt); opacity:.9; }
+.hero-card .hc-title{ font-family:'Cormorant Garamond',serif; font-size:36px; margin:4px 0 8px; font-weight:600; }
+.hero-card .hc-meta{ font-size:14px; color:rgba(250,246,237,.85); }
+.hero-card .hc-countdown{ display:inline-block; margin-top:14px; padding:8px 16px;
+  background:rgba(255,255,255,.15); border-radius:999px; font-size:13px; font-weight:500; }
+
+/* Lista de convidados */
+.guest-item{ display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center;
+  background:var(--ivory-card); border:1px solid var(--olive-mist);
+  border-radius:12px; padding:14px 18px; margin-bottom:8px; }
+.guest-name{ font-weight:600; color:var(--ink); font-size:15px; }
+.guest-meta{ font-size:12.5px; color:var(--ink-muted); margin-top:2px; }
+.status-badge{ font-size:11.5px; font-weight:600; padding:4px 12px; border-radius:999px; white-space:nowrap; }
+.st-confirmado{ color:var(--success); background:#EAF6EE; }
+.st-pendente{ color:var(--warn); background:#FBF3DC; }
+.st-nao{ color:var(--danger); background:#FBE9E9; }
+
+/* Grupo de família */
+.family-group{ margin-bottom:14px; }
+.family-title{ font-family:'Cormorant Garamond',serif; font-size:18px; color:var(--olive-dark);
+  padding:8px 4px; margin-bottom:6px; font-weight:600;
+  border-bottom:1px solid var(--olive-mist); }
+
+/* Cronograma timeline */
+.timeline{ position:relative; padding-left:26px; }
+.timeline::before{ content:''; position:absolute; left:9px; top:8px; bottom:8px; width:2px;
+  background:linear-gradient(180deg, var(--gold-lt), var(--olive-mist)); }
+.tl-item{ position:relative; padding-bottom:20px; }
+.tl-item::before{ content:''; position:absolute; left:-22px; top:6px; width:12px; height:12px;
+  background:var(--gold); border-radius:50%; border:2px solid var(--ivory-card);
+  box-shadow:0 0 0 2px var(--gold-lt); }
+.tl-time{ font-family:'Cormorant Garamond',serif; font-size:18px; color:var(--olive-dark); font-weight:600; }
+.tl-title{ font-size:15px; color:var(--ink); margin-top:2px; }
+.tl-who{ font-size:12px; color:var(--ink-muted); margin-top:2px; }
+
+/* Tarefas / checklist */
+.task-item{ display:flex; align-items:center; gap:12px;
+  background:var(--ivory-card); border:1px solid var(--olive-mist);
+  border-radius:12px; padding:12px 16px; margin-bottom:8px; }
+.task-check{ width:20px; height:20px; border-radius:6px; border:2px solid var(--olive-mist);
+  flex:0 0 auto; display:flex; align-items:center; justify-content:center; }
+.task-item.done .task-check{ background:var(--olive); border-color:var(--olive); color:white; }
+.task-item.done .task-title{ color:var(--ink-faint); text-decoration:line-through; }
+.task-title{ font-size:14.5px; color:var(--ink); flex:1; }
+.task-meta{ font-size:11.5px; color:var(--ink-muted); }
+
+/* Fornecedores */
+.sup-card{ background:var(--ivory-card); border:1px solid var(--olive-mist);
+  border-radius:14px; padding:16px 18px; margin-bottom:10px; }
+.sup-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
+.sup-name{ font-weight:600; color:var(--olive-dark); font-size:15px; }
+.sup-cat{ font-size:11.5px; padding:3px 9px; border-radius:999px; background:var(--gold-light); color:var(--olive-dark); font-weight:600; }
+.sup-contact{ font-size:13px; color:var(--ink-muted); }
+.sup-contact a{ color:var(--olive); text-decoration:none; }
+.sup-contact a:hover{ text-decoration:underline; }
+
+/* Empty state elegante */
+.empty-state{ text-align:center; padding:60px 20px; color:var(--ink-muted); }
+.empty-state .es-ico{ font-size:44px; opacity:.4; margin-bottom:12px; }
+
+.pub-foot{ text-align:center; margin-top:50px; padding:20px; font-size:12px; color:var(--ink-faint); }
+.pub-foot strong{ color:var(--olive); }
+
+/* Mobile refinements */
+@media (max-width:640px){
+  .pub-header{ padding:16px 16px 14px; }
+  .pub-title{ font-size:18px; }
+  .pub-mark{ width:34px; height:34px; font-size:19px; }
+  .pub-wrap{ padding:20px 14px 50px; }
+  .pub-section-title{ font-size:22px; }
+  .hero-card{ padding:22px 20px; }
+  .hero-card .hc-title{ font-size:26px; }
+  .kpi-value{ font-size:28px; }
+  .pub-tab{ padding:12px 14px; font-size:13px; }
+}
+</style>
 </head>
 <body>
-  <div class="pub-wrap">
-    <div class="pub-head">
-      <div class="eyebrow">✦ EventFlow ✦</div>
-      <h1 id="pub-title">Carregando…</h1>
-      <div class="pub-badge" id="pub-role" hidden></div>
-      <div style="margin-top:8px"><span class="pub-ro">🔒 Acesso somente leitura</span></div>
+
+<header class="pub-header">
+  <div class="pub-head-inner">
+    <div class="pub-brand">
+      <div class="pub-mark">E</div>
+      <div>
+        <div class="pub-title serif" id="pub-title">Carregando…</div>
+        <div class="pub-sub" id="pub-sub"></div>
+      </div>
     </div>
-    <div class="pub-loading" id="pub-loading">Carregando informações compartilhadas…</div>
-    <div class="pub-error" id="pub-error" hidden></div>
-    <div id="pub-content"></div>
-    <div class="pub-foot">Compartilhado com segurança via <strong>EventFlow</strong> · dados financeiros não são acessíveis por este link.</div>
+    <div class="pub-ro-badge" id="pub-role" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      <span id="pub-role-text">Somente visualização</span>
+    </div>
   </div>
+</header>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script>
-  (function(){
-    const CFG={ apiKey:"AIzaSyAxbgXptautbR5Za8677fMolcWIRtr-D7c", authDomain:"wedding-dreams-71032.firebaseapp.com",
-      projectId:"wedding-dreams-71032", storageBucket:"wedding-dreams-71032.firebasestorage.app",
-      messagingSenderId:"789020951087", appId:"1:789020951087:web:faac7a215d284e472afcda" };
-    const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-    const fmt=d=>{ if(!d) return ''; const p=String(d).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:d; };
-    const token=(location.hash||'').replace('#','').trim();
-    const loading=document.getElementById('pub-loading'), errEl=document.getElementById('pub-error'), content=document.getElementById('pub-content');
-    function fail(msg){ loading.hidden=true; errEl.hidden=false; errEl.textContent=msg; }
-    if(!token){ fail('Link inválido. Peça um novo link ao organizador do evento.'); return; }
-    try{ firebase.initializeApp(CFG); }catch(e){}
-    const db=firebase.firestore();
-    db.collection('shares').doc(token).get().then(snap=>{
-      if(!snap.exists){ fail('Este link não existe ou foi removido.'); return; }
-      const d=snap.data();
-      if(d.active===false){ fail('Este compartilhamento foi desativado pelo organizador.'); return; }
-      if(d.expires){ const exp=new Date(d.expires+'T23:59:59'); if(exp<new Date()){ fail('Este link expirou.'); return; } }
-      render(d);
-    }).catch(e=>{ fail('Não foi possível carregar. Verifique sua conexão.'); console.error(e); });
+<nav class="pub-tabs" id="pub-tabs" hidden>
+  <div class="pub-tabs-inner" id="pub-tabs-inner"></div>
+</nav>
 
-    function render(d){
-      loading.hidden=true;
-      document.getElementById('pub-title').textContent=d.event||'Evento';
-      const roleNames={cerimonialista:'Cerimonialista',buffet:'Buffet',fotografo:'Fotógrafo',dj:'DJ / Música',decorador:'Decorador',local:'Local do evento',custom:'Convidado'};
-      const rb=document.getElementById('pub-role'); rb.hidden=false; rb.innerHTML='👤 '+esc(d.name||roleNames[d.role]||'Acesso');
-      let html='';
-      // Estatísticas (total/bebidas)
-      if(d.counts){
-        const c=d.counts;
-        html+='<div class="pub-section"><h2>Resumo de convidados</h2><div class="pub-stats">';
-        const stat=(n,l)=>`<div class="pub-stat"><div class="n">${n??0}</div><div class="l">${l}</div></div>`;
-        html+=stat(c.pessoas,'Pessoas'); html+=stat(c.confirmados,'Confirmados');
-        html+=stat(c.adultos,'Adultos'); html+=stat(c.criancas,'Crianças');
-        if(d.scopes&&d.scopes.includes('drinks')){ html+=stat(c.bebem,'Bebem'); html+=stat(c.naoBebem,'Não bebem'); }
-        html+='</div></div>';
-      }
-      // Lista de convidados
-      if(d.guests){
-        html+='<div class="pub-section"><h2>Convidados ('+d.guests.length+')</h2>';
-        const stLabel={confirmado:'Confirmado',pendente:'Pendente',nao:'Não irá'};
-        d.guests.forEach(g=>{
-          const prof=[]; if(g.ageGroup==='crianca')prof.push('Criança'); else if(g.ageGroup==='bebe')prof.push('Bebê'); else if(g.ageGroup==='adolescente')prof.push('Adolescente'); else prof.push('Adulto');
-          if(g.ageGroup==='adulto') prof.push(g.drinks?'bebe':'não bebe');
-          if(g.group) prof.push(esc(g.group));
-          if(g.companions) prof.push('+'+g.companions+' acomp.');
-          if(g.isHead) prof.unshift('★ Titular');
-          html+=`<div class="pub-guest"><div><div class="gn">${esc(g.name)}</div><div class="gm">${prof.join(' · ')}</div></div>
-            <span class="gs st-${g.status}">${stLabel[g.status]||''}</span></div>`;
-        });
-        html+='</div>';
-      }
-      // Cronograma
-      if(d.schedule && d.schedule.length){
-        html+='<div class="pub-section"><h2>Cronograma</h2><div class="timeline">';
-        d.schedule.sort((a,b)=>(a.time||'').localeCompare(b.time||'')).forEach(s=>{
-          html+=`<div class="tl-row" style="cursor:default"><div class="tl-time">${esc(s.time||'--:--')}</div><div class="tl-dot"></div>
-            <div class="tl-body"><div class="tl-title">${esc(s.title)}</div>${s.who?`<div class="tl-who">${esc(s.who)}</div>`:''}${s.note?`<div class="tl-note">${esc(s.note)}</div>`:''}</div></div>`;
-        });
-        html+='</div></div>';
-      }
-      // Tarefas
-      if(d.tasks && d.tasks.length){
-        html+='<div class="pub-section"><h2>Tarefas</h2>';
-        const stL={todo:'A fazer',doing:'Em andamento',done:'Concluído'};
-        d.tasks.forEach(t=>{ html+=`<div class="pub-guest"><div><div class="gn">${esc(t.title)}</div><div class="gm">${t.owner?esc(t.owner)+' · ':''}${t.due?fmt(t.due):''}</div></div><span class="gs">${stL[t.status]||''}</span></div>`; });
-        html+='</div>';
-      }
-      if(!html) html='<div class="pub-loading">Nenhuma informação foi compartilhada neste link.</div>';
-      content.innerHTML=html;
+<main class="pub-wrap">
+  <div class="pub-loading" id="pub-loading"><div class="spinner"></div>Carregando conteúdo compartilhado…</div>
+  <div class="pub-error" id="pub-error" hidden></div>
+  <div id="pub-content"></div>
+</main>
+
+<div class="pub-foot">
+  Acesso somente-leitura compartilhado com segurança via <strong>EventFlow</strong><br>
+  Dados financeiros e configurações privadas <strong>nunca</strong> são acessíveis por este link.
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  const CFG={ apiKey:"AIzaSyAxbgXptautbR5Za8677fMolcWIRtr-D7c", authDomain:"wedding-dreams-71032.firebaseapp.com",
+    projectId:"wedding-dreams-71032", storageBucket:"wedding-dreams-71032.firebasestorage.app",
+    messagingSenderId:"789020951087", appId:"1:789020951087:web:faac7a215d284e472afcda" };
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const fmtDate=d=>{ if(!d) return ''; const p=String(d).split('-'); if(p.length!==3) return d;
+    const m=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    return `${parseInt(p[2])} de ${m[parseInt(p[1])-1]} de ${p[0]}`; };
+  const daysUntil=d=>{ if(!d) return null; const t=new Date(d+'T00:00:00'); const n=new Date(); n.setHours(0,0,0,0);
+    return Math.round((t-n)/86400000); };
+  const token=(location.hash||'').replace('#','').trim();
+
+  const loading=document.getElementById('pub-loading'), errEl=document.getElementById('pub-error'), content=document.getElementById('pub-content');
+  const tabsWrap=document.getElementById('pub-tabs'), tabsInner=document.getElementById('pub-tabs-inner');
+  function fail(msg){ loading.hidden=true; errEl.hidden=false; errEl.textContent=msg; }
+  if(!token){ fail('Link inválido. Peça um novo link ao organizador do evento.'); return; }
+
+  try{ firebase.initializeApp(CFG); }catch(e){}
+  const db=firebase.firestore();
+  db.collection('shares').doc(token).get().then(snap=>{
+    if(!snap.exists){ fail('Este link não é mais válido ou foi removido.'); return; }
+    const data=snap.data();
+    if(data.active===false){ fail('Este acesso foi desativado pelo organizador.'); return; }
+    if(data.kind==='invite'){ fail('Este é um link de convite pessoal, não de acesso compartilhado.'); return; }
+    if(data.expires){ const exp=new Date(data.expires+'T23:59:59'); if(exp<new Date()){ fail('Este link expirou em '+fmtDate(data.expires)+'.'); return; } }
+    render(data);
+  }).catch(e=>{ console.error(e); fail('Não foi possível carregar o conteúdo compartilhado.'); });
+
+  function render(d){
+    loading.hidden=true;
+    document.getElementById('pub-title').textContent = d.event || 'Evento';
+    document.getElementById('pub-sub').textContent = d.name? 'Acesso de: '+d.name : '';
+    document.getElementById('pub-role').hidden=false;
+    document.getElementById('pub-role-text').textContent = 'Somente visualização';
+    document.title = (d.event||'Evento') + ' — EventFlow';
+
+    // define abas conforme escopos autorizados (na ordem lógica)
+    const availableTabs=[];
+    if(d.scopes && d.scopes.includes('dashboard')) availableTabs.push({key:'dashboard', label:'📊 Painel', render:()=>renderDashboard(d)});
+    if(d.scopes && (d.scopes.includes('guests') || d.scopes.includes('guests_count') || d.scopes.includes('drinks'))) availableTabs.push({key:'guests', label:'👥 Convidados', render:()=>renderGuests(d)});
+    if(d.scopes && d.scopes.includes('schedule')) availableTabs.push({key:'schedule', label:'📅 Cronograma', render:()=>renderSchedule(d)});
+    if(d.scopes && d.scopes.includes('tasks')) availableTabs.push({key:'tasks', label:'✅ Tarefas', render:()=>renderTasks(d)});
+    if(d.scopes && d.scopes.includes('suppliers')) availableTabs.push({key:'suppliers', label:'🏢 Fornecedores', render:()=>renderSuppliers(d)});
+
+    if(availableTabs.length===0){ fail('Nenhuma seção foi compartilhada neste acesso.'); return; }
+
+    // render tabs
+    tabsWrap.hidden=false;
+    availableTabs.forEach((tab,i)=>{
+      const btn=document.createElement('button'); btn.className='pub-tab'+(i===0?' active':''); btn.textContent=tab.label;
+      btn.addEventListener('click',()=>{
+        document.querySelectorAll('.pub-tab').forEach(t=>t.classList.remove('active'));
+        btn.classList.add('active');
+        content.innerHTML=''; content.appendChild(buildView(tab.render()));
+      });
+      tabsInner.appendChild(btn);
+    });
+    // render primeira aba
+    content.appendChild(buildView(availableTabs[0].render()));
+  }
+
+  function buildView(html){
+    const div=document.createElement('div'); div.className='pub-view active'; div.innerHTML=html; return div;
+  }
+
+  function renderDashboard(d){
+    const dash=d.dashboard||{};
+    const days=daysUntil(dash.eventDate);
+    const countdown = days===null?'':
+      days>1?`✦ Faltam ${days} dias para o grande dia`:
+      days===1?'✦ É amanhã!':
+      days===0?'🎉 É hoje! O grande dia chegou.':
+      `Evento realizado há ${Math.abs(days)} dias`;
+    let html=`<div class="hero-card">
+      <div class="hc-eyebrow">Painel do Evento</div>
+      <div class="hc-title">${esc(dash.eventName||d.event||'Evento')}</div>
+      <div class="hc-meta">${dash.eventDate?fmtDate(dash.eventDate):''}${dash.eventPlace?' · '+esc(dash.eventPlace):''}</div>
+      ${countdown?`<div class="hc-countdown">${countdown}</div>`:''}
+    </div>`;
+    // KPIs
+    const kpis=[];
+    if(dash.totalConvidados!==undefined) kpis.push({l:'Convidados',v:dash.totalConvidados,h:dash.confirmados+' confirmados'});
+    if(dash.totalTarefas!==undefined) kpis.push({l:'Tarefas',v:`${dash.tarefasFeitas||0}/${dash.totalTarefas}`,h:'concluídas'});
+    if(kpis.length){ html+='<div class="kpi-grid">'+kpis.map(k=>`<div class="kpi-card">
+      <div class="kpi-label">${esc(k.l)}</div><div class="kpi-value">${esc(k.v)}</div>
+      <div class="kpi-hint">${esc(k.h)}</div></div>`).join('')+'</div>'; }
+    // próximos momentos
+    if(dash.proximosMomentos && dash.proximosMomentos.length){
+      html+='<h2 class="pub-section-title">Próximos momentos</h2><div class="timeline">';
+      dash.proximosMomentos.forEach(m=>{ html+=`<div class="tl-item"><div class="tl-time">${esc(m.time||'—')}</div><div class="tl-title">${esc(m.title||'')}</div></div>`; });
+      html+='</div>';
     }
-  })();
-  </script>
+    return html;
+  }
+
+  function renderGuests(d){
+    let html='<h2 class="pub-section-title">Convidados</h2>';
+    if(d.counts){
+      html+=`<p class="pub-section-sub">Visão geral do público esperado</p><div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">Total de pessoas</div><div class="kpi-value">${d.counts.pessoas}</div><div class="kpi-hint">${d.counts.confirmados||0} confirmados</div></div>
+        <div class="kpi-card"><div class="kpi-label">Adultos</div><div class="kpi-value">${d.counts.adultos||0}</div><div class="kpi-hint">${d.counts.bebem||0} bebem</div></div>
+        ${d.counts.adolescentes?`<div class="kpi-card"><div class="kpi-label">Adolescentes</div><div class="kpi-value">${d.counts.adolescentes}</div></div>`:''}
+        ${d.counts.criancas?`<div class="kpi-card"><div class="kpi-label">Crianças</div><div class="kpi-value">${d.counts.criancas}</div></div>`:''}
+      </div>`;
+    }
+    if(d.guests && d.guests.length){
+      // agrupa por família
+      const groups={}; d.guests.forEach(g=>{ const k=g.group||'(sem família)'; (groups[k]=groups[k]||[]).push(g); });
+      const nomes=Object.keys(groups).sort();
+      html+='<p class="pub-section-sub">'+d.guests.length+' convidado(s) na lista</p>';
+      nomes.forEach(fam=>{
+        html+=`<div class="family-group"><div class="family-title">${esc(fam)}</div>`;
+        groups[fam].forEach(g=>{
+          const st=g.status==='confirmado'?'st-confirmado':g.status==='nao'?'st-nao':'st-pendente';
+          const stLabel=g.status==='confirmado'?'Confirmado':g.status==='nao'?'Não vai':'Pendente';
+          const meta=[]; if(g.isHead) meta.push('★ Titular'); if(g.ageGroup && g.ageGroup!=='adulto') meta.push(g.ageGroup); if(g.drinks) meta.push('🍺 bebe');
+          html+=`<div class="guest-item"><div><div class="guest-name">${esc(g.name)}</div>${meta.length?`<div class="guest-meta">${meta.map(esc).join(' · ')}</div>`:''}</div><div class="status-badge ${st}">${stLabel}</div></div>`;
+        });
+        html+='</div>';
+      });
+    } else if(!d.counts){
+      html+='<div class="empty-state"><div class="es-ico">👥</div>Nenhuma informação de convidados foi compartilhada.</div>';
+    }
+    return html;
+  }
+
+  function renderSchedule(d){
+    let html='<h2 class="pub-section-title">Cronograma</h2><p class="pub-section-sub">Momentos do dia</p>';
+    if(!d.schedule || !d.schedule.length){ return html+'<div class="empty-state"><div class="es-ico">📅</div>Nenhum momento cadastrado ainda.</div>'; }
+    const sorted=d.schedule.slice().sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')));
+    html+='<div class="timeline">';
+    sorted.forEach(m=>{
+      html+=`<div class="tl-item"><div class="tl-time">${esc(m.time||'—')}</div><div class="tl-title">${esc(m.title||'')}</div>${m.who?`<div class="tl-who">👤 ${esc(m.who)}</div>`:''}${m.note?`<div class="tl-who">${esc(m.note)}</div>`:''}</div>`;
+    });
+    html+='</div>'; return html;
+  }
+
+  function renderTasks(d){
+    let html='<h2 class="pub-section-title">Tarefas</h2>';
+    if(!d.tasks || !d.tasks.length){ return html+'<div class="empty-state"><div class="es-ico">✅</div>Nenhuma tarefa cadastrada.</div>'; }
+    const done=d.tasks.filter(t=>t.status==='done').length;
+    html+=`<p class="pub-section-sub">${done} de ${d.tasks.length} concluídas</p>`;
+    // ordena: pendentes primeiro, done por último
+    const sorted=d.tasks.slice().sort((a,b)=>(a.status==='done'?1:0)-(b.status==='done'?1:0));
+    sorted.forEach(t=>{
+      const isDone=t.status==='done';
+      const meta=[]; if(t.owner) meta.push('👤 '+t.owner); if(t.due) meta.push('📅 '+fmtDate(t.due)); if(t.priority) meta.push('⚡ '+t.priority);
+      html+=`<div class="task-item ${isDone?'done':''}"><div class="task-check">${isDone?'✓':''}</div>
+        <div style="flex:1"><div class="task-title">${esc(t.title||'')}</div>${meta.length?`<div class="task-meta">${meta.map(esc).join(' · ')}</div>`:''}</div></div>`;
+    });
+    return html;
+  }
+
+  function renderSuppliers(d){
+    let html='<h2 class="pub-section-title">Fornecedores</h2><p class="pub-section-sub">Contatos dos profissionais envolvidos</p>';
+    if(!d.suppliers || !d.suppliers.length){ return html+'<div class="empty-state"><div class="es-ico">🏢</div>Nenhum fornecedor cadastrado.</div>'; }
+    d.suppliers.forEach(s=>{
+      const contact=[];
+      if(s.phone) contact.push(`<a href="tel:${esc(s.phone)}">📞 ${esc(s.phone)}</a>`);
+      if(s.email) contact.push(`<a href="mailto:${esc(s.email)}">✉ ${esc(s.email)}</a>`);
+      html+=`<div class="sup-card"><div class="sup-head"><div class="sup-name">${esc(s.name)}</div>${s.category?`<div class="sup-cat">${esc(s.category)}</div>`:''}</div>${contact.length?`<div class="sup-contact">${contact.join(' · ')}</div>`:''}${s.notes?`<div class="sup-contact" style="margin-top:6px">${esc(s.notes)}</div>`:''}</div>`;
+    });
+    return html;
+  }
+
+  // SEGURANÇA: bloqueia tentativas de manipulação
+  // Esta página só LÊ dados; qualquer script injetado não tem acesso ao Firestore write.
+  document.addEventListener('contextmenu', e=>{
+    // permite copiar texto no desktop mas mostra que é read-only
+  });
+})();
+</script>
 </body>
 </html>

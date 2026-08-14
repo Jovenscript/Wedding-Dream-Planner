@@ -1762,3 +1762,68 @@ img, svg, canvas, video { max-width: 100%; }
 
 /* garantia extra: nenhum SVG solto pode explodir de tamanho */
 button svg, a svg, .side-link svg { max-width: 24px; max-height: 24px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CORREÇÕES DE RESPONSIVIDADE — varredura profunda
+   Elementos que estouravam a largura em diversas telas.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Tabelas do financeiro nunca estouram no desktop: quebra ou rola dentro */
+.card table { width: 100%; max-width: 100%; table-layout: auto; }
+.card table td, .card table th { max-width: 100%; word-break: break-word; overflow-wrap: anywhere; }
+.card table .row-actions { flex-wrap: wrap; gap: 4px; }
+.card table .row-actions .btn-sm { flex: 0 1 auto; min-width: 0; }
+
+/* Convidados no mobile: linha nunca estoura, toggles ficam contidos */
+html.is-touch .beer-toggle, html.is-touch .head-toggle { flex: 0 0 auto; }
+html.is-touch tr[data-label], html.is-touch #g-tbody tr { overflow: hidden; }
+html.is-touch #g-tbody td { max-width: 100%; overflow: hidden; }
+html.is-touch #g-tbody td > * { max-width: 100%; }
+
+/* Actions de convidado: se sobrarem, quebram em nova linha */
+.g-actions { display: flex; flex-wrap: wrap; gap: 6px; max-width: 100%; }
+
+/* pill (grupo de família) nunca estica */
+.pill { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Row actions dos convidados: garantir wrap e conter no mobile */
+html.is-touch .row-actions { display: flex; flex-wrap: wrap; gap: 6px; max-width: 100%; }
+html.is-touch .row-actions > * { flex: 0 0 auto; max-width: 100%; }
+/* Status cell dos convidados: toggles e select em flex wrap */
+html.is-touch #g-tbody td[data-label="Status"] { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; max-width: 100%; }
+html.is-touch #g-tbody td[data-label="Status"] > * { flex: 0 0 auto; }
+
+/* FORÇA: no mobile, nenhum td das linhas de convidado pode ter conteúdo nowrap */
+html.is-touch #g-tbody td,
+html.is-touch table td[data-label] { flex-wrap: wrap !important; }
+
+
+/* Todas as TDs (célula da tabela em modo card mobile) precisam quebrar filhos */
+html.is-touch table td[data-label] {
+  flex-wrap: wrap !important;
+  align-items: center;
+  gap: 6px;
+}
+html.is-touch table td[data-label] > * { max-width: 100%; }
+
+
+/* ═══ Solução definitiva do overflow em cards de tabela no mobile ═══ */
+html.is-touch table td[data-label] {
+  display: block !important;
+  padding: 8px 14px !important;
+  min-height: 0 !important;
+}
+html.is-touch table td[data-label]::before {
+  display: block !important;
+  margin-bottom: 4px !important;
+  flex: none !important;
+}
+html.is-touch table td[data-label] > * {
+  max-width: 100% !important;
+  display: inline-flex;
+  flex-wrap: wrap;
+  vertical-align: middle;
+}
+/* toggles e ações se agrupam bem em block */
+html.is-touch #g-tbody .head-toggle,
+html.is-touch #g-tbody .beer-toggle { margin: 4px 6px 0 0 !important; vertical-align: middle; }
