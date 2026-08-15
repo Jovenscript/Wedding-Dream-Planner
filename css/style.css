@@ -1924,3 +1924,47 @@ html.readonly-mode #import-xlsx,
 html.readonly-mode #backup-export,
 html.readonly-mode #backup-import,
 html.readonly-mode label[for="import-xlsx"] { display: none !important; }
+
+/* ── FASE 6: vínculo Fornecedor ↔ Orçamento ── */
+.sup-budget.on { margin-top: 10px; font-size: 12.5px; font-weight: 600; color: var(--ok);
+  display: inline-flex; align-items: center; gap: 4px; }
+.sup-addbudget { margin-top: 12px; width: 100%; border: 1px dashed var(--olive); color: var(--olive-dark);
+  background: var(--olive-mist); font-weight: 600; }
+.sup-addbudget:hover { background: var(--olive-light, var(--olive-mist)); filter: brightness(0.97); }
+/* No modo somente-leitura (link compartilhado), esconde a ação de escrita */
+html.readonly-mode .sup-addbudget { display: none !important; }
+
+/* ── FASE 7: Centro de comando (dashboard) ── */
+.cmd-center { margin: 0 0 20px; display: flex; flex-direction: column; gap: 14px; }
+.cc-hero { display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  background: linear-gradient(135deg, var(--olive-dark), var(--olive)); color: #fff;
+  border-radius: 18px; padding: 18px 22px; box-shadow: var(--shadow-card); }
+.cc-count { display: flex; flex-direction: column; line-height: 1.08; }
+.cc-count b { font-size: 34px; font-weight: 800; letter-spacing: -1px; }
+.cc-count span { font-size: 13px; opacity: .92; margin-top: 3px; }
+.cc-date { font-size: 14px; font-weight: 600; opacity: .92; text-align: right; white-space: nowrap; }
+.cc-hero.cc-nodate { background: var(--ivory-card); color: var(--ink-muted);
+  border: 1px dashed var(--olive-mist); box-shadow: none; }
+.cc-hero.cc-nodate .cc-count span { opacity: 1; }
+.cc-title { font-size: 12.5px; font-weight: 700; color: var(--ink-muted);
+  text-transform: uppercase; letter-spacing: .5px; }
+.cc-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.cc-chip { display: flex; align-items: center; gap: 8px; background: var(--ivory-card);
+  border: 1px solid var(--olive-mist); border-radius: 14px; padding: 10px 14px; cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease; }
+.cc-chip:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+.cc-chip-ic { font-size: 18px; line-height: 1; }
+.cc-chip-n { font-size: 18px; font-weight: 800; color: var(--olive-dark); }
+.cc-chip-t { font-size: 12.5px; color: var(--ink-muted); }
+.cc-chip.urgent { border-color: var(--danger); background: #fdf1f1; }
+.cc-chip.urgent .cc-chip-n { color: var(--danger); }
+.cc-clear { background: var(--olive-mist); color: var(--olive-dark); border-radius: 14px;
+  padding: 14px 16px; font-weight: 600; font-size: 14px; }
+@media (max-width: 560px) {
+  .cc-hero { padding: 16px 18px; flex-direction: column; align-items: flex-start; gap: 6px; }
+  .cc-count b { font-size: 28px; }
+  .cc-date { font-size: 12.5px; white-space: normal; text-align: left; }
+  .cc-chip-n { font-size: 16px; }
+  /* Input de adicionar item: não force 240px em telas estreitas (evita overflow) */
+  #new-name { min-width: 0; width: 100%; }
+}

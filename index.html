@@ -118,6 +118,7 @@
           <span class="ha-txt">Relatório PDF</span>
         </button>
       </div>
+      <div id="cmd-center" class="cmd-center"></div>
       <div class="dash-grid">
         <div class="dash-main">
           <div class="summary">
@@ -526,22 +527,22 @@
       </section>
     </div>
 
-    <!-- ═══════════ COMPARTILHAMENTOS ═══════════ -->
+    <!-- ═══════════ COMPARTILHAR — sistema único, escopo por página ═══════════ -->
     <div class="view" id="view-compartilhamentos" hidden>
       <section class="card">
-        <div class="card-header"><h2>Compartilhamentos</h2>
-          <button class="header-action" id="share-add"><span class="ha-txt">+ Novo compartilhamento</span></button></div>
-        <p class="share-intro">Gere um link somente-leitura para profissionais (cerimonialista, buffet, fotógrafo…) verem apenas o que você autorizar — sem acesso ao financeiro nem ao restante do sistema.</p>
-        <div class="share-list" id="share-list"></div>
-      </section>
-    
-      <section class="card" style="margin-top:20px">
         <div class="card-header">
-          <h2>🔐 Acessos completos (Cerimonialista)</h2>
-          <button class="header-action" id="admin-add"><span class="ha-txt">+ Novo acesso</span></button>
+          <h2>Compartilhar</h2>
+          <button class="header-action" id="admin-add"><span class="ha-txt">+ Novo link</span></button>
         </div>
-        <p class="share-intro">Dê à cerimonialista ou wedding planner acesso <strong>completo ao sistema em tempo real</strong>, exatamente como você o vê — só que <strong>somente para visualização</strong>. Ela não poderá editar, adicionar ou excluir nada. Você controla quais páginas ela vê.</p>
+        <p class="share-intro">Crie um link <strong>somente-leitura</strong> para profissionais (cerimonialista, buffet, fotógrafo, DJ…). Você escolhe <strong>exatamente quais páginas</strong> o link mostra — o resto fica invisível. Ninguém consegue editar, adicionar ou excluir nada.</p>
         <div class="inv-list" id="admin-list"></div>
+      </section>
+
+      <!-- Legado: links do formato anterior. Mantidos só para você revogar; some quando vazio. -->
+      <section class="card" id="legacy-share-card" style="margin-top:20px" hidden>
+        <div class="card-header"><h2>Links antigos</h2></div>
+        <p class="share-intro">Estes usam o formato anterior. Recomendo <strong>revogar e recriar</strong> no novo formato acima para manter tudo num sistema só.</p>
+        <div class="share-list" id="share-list"></div>
       </section>
     </div>
 

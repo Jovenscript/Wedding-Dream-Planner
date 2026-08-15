@@ -122,13 +122,29 @@ function renderSuppliers(){
   list.forEach(s=>{
     const st=SUP_STATUS[s.status]||SUP_STATUS.cotacao;
     const falta=Math.max(0,(s.value||0)-(s.paid||0));
+    // Vínculo com o orçamento — limpa se o item foi excluído (evita vínculo órfão)
+    const linked = s.itemId ? (state.items||[]).find(it=>it.id===s.itemId) : null;
+    if(s.itemId && !linked){ s.itemId=null; }
+    const linkRow = linked
+      ? `<div class="sup-budget on">✓ No orçamento</div>`
+      : ((s.value||0)>0 ? `<button class="btn-sm sup-addbudget" data-act="addbudget">+ Adicionar ao orçamento</button>` : '');
     const card=document.createElement('div'); card.className='sup-card';
     card.innerHTML=`<div class="sup-top"><span class="sup-cat">${escapeHtml(s.category||'Outros')}</span>
       <span class="sup-status" style="--sc:${st.c}">${st.l}</span></div>
       <div class="sup-name">${escapeHtml(s.name)}</div>
       ${s.contact||s.phone?`<div class="sup-contact">${escapeHtml(s.contact||'')}${s.phone?` · ${escapeHtml(s.phone)}`:''}</div>`:''}
-      <div class="sup-vals"><span>Valor: <b>${toBRL(s.value||0)}</b></span>${falta>0?`<span class="sup-falta">Falta ${toBRL(falta)}</span>`:'<span class="sup-ok">Quitado</span>'}</div>`;
+      <div class="sup-vals"><span>Valor: <b>${toBRL(s.value||0)}</b></span>${falta>0?`<span class="sup-falta">Falta ${toBRL(falta)}</span>`:'<span class="sup-ok">Quitado</span>'}</div>
+      ${linkRow}`;
     card.addEventListener('click',()=>editSupplier(s.id));
+    const addBtn=card.querySelector('[data-act=addbudget]');
+    if(addBtn) addBtn.addEventListener('click',(e)=>{
+      e.stopPropagation();                                   // não abre o editor do card
+      const item={ id:uid(), name:s.name, category:s.category||'Outros', total:s.value||0, paid:0, paidAt:null };
+      state.items=state.items||[]; state.items.push(item);   // paid:0 → não mexe em funds.used (invariante intacto)
+      s.itemId=item.id;
+      try{ logHist('ajuste', `Item criado a partir do fornecedor — ${s.name}`, 0); }catch{}
+      save(); renderAll(); toast('Adicionado ao orçamento ✓','ok');
+    });
     grid.appendChild(card);
   });
 }
@@ -171,7 +187,9 @@ function shareUrl(sh){ const base=location.origin+location.pathname.replace(/ind
 function renderShares(){
   const wrap=el('share-list'); if(!wrap) return;
   const list=state.shares||[];
-  if(!list.length){ wrap.innerHTML='<div class="share-empty">Nenhum compartilhamento ativo. Crie um link seguro para um profissional ver apenas o que você autorizar.</div>'; return; }
+  const card=el('legacy-share-card');
+  if(card) card.hidden = (list.length===0);   // some quando não há links do formato antigo
+  if(!list.length){ wrap.innerHTML=''; return; }
   wrap.innerHTML='';
   list.forEach(sh=>{
     const role=SHARE_ROLES[sh.role]||SHARE_ROLES.custom;

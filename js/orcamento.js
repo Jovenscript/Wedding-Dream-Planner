@@ -199,6 +199,58 @@ function renderDashboard(c){
   el('leg-pago').textContent = toBRL(c.totalPaid);
   el('leg-res').textContent  = toBRL(c.coveredUnpaid);
   el('leg-falta').textContent= toBRL(c.uncovered);
+
+  try{ renderCommandCenter(c); }catch(e){ console.error('cmdCenter',e); }
+}
+
+/* ═══════════ Centro de comando — insights de decisão (somente leitura) ═══════════
+   Transforma dados que já existem (financeiro, RSVP, tarefas, fornecedores) em
+   "próximos passos" acionáveis. Não cria dados novos nem altera fluxo. */
+function renderCommandCenter(c){
+  const box=el('cmd-center'); if(!box) return;
+  const s=state.settings||{};
+  // ── Contagem regressiva ──
+  let hero='';
+  if(s.eventDate){
+    const t0=new Date(); t0.setHours(0,0,0,0);
+    const ev=new Date(s.eventDate+'T00:00:00');
+    const days=Math.round((ev-t0)/86400000);
+    const dt=(typeof fmtDate==='function')?fmtDate(s.eventDate):s.eventDate;
+    let big,small;
+    if(days>1){ big=days; small='dias para o grande dia'; }
+    else if(days===1){ big='1'; small='dia — é amanhã 💍'; }
+    else if(days===0){ big='Hoje'; small='é o grande dia! 🎉'; }
+    else { big='♥'; small='vocês se casaram'; }
+    hero=`<div class="cc-hero"><div class="cc-count"><b>${big}</b><span>${small}</span></div><div class="cc-date">${escapeHtml(dt)}</div></div>`;
+  } else {
+    hero=`<div class="cc-hero cc-nodate"><div class="cc-count"><span>Defina a data do casamento em Configurações para ver a contagem regressiva.</span></div></div>`;
+  }
+  // ── Pendências acionáveis ──
+  const today=todayISO();
+  const d7=new Date(); d7.setDate(d7.getDate()+7); const in7=d7.toISOString().slice(0,10);
+  const tasks=state.tasks||[];
+  const overdue=tasks.filter(t=>t.due&&t.status!=='done'&&t.due<today).length;
+  const soon=tasks.filter(t=>t.due&&t.status!=='done'&&t.due>=today&&t.due<=in7).length;
+  let rsvpPend=0; try{ rsvpPend=guestStats().pend||0; }catch{}
+  const supCot=(state.suppliers||[]).filter(x=>x.status==='cotacao').length;
+  const pending=c?c.pending:0, falta=c?c.faltaArrecadar:0;
+  const chips=[];
+  if(overdue>0)     chips.push({go:'tarefas',cls:'urgent',ic:'⏰',n:overdue,t:overdue===1?'tarefa atrasada':'tarefas atrasadas'});
+  if(soon>0)        chips.push({go:'tarefas',cls:'',ic:'📋',n:soon,t:soon===1?'tarefa esta semana':'tarefas esta semana'});
+  if(rsvpPend>0)    chips.push({go:'convidados',cls:'',ic:'✉️',n:rsvpPend,t:'sem confirmar'});
+  if(supCot>0)      chips.push({go:'fornecedores',cls:'',ic:'🤝',n:supCot,t:supCot===1?'fornecedor a contratar':'fornecedores a contratar'});
+  if(pending>0.005) chips.push({go:'orcamento',cls:'',ic:'💰',n:toBRL(pending),t:'a pagar'});
+  if(falta>0.005)   chips.push({go:'orcamento',cls:'',ic:'📈',n:toBRL(falta),t:'a arrecadar'});
+  let pend;
+  if(!chips.length){
+    pend=`<div class="cc-clear">✓ Tudo em dia por aqui — aproveitem os preparativos 💛</div>`;
+  } else {
+    pend=`<div class="cc-title">Precisa da sua atenção</div><div class="cc-chips">`+
+      chips.map(ch=>`<button class="cc-chip ${ch.cls}" data-go="${ch.go}"><span class="cc-chip-ic">${ch.ic}</span><span class="cc-chip-n">${ch.n}</span><span class="cc-chip-t">${escapeHtml(ch.t)}</span></button>`).join('')+
+      `</div>`;
+  }
+  box.innerHTML=hero+pend;
+  box.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{ const v=b.getAttribute('data-go'); if(typeof switchView==='function') switchView(v); }));
 }
 
 function renderFunds(c){
@@ -248,7 +300,9 @@ function renderItems(c){
     tdName.innerHTML=`<div class="name">${quit?'<span style="color:var(--ok)" aria-hidden="true">✓</span>':''}<input class="name-input" type="text" value="${escapeHtml(it.name)}" aria-label="Nome do item"></div>`;
     tdName.setAttribute('data-label','Item'); row.appendChild(tdName);
 
-    const tdCat=document.createElement('td'); tdCat.innerHTML=`<span class="pill">${escapeHtml(it.category||'—')}</span>${it.varId?'<span class="auto-tag" title="Calculado pelos convidados confirmados — edite em Convidados › Custos por Convidado">auto</span>':''}`; tdCat.setAttribute('data-label','Categoria'); row.appendChild(tdCat);
+    const supLink=(state.suppliers||[]).find(x=>x.itemId===it.id);
+    const supTag=supLink?`<span class="auto-tag" title="Vinculado ao fornecedor ${escapeHtml(supLink.name)}">🔗 ${escapeHtml(supLink.name)}</span>`:'';
+    const tdCat=document.createElement('td'); tdCat.innerHTML=`<span class="pill">${escapeHtml(it.category||'—')}</span>${it.varId?'<span class="auto-tag" title="Calculado pelos convidados confirmados — edite em Convidados › Custos por Convidado">auto</span>':''}${supTag}`; tdCat.setAttribute('data-label','Categoria'); row.appendChild(tdCat);
 
     const tdTotal=document.createElement('td');
     const totalInput=document.createElement('input'); totalInput.type='text'; totalInput.className='money'; totalInput.setAttribute('inputmode','decimal'); totalInput.setAttribute('aria-label','Valor total');

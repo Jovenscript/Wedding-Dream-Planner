@@ -34,7 +34,7 @@ function normTask(t){ t=t||{}; const st=['todo','doing','done'].includes(t.statu
     due:t.due||'', priority:pr, status:st, category:String(t.category||'').trim(), notes:String(t.notes||'').trim() }; }
 function normSupplier(s){ s=s||{}; return { id:s.id||uid(), name:String(s.name||'').trim()||'Fornecedor',
   category:String(s.category||'Outros').trim(), contact:String(s.contact||'').trim(), phone:String(s.phone||'').trim(),
-  value:Math.max(0,round2(s.value)), paid:Math.max(0,round2(s.paid)), status:String(s.status||'cotacao').trim(), notes:String(s.notes||'').trim() }; }
+  value:Math.max(0,round2(s.value)), paid:Math.max(0,round2(s.paid)), status:String(s.status||'cotacao').trim(), notes:String(s.notes||'').trim(), itemId:s.itemId||null }; }
 function normSchedule(s){ s=s||{}; return { id:s.id||uid(), time:String(s.time||'').trim(), title:String(s.title||'').trim()||'Momento',
   note:String(s.note||'').trim(), who:String(s.who||'').trim() }; }
 
@@ -70,6 +70,7 @@ function migrate(raw){
   let suppliers = Array.isArray(raw.suppliers) ? raw.suppliers.filter(x=>x&&typeof x==='object').map(normSupplier): [];
   let schedule  = Array.isArray(raw.schedule)  ? raw.schedule.filter(x=>x&&typeof x==='object').map(normSchedule) : [];
   let shares    = Array.isArray(raw.shares)    ? raw.shares.filter(x=>x&&typeof x==='object')                    : [];
+  let adminAccess = Array.isArray(raw.adminAccess) ? raw.adminAccess.filter(x=>x&&typeof x==='object')            : [];
   // Garante um titular por família (para dados antigos sem isHead): o primeiro da família.
   (function ensureHeads(){
     const grupos={};
@@ -137,7 +138,7 @@ function migrate(raw){
     }
     normItems.length=0; normItems.push(...keep);
   })();
-  const built = { items:normItems, funds:outFunds, history, guests, varCosts, tasks, suppliers, schedule, shares, settings };
+  const built = { items:normItems, funds:outFunds, history, guests, varCosts, tasks, suppliers, schedule, shares, adminAccess, settings };
   return { state: built, migrated };
 }
 function loadState(){

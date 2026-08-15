@@ -1,9 +1,10 @@
 /* EventFlow Service Worker — cache offline dos arquivos do app.
    Estratégia: network-first para HTML (pega atualizações), cache-first para CSS/JS. */
-const CACHE='eventflow-v1';
+const CACHE='eventflow-v2';
 const ASSETS=['./','./index.html','./login.html','./css/style.css',
   './js/config.js','./js/utils.js','./js/state.js','./js/ui.js','./js/orcamento.js',
-  './js/pdf.js','./js/convidados.js','./js/app.js','./js/firebase-sync.js','./js/auth.js',
+  './js/pdf.js','./js/convidados.js','./js/alerts.js','./js/modules.js',
+  './js/app.js','./js/firebase-sync.js','./js/auth.js',
   './manifest.webmanifest'];
 self.addEventListener('install', e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())); });
 self.addEventListener('activate', e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });

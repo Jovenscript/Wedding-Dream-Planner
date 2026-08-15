@@ -85,7 +85,18 @@
   }
   function applyRemote(d){
     applyingRemote=true;                       // evita re-enviar o que acabou de chegar
-    try{ const m=migrate(d); state=m.state; save(); renderAll(); }
+    try{
+      // ── Compatibilidade: documentos gravados ANTES desta correção não têm
+      //    tasks/suppliers/schedule/shares/adminAccess. Se o campo vier
+      //    UNDEFINED (nunca foi escrito), preserva o que já existe localmente
+      //    para NÃO apagar dados. Um array vazio [] é respeitado de propósito
+      //    (é uma exclusão real feita pelo dono). Depois do 1º save, a nuvem
+      //    passa a carregar tudo e este resguardo deixa de ser acionado. ──
+      ['tasks','suppliers','schedule','shares','adminAccess'].forEach(k=>{
+        if(d[k]===undefined && state && Array.isArray(state[k])) d[k]=state[k];
+      });
+      const m=migrate(d); state=m.state; save(); renderAll();
+    }
     finally{ applyingRemote=false; }
   }
   async function push(){
@@ -93,6 +104,9 @@
     lastPushId=uid();
     const data=JSON.parse(JSON.stringify({ items:state.items, funds:state.funds, history:state.history,
       guests:state.guests, varCosts:state.varCosts, settings:state.settings,
+      // ── Módulos que antes NÃO iam para a nuvem (bug de perda de dados) ──
+      tasks:state.tasks, suppliers:state.suppliers, schedule:state.schedule,
+      shares:state.shares, adminAccess:state.adminAccess,
       __pushId:lastPushId, updatedAt:Date.now() }));
     await ref.set(data);
     // Também atualiza os snapshots admin (em tempo real p/ cerimonialista)
@@ -116,7 +130,7 @@
   // Coleção 'shares/{token}' — somente leitura pública (ver regras do Firestore).
   window.publishShare=async function(sh){
     try{ if(!db||!sh||!sh.token) return; const payload=buildSharePayload(sh);
-      payload.updatedAt=Date.now();
+      payload.updatedAt=Date.now(); payload.ownerUid=user&&user.uid;
       await db.collection('shares').doc(sh.token).set(payload); }catch(e){ console.error('publishShare',e); }
   };
   window.unpublishShare=async function(token){
@@ -132,6 +146,7 @@
       if(!db || !access || !access.token) return;
       const payload = {
         kind: 'admin',
+        ownerUid: user && user.uid,
         name: access.name || '',
         scopes: access.scopes || [],
         active: access.active !== false,
@@ -160,6 +175,7 @@
         if(a.active === false) continue;
         const payload = {
           kind: 'admin',
+          ownerUid: user && user.uid,
           scopes: a.scopes || [],
           data: sanitizeStateForAdmin(a.scopes || []),
           updatedAt: Date.now()
@@ -187,12 +203,20 @@
     // NUNCA vazam:
     delete s.shares;         // gestão de compartilhamento é privada
     delete s.adminAccess;    // lista de acessos admin é privada
-    // settings: mantém nome/data/local (público via convite), tira outros privados
+    // settings: SÓ campos públicos do evento (o resto — flags internas,
+    // onboarding, preferências — não vai para o link compartilhado).
+    if(s.settings && typeof s.settings==='object'){
+      const SAFE=['eventName','eventKind','eventDate','eventTime','eventPlace',
+        'eventMapUrl','eventDress','eventGiftUrl','coupleA','coupleB','theme'];
+      const clean={};
+      SAFE.forEach(k=>{ if(s.settings[k]!==undefined) clean[k]=s.settings[k]; });
+      s.settings=clean;
+    }
     return s;
   }
 
   window.publishInvite=async function(inv, familia){
-    try{ if(!db||!inv||!inv.token) return; const p=buildInvitePayload(inv, familia); p.updatedAt=Date.now();
+    try{ if(!db||!inv||!inv.token) return; const p=buildInvitePayload(inv, familia); p.updatedAt=Date.now(); p.ownerUid=user&&user.uid;
       await db.collection('shares').doc(inv.token).set(p); }catch(e){ console.error('publishInvite',e); }
   };
   window.unpublishInvite=async function(token){
