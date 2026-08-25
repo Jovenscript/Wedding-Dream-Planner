@@ -1977,6 +1977,38 @@ html.readonly-mode .sup-addbudget { display: none !important; }
    ═════════════════════════════════════════════════════════════════════ */
 
 /* ── Valor da gravata ── */
+/* ═══════════ SORTEIO — barra de dinâmicas ═══════════ */
+.sort-dyn { padding: 4px 28px 0; display: flex; flex-direction: column; gap: 10px; }
+.sort-dyn .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.sort-dyn .chip { gap: 7px; }
+.sort-dyn .chip-n { display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
+  background: rgba(107,123,74,.14); color: var(--olive-dark);
+  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sort-dyn .chip.active .chip-n { background: rgba(255,255,255,.28); color: var(--white); }
+.sort-dyn .chip-tro { font-size: 12px; line-height: 1; }
+.sort-dyn-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sort-dyn-actions .btn-sm:disabled { opacity: .4; cursor: not-allowed; }
+.sort-dyn .tip { margin: 0; }
+@media (max-width: 720px){
+  .sort-dyn { padding: 4px 18px 0; }
+  .sort-dyn .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+  .sort-dyn .chips::-webkit-scrollbar { display: none; }
+  .sort-dyn-actions .btn-sm { flex: 1 1 46%; min-height: 44px; }
+}
+
+/* Convidado que marcou "não irá": aparece, mas travado e etiquetado —
+   sumir da lista faria o usuário procurar um nome que ele sabe que existe. */
+.sort-row.is-blocked { opacity: .62; }
+.sort-row.is-blocked:hover { background: transparent; }
+.sort-row.is-blocked .sort-toggle { cursor: not-allowed; }
+.sort-row.is-blocked .sort-toggle input { cursor: not-allowed; }
+.sort-badge-off { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px;
+  background: rgba(176,58,58,.10); color: var(--danger); border: 1px solid rgba(176,58,58,.22);
+  font-size: 10.5px; font-weight: 700; letter-spacing: .02em; vertical-align: middle; }
+.sort-count .sc-out { font-size: 13px; color: var(--ink-muted); }
+.sort-count .sc-out small { color: var(--ink-faint); font-size: 11.5px; }
+
 .sort-price-row { padding: 4px 28px 20px; display: flex; flex-direction: column; gap: 6px; }
 .sort-price-row .field-label { font-size: 12px; font-weight: 600; color: var(--ink-muted);
   text-transform: uppercase; letter-spacing: .06em; }

@@ -6,7 +6,7 @@
    + js/convidados.js velho deixava a aba "Sorteio" fora do ALL_VIEWS e o clique
    caía no fallback do Orçamento.)
    AO ADICIONAR UM ARQUIVO NOVO: bumpe CACHE e inclua o caminho em ASSETS. */
-const CACHE='eventflow-v3';
+const CACHE='eventflow-v4';
 const ASSETS=['./','./index.html','./login.html','./css/style.css',
   './js/config.js','./js/utils.js','./js/state.js','./js/ui.js','./js/orcamento.js',
   './js/pdf.js','./js/convidados.js','./js/alerts.js','./js/modules.js',

@@ -26,8 +26,13 @@ function seedItems(){ return DEFAULT_ITEMS.map(d=>({id:uid(), name:d.name, categ
    deixam de rodar no boot; ficam disponíveis apenas como ações manuais
    (ex.: botão "Carregar exemplos" / "Restaurar padrão"). */
 function blankState(){ const settings={showOver:true, strict:true, smart:{margin:10, hours:6, basis:'lista'}, seedItems:true, seedGuests:true, seedEventCosts:true, seedSmartV2:true}; return { items:[], funds:[], history:[], guests:[], varCosts:[], tasks:[], suppliers:[], schedule:[], shares:[], adminAccess:[], sorteio:blankSorteio(), settings }; }
-/* Sorteio da gravata: quem comprou (mapa id→true), preço unitário, ganhador confirmado e histórico. */
-function blankSorteio(){ return { buyers:{}, pricePerGravata:0, winner:null, history:[] }; }
+/* Sorteio: VÁRIAS dinâmicas nomeadas (Gravata, Tamanco da Noiva, Chá…).
+   Cada dinâmica é independente: participantes/pagantes (mapa id→true), valor
+   unitário, ganhador confirmado e histórico próprios. O bloco também carrega
+   um ESPELHO do formato antigo (buyers/pricePerGravata/winner/history) — ver
+   mirrorLegacySorteio(). */
+function blankDinamica(name){ return { id:uid(), name:String(name||'Dinâmica').trim()||'Dinâmica', price:0, buyers:{}, winner:null, history:[] }; }
+function blankSorteio(){ const d=blankDinamica('Gravata'); return mirrorLegacySorteio({ v:2, activeId:d.id, dynamics:[d] }); }
 function normFund(f){ const amount=Math.max(0,round2(f.amount)); const o={ id:f.id||uid(), name:f.name||'Aporte', type:f.type||'Outros', amount, used:Math.max(0,Math.min(amount,round2(f.used))), date:f.date||todayISO() }; if(f.ownAuto) o.ownAuto=true; return o; }
 /* Normalizadores dos módulos novos (tarefas, fornecedores, cronograma) */
 function normTask(t){ t=t||{}; const st=['todo','doing','done'].includes(t.status)?t.status:'todo';
@@ -38,18 +43,55 @@ function normSupplier(s){ s=s||{}; return { id:s.id||uid(), name:String(s.name||
   category:String(s.category||'Outros').trim(), contact:String(s.contact||'').trim(), phone:String(s.phone||'').trim(),
   value:Math.max(0,round2(s.value)), paid:Math.max(0,round2(s.paid)), status:String(s.status||'cotacao').trim(), notes:String(s.notes||'').trim(), itemId:s.itemId||null }; }
 /* Normaliza o bloco do sorteio (idempotente): descarta compradores "falsos",
-   ganhador sem id e entradas de histórico quebradas. */
+   ganhador sem id e entradas de histórico quebradas.
+   MIGRAÇÃO v1→v2: um estado no formato antigo (uma gravata só, campos soltos
+   na raiz) vira a PRIMEIRA dinâmica, chamada "Gravata" — nada se perde. */
+function normSorteioBuyers(b){
+  const out={}; if(b && typeof b==='object'){ Object.keys(b).forEach(k=>{ if(b[k]) out[k]=true; }); } return out;
+}
+function normSorteioWinner(w){
+  return (w && typeof w==='object' && w.id)
+    ? { id:String(w.id), name:String(w.name||'').trim(), sortedAt:Number(w.sortedAt)||Date.now() } : null;
+}
+function normSorteioHistory(h){
+  return Array.isArray(h)
+    ? h.filter(x=>x&&typeof x==='object'&&x.id).map(x=>({ id:String(x.id), name:String(x.name||'').trim(),
+        sortedAt:Number(x.sortedAt)||Date.now(), pool:Math.max(0,Math.round(Number(x.pool)||0)) })).slice(0,100)
+    : [];
+}
+function normDinamica(d, fallbackName){
+  d = (d && typeof d==='object') ? d : {};
+  const price = (d.price!==undefined) ? d.price : d.pricePerGravata;
+  return { id:String(d.id||uid()), name:String(d.name||fallbackName||'Dinâmica').trim()||'Dinâmica',
+    price:Math.max(0, round2(price)), buyers:normSorteioBuyers(d.buyers),
+    winner:normSorteioWinner(d.winner), history:normSorteioHistory(d.history) };
+}
+/* Espelha a PRIMEIRA dinâmica nos campos do formato antigo. Serve de rede de
+   segurança para um aparelho que ainda tenha o JS velho em cache: ele lê uma
+   gravata coerente em vez de uma lista vazia e, se regravar, não zera o que
+   estava vendo. Sem isso, um cliente desatualizado apagaria as dinâmicas. */
+function mirrorLegacySorteio(s){
+  const d = (s && Array.isArray(s.dynamics) && s.dynamics[0]) || null;
+  s.buyers          = d ? {...d.buyers} : {};
+  s.pricePerGravata = d ? d.price : 0;
+  s.winner          = (d && d.winner) ? {...d.winner} : null;
+  s.history         = d ? d.history.slice() : [];
+  return s;
+}
 function normSorteio(s){
   s = (s && typeof s==='object') ? s : {};
-  const buyers = {};
-  if(s.buyers && typeof s.buyers==='object'){ Object.keys(s.buyers).forEach(k=>{ if(s.buyers[k]) buyers[k]=true; }); }
-  const w = s.winner;
-  const winner = (w && typeof w==='object' && w.id)
-    ? { id:String(w.id), name:String(w.name||'').trim(), sortedAt:Number(w.sortedAt)||Date.now() } : null;
-  const history = Array.isArray(s.history)
-    ? s.history.filter(h=>h&&typeof h==='object'&&h.id).map(h=>({ id:String(h.id), name:String(h.name||'').trim(),
-        sortedAt:Number(h.sortedAt)||Date.now(), pool:Math.max(0,Math.round(Number(h.pool)||0)) })) : [];
-  return { buyers, pricePerGravata:Math.max(0, round2(s.pricePerGravata)), winner, history };
+  let dynamics = Array.isArray(s.dynamics)
+    ? s.dynamics.filter(d=>d&&typeof d==='object').map(d=>normDinamica(d)) : [];
+  // Formato antigo (ou bloco vazio): os campos da raiz viram a dinâmica "Gravata".
+  if(!dynamics.length){
+    dynamics = [ normDinamica({ name:'Gravata', price:s.pricePerGravata,
+      buyers:s.buyers, winner:s.winner, history:s.history }, 'Gravata') ];
+  }
+  // Colisão de ids (dois aparelhos criando dinâmica ao mesmo tempo): renomeia o id.
+  const vistos=new Set();
+  dynamics.forEach(d=>{ if(vistos.has(d.id)) d.id=uid(); vistos.add(d.id); });
+  const activeId = dynamics.some(d=>d.id===s.activeId) ? String(s.activeId) : dynamics[0].id;
+  return mirrorLegacySorteio({ v:2, activeId, dynamics });
 }
 function normSchedule(s){ s=s||{}; return { id:s.id||uid(), time:String(s.time||'').trim(), title:String(s.title||'').trim()||'Momento',
   note:String(s.note||'').trim(), who:String(s.who||'').trim() }; }
@@ -168,7 +210,8 @@ let state  = null;
 /* Chamado uma única vez pelo app.js, DEPOIS que todos os módulos carregaram
    (os normalizadores de convidados/custos vivem em convidados.js). */
 function initState(){ __boot = loadState(); state = __boot.state; }
-function save(){ try{ localStorage.setItem(STORE, JSON.stringify(state)); }catch{} if(window.__cloudSave) window.__cloudSave(); }
+function save(){ try{ if(state && state.sorteio) mirrorLegacySorteio(state.sorteio); }catch{}
+  try{ localStorage.setItem(STORE, JSON.stringify(state)); }catch{} if(window.__cloudSave) window.__cloudSave(); }
 
 /* RESET TOTAL (fábrica): apaga TUDO — dados, preferências, nome do evento
    e o localStorage inteiro do app (v3 e o antigo v2). Se a nuvem estiver

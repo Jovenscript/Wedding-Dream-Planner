@@ -551,24 +551,34 @@
     <!-- ═══════════ SORTEIO DA GRAVATA ═══════════ -->
     <div class="view" id="view-sorteio" hidden>
 
-      <!-- APRESENTAÇÃO + VALOR DA GRAVATA -->
+      <!-- APRESENTAÇÃO + DINÂMICAS + VALOR -->
       <section class="card" aria-labelledby="sort-intro-h">
         <div class="card-header">
-          <h2 id="sort-intro-h">Sorteio da Gravata 🎩</h2>
+          <h2 id="sort-intro-h">Sorteio da Festa 🎩</h2>
           <div class="header-rule"></div>
         </div>
-        <p class="share-intro">Na festa, quem quiser participar compra uma gravata — e no fim da noite um dos compradores leva o brinde. Marque aqui quem comprou e deixe o sorteio decidir <strong>na frente de todo mundo</strong>: sem papelzinho, sem dúvida, sem discussão.</p>
+        <p class="share-intro">Na festa, quem quiser participa de uma brincadeira — gravata, tamanco da noiva, chá — e no fim da noite alguém leva o brinde. Marque aqui quem entrou em cada uma e deixe o sorteio decidir <strong>na frente de todo mundo</strong>: sem papelzinho, sem dúvida, sem discussão. Quem marcou “não irá” fica fora automaticamente.</p>
+        <div class="sort-dyn">
+          <span class="chips" id="sort-dyn-chips" role="group" aria-label="Dinâmicas do sorteio"></span>
+          <div class="sort-dyn-actions">
+            <button class="btn-sm primary" id="sort-new-dyn" type="button">+ Nova dinâmica</button>
+            <button class="btn-sm" id="sort-rename-dyn" type="button">✎ Renomear</button>
+            <button class="btn-sm" id="sort-clear-dyn" type="button">🧹 Limpar participantes</button>
+            <button class="btn-sm danger" id="sort-del-dyn" type="button">🗑 Excluir</button>
+          </div>
+          <p class="tip" id="sort-dyn-info"></p>
+        </div>
         <div class="sort-price-row">
-          <label class="field-label" for="sort-price">Valor de cada gravata (opcional)</label>
-          <input id="sort-price" class="money" type="text" inputmode="decimal" placeholder="R$ 0,00" aria-label="Valor de cada gravata" />
-          <span class="sort-price-hint">Preenchendo, o app mostra quanto foi arrecadado.</span>
+          <label class="field-label" for="sort-price" id="sort-price-label">Valor por participação (opcional)</label>
+          <input id="sort-price" class="money" type="text" inputmode="decimal" placeholder="R$ 0,00" aria-label="Valor por participação nesta dinâmica" />
+          <span class="sort-price-hint">Preenchendo, o app mostra quanto foi arrecadado nesta dinâmica.</span>
         </div>
       </section>
 
       <!-- PARTICIPANTES -->
       <section class="card" aria-labelledby="sort-people-h">
         <div class="card-header">
-          <h2 id="sort-people-h">Quem comprou</h2>
+          <h2 id="sort-people-h">Quem participa</h2>
           <div class="header-rule"></div>
           <button class="btn-sm" id="sort-csv" type="button">↓ Exportar lista (CSV)</button>
         </div>

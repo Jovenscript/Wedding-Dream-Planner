@@ -239,14 +239,16 @@ if(typeof window.fetchRSVP!=='function'){ window.fetchRSVP=null; }
     on('share-add',  ()=>editShare());
     on('inv-refresh',()=>checkAllRSVP());
     on('admin-add', ()=>editAdminAccess());
-    // ── SORTEIO DA GRAVATA ──
-    // Delegação: os botões do palco (sortear / refazer) e do resultado
-    // (sortear outro / confirmar) nascem no render, então não dá para ligar
-    // um a um no boot — um único listener na vista cobre todos.
+    // ── SORTEIO (dinâmicas da festa) ──
+    // Delegação: as pílulas das dinâmicas, os botões do palco (sortear /
+    // refazer) e os do resultado (sortear outro / confirmar) nascem no
+    // render, então não dá para ligar um a um no boot — um único listener
+    // na vista cobre todos.
     const svw=el('view-sorteio');
     if(svw){
       svw.addEventListener('click', e=>{
         const b=e.target.closest('button'); if(!b || !svw.contains(b)) return;
+        if(b.dataset.sortDyn){ setDinamicaAtiva(b.dataset.sortDyn); return; }
         switch(b.id){
           case 'sort-run':            runSorteio(); break;
           case 'sort-again':          runSorteio(); break;
@@ -255,9 +257,13 @@ if(typeof window.fetchRSVP!=='function'){ window.fetchRSVP=null; }
           case 'sort-mark-all':       markAllBuyers(); break;
           case 'sort-unmark-all':     unmarkAllBuyers(); break;
           case 'sort-csv':            exportSorteioCSV(); break;
+          case 'sort-new-dyn':        newDinamica(); break;
+          case 'sort-rename-dyn':     renameDinamica(); break;
+          case 'sort-clear-dyn':      clearDinamica(); break;
+          case 'sort-del-dyn':        deleteDinamica(); break;
         }
       });
-      // toggles "comprou gravata" (a lista é redesenhada a cada clique)
+      // toggles de participante (a lista é redesenhada a cada clique)
       svw.addEventListener('change', e=>{
         const c=e.target.closest('input[data-sort-buyer]'); if(!c) return;
         toggleBuyer(c.dataset.sortBuyer);
