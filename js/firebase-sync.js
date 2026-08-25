@@ -95,6 +95,9 @@
       ['tasks','suppliers','schedule','shares','adminAccess'].forEach(k=>{
         if(d[k]===undefined && state && Array.isArray(state[k])) d[k]=state[k];
       });
+      // Mesmo resguardo para o sorteio (objeto, não array): documento antigo
+      // sem o campo NÃO apaga as marcações feitas neste aparelho.
+      if(d.sorteio===undefined && state && state.sorteio) d.sorteio=state.sorteio;
       const m=migrate(d); state=m.state; save(); renderAll();
     }
     finally{ applyingRemote=false; }
@@ -106,7 +109,7 @@
       guests:state.guests, varCosts:state.varCosts, settings:state.settings,
       // ── Módulos que antes NÃO iam para a nuvem (bug de perda de dados) ──
       tasks:state.tasks, suppliers:state.suppliers, schedule:state.schedule,
-      shares:state.shares, adminAccess:state.adminAccess,
+      shares:state.shares, adminAccess:state.adminAccess, sorteio:state.sorteio,
       __pushId:lastPushId, updatedAt:Date.now() }));
     await ref.set(data);
     // Também atualiza os snapshots admin (em tempo real p/ cerimonialista)
@@ -203,6 +206,7 @@
     // NUNCA vazam:
     delete s.shares;         // gestão de compartilhamento é privada
     delete s.adminAccess;    // lista de acessos admin é privada
+    delete s.sorteio;        // sorteio da gravata é privado do dono
     // settings: SÓ campos públicos do evento (o resto — flags internas,
     // onboarding, preferências — não vai para o link compartilhado).
     if(s.settings && typeof s.settings==='object'){

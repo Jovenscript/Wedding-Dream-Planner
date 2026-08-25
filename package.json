@@ -1,0 +1,14 @@
+{
+  "name": "eventflow",
+  "private": true,
+  "version": "1.0.0",
+  "description": "EventFlow — gestão inteligente de eventos (PWA em Vanilla JS + Firebase)",
+  "scripts": {
+    "check": "for f in js/*.js; do node --check \"$f\" || exit 1; done && echo 'node --check: todos os JS OK'",
+    "test:sorteio": "node tests/sorteio.spec.mjs",
+    "test": "npm run check && npm run test:sorteio"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1"
+  }
+}

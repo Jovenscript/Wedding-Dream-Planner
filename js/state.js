@@ -25,7 +25,9 @@ function seedItems(){ return DEFAULT_ITEMS.map(d=>({id:uid(), name:d.name, categ
    As sementes (itens padrão, custos de referência, lista de convidados)
    deixam de rodar no boot; ficam disponíveis apenas como ações manuais
    (ex.: botão "Carregar exemplos" / "Restaurar padrão"). */
-function blankState(){ const settings={showOver:true, strict:true, smart:{margin:10, hours:6, basis:'lista'}, seedItems:true, seedGuests:true, seedEventCosts:true, seedSmartV2:true}; return { items:[], funds:[], history:[], guests:[], varCosts:[], tasks:[], suppliers:[], schedule:[], shares:[], adminAccess:[], settings }; }
+function blankState(){ const settings={showOver:true, strict:true, smart:{margin:10, hours:6, basis:'lista'}, seedItems:true, seedGuests:true, seedEventCosts:true, seedSmartV2:true}; return { items:[], funds:[], history:[], guests:[], varCosts:[], tasks:[], suppliers:[], schedule:[], shares:[], adminAccess:[], sorteio:blankSorteio(), settings }; }
+/* Sorteio da gravata: quem comprou (mapa id→true), preço unitário, ganhador confirmado e histórico. */
+function blankSorteio(){ return { buyers:{}, pricePerGravata:0, winner:null, history:[] }; }
 function normFund(f){ const amount=Math.max(0,round2(f.amount)); const o={ id:f.id||uid(), name:f.name||'Aporte', type:f.type||'Outros', amount, used:Math.max(0,Math.min(amount,round2(f.used))), date:f.date||todayISO() }; if(f.ownAuto) o.ownAuto=true; return o; }
 /* Normalizadores dos módulos novos (tarefas, fornecedores, cronograma) */
 function normTask(t){ t=t||{}; const st=['todo','doing','done'].includes(t.status)?t.status:'todo';
@@ -35,6 +37,20 @@ function normTask(t){ t=t||{}; const st=['todo','doing','done'].includes(t.statu
 function normSupplier(s){ s=s||{}; return { id:s.id||uid(), name:String(s.name||'').trim()||'Fornecedor',
   category:String(s.category||'Outros').trim(), contact:String(s.contact||'').trim(), phone:String(s.phone||'').trim(),
   value:Math.max(0,round2(s.value)), paid:Math.max(0,round2(s.paid)), status:String(s.status||'cotacao').trim(), notes:String(s.notes||'').trim(), itemId:s.itemId||null }; }
+/* Normaliza o bloco do sorteio (idempotente): descarta compradores "falsos",
+   ganhador sem id e entradas de histórico quebradas. */
+function normSorteio(s){
+  s = (s && typeof s==='object') ? s : {};
+  const buyers = {};
+  if(s.buyers && typeof s.buyers==='object'){ Object.keys(s.buyers).forEach(k=>{ if(s.buyers[k]) buyers[k]=true; }); }
+  const w = s.winner;
+  const winner = (w && typeof w==='object' && w.id)
+    ? { id:String(w.id), name:String(w.name||'').trim(), sortedAt:Number(w.sortedAt)||Date.now() } : null;
+  const history = Array.isArray(s.history)
+    ? s.history.filter(h=>h&&typeof h==='object'&&h.id).map(h=>({ id:String(h.id), name:String(h.name||'').trim(),
+        sortedAt:Number(h.sortedAt)||Date.now(), pool:Math.max(0,Math.round(Number(h.pool)||0)) })) : [];
+  return { buyers, pricePerGravata:Math.max(0, round2(s.pricePerGravata)), winner, history };
+}
 function normSchedule(s){ s=s||{}; return { id:s.id||uid(), time:String(s.time||'').trim(), title:String(s.title||'').trim()||'Momento',
   note:String(s.note||'').trim(), who:String(s.who||'').trim() }; }
 
@@ -83,8 +99,9 @@ function migrate(raw){
   // Estados antigos que ainda não tinham perfis/margem nos custos ganham os campos novos, sem ADICIONAR itens.
   if(!settings.seedSmartV2){ upgradeSmartSeeds(varCosts, {}); settings.seedSmartV2=true; }
   settings.smart = Object.assign({margin:10, hours:6, basis:'lista'}, (settings.smart&&typeof settings.smart==='object')?settings.smart:{});
+  const sorteio = normSorteio(raw && raw.sorteio);
   const empty = normItems.length===0 && outFunds.length===0 && history.length===0 && guests.length===0 && varCosts.length===0;
-  if(empty) return { state:blankState(), migrated:[] };
+  if(empty){ const bs=blankState(); bs.sorteio=sorteio; return { state:bs, migrated:[] }; }
   // Retrocompatibilidade: garante o invariante funds.used == items.paid.
   // Se ninguém tinha 'used' ainda, distribui o total pago entre os recursos.
   (function reconcileFunds(){
@@ -138,7 +155,7 @@ function migrate(raw){
     }
     normItems.length=0; normItems.push(...keep);
   })();
-  const built = { items:normItems, funds:outFunds, history, guests, varCosts, tasks, suppliers, schedule, shares, adminAccess, settings };
+  const built = { items:normItems, funds:outFunds, history, guests, varCosts, tasks, suppliers, schedule, shares, adminAccess, sorteio, settings };
   return { state: built, migrated };
 }
 function loadState(){

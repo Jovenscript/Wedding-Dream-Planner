@@ -122,6 +122,7 @@ function renderAll(){
   safe(()=>{ const db=el('demo-banner'); if(db) db.hidden = !(state.settings&&state.settings.demo); },'demoBanner');
   safe(()=>{ if(typeof renderAlerts==='function' && el('alert-list')) renderAlerts(); },'renderAlerts');
   safe(()=>{ if(typeof renderModules==='function') renderModules(); },'renderModules');
+  safe(()=>{ if(typeof renderSorteio==='function') renderSorteio(); },'renderSorteio');
   safe(syncVarLinkedItems,'syncVar');
   let c; try{ c=compute(); }catch(e){ console.error('compute',e); return; }
   safe(()=>renderDashboard(c),'renderDashboard'); safe(()=>renderFunds(c),'renderFunds');
@@ -238,6 +239,36 @@ if(typeof window.fetchRSVP!=='function'){ window.fetchRSVP=null; }
     on('share-add',  ()=>editShare());
     on('inv-refresh',()=>checkAllRSVP());
     on('admin-add', ()=>editAdminAccess());
+    // ── SORTEIO DA GRAVATA ──
+    // Delegação: os botões do palco (sortear / refazer) e do resultado
+    // (sortear outro / confirmar) nascem no render, então não dá para ligar
+    // um a um no boot — um único listener na vista cobre todos.
+    const svw=el('view-sorteio');
+    if(svw){
+      svw.addEventListener('click', e=>{
+        const b=e.target.closest('button'); if(!b || !svw.contains(b)) return;
+        switch(b.id){
+          case 'sort-run':            runSorteio(); break;
+          case 'sort-again':          runSorteio(); break;
+          case 'sort-confirm-winner': confirmWinner(); break;
+          case 'sort-reset':          resetSorteio(); break;
+          case 'sort-mark-all':       markAllBuyers(); break;
+          case 'sort-unmark-all':     unmarkAllBuyers(); break;
+          case 'sort-csv':            exportSorteioCSV(); break;
+        }
+      });
+      // toggles "comprou gravata" (a lista é redesenhada a cada clique)
+      svw.addEventListener('change', e=>{
+        const c=e.target.closest('input[data-sort-buyer]'); if(!c) return;
+        toggleBuyer(c.dataset.sortBuyer);
+      });
+      const ss=el('sort-search');
+      if(ss) ss.addEventListener('input', ()=>{ sortSearch=ss.value; renderSorteio(); });
+      const sp=el('sort-price');
+      if(sp && typeof attachMoney==='function'){
+        attachMoney(sp, ()=>sorteioPrice(), n=>setSorteioPrice(n));
+      }
+    }
     // relatórios CSV
     on('task-csv', ()=>reportTasks());
     on('sup-csv',  ()=>reportSuppliers());

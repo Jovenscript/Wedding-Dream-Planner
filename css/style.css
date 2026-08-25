@@ -1968,3 +1968,175 @@ html.readonly-mode .sup-addbudget { display: none !important; }
   /* Input de adicionar item: não force 240px em telas estreitas (evita overflow) */
   #new-name { min-width: 0; width: 100%; }
 }
+
+/* ═════════════════════════════════════════════════════════════════════
+   SORTEIO DA GRAVATA — lista de compradores + roleta do ganhador
+   Padrão visual: mesmos cards/tokens do resto do app; o dourado (--gold)
+   fica reservado para o ato do sorteio (botão, roleta e vencedor), que é
+   o momento "de palco" da festa.
+   ═════════════════════════════════════════════════════════════════════ */
+
+/* ── Valor da gravata ── */
+.sort-price-row { padding: 4px 28px 20px; display: flex; flex-direction: column; gap: 6px; }
+.sort-price-row .field-label { font-size: 12px; font-weight: 600; color: var(--ink-muted);
+  text-transform: uppercase; letter-spacing: .06em; }
+.sort-price-row input.money { max-width: 220px; font-size: 15px; padding: 12px 14px; }
+.sort-price-hint { font-size: 12px; color: var(--ink-faint); font-style: italic; }
+
+/* ── Contador de compradores ── */
+.sort-count { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px;
+  padding: 18px 28px; border-bottom: 1px solid var(--olive-mist);
+  background: linear-gradient(180deg, rgba(201,168,76,.07), transparent); }
+.sort-count .sc-n { font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 600;
+  line-height: 1; color: var(--olive-dark); font-variant-numeric: tabular-nums; }
+.sort-count .sc-t { font-size: 14px; font-weight: 600; color: var(--ink); }
+.sort-count .sc-sep { color: var(--ink-faint); }
+.sort-count .sc-money { font-size: 13.5px; color: var(--ink-muted); }
+.sort-count .sc-money b { color: var(--olive-dark); font-variant-numeric: tabular-nums; }
+
+/* ── Busca + ações em massa ── */
+.sort-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 16px 28px 12px; }
+.sort-tools .search-wrap { flex: 1 1 220px; }
+
+/* ── Lista de participantes (rola dentro do card — aguenta 130+ nomes) ── */
+.sort-list { max-height: 60vh; overflow-y: auto; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch; border-top: 1px solid var(--olive-mist); }
+.sort-row { display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 12px 28px; min-height: 60px; cursor: pointer;
+  border-bottom: 1px solid rgba(107,123,74,.10);
+  transition: background var(--transition); }
+.sort-row:last-child { border-bottom: none; }
+.sort-row:hover { background: var(--olive-mist); }
+.sort-row.is-on { background: linear-gradient(90deg, rgba(201,168,76,.13), transparent 70%); }
+.sort-row.is-on:hover { background: linear-gradient(90deg, rgba(201,168,76,.20), transparent 70%); }
+.sort-row-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sort-row-name { font-size: 14.5px; font-weight: 500; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sort-row-group { font-size: 11.5px; color: var(--ink-faint);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sort-row.is-on .sort-row-name { font-weight: 600; color: var(--olive-dark); }
+
+/* ── Toggle iOS (alvo de toque ≥ 44px pela altura da linha) ── */
+.sort-toggle { position: relative; flex: 0 0 auto; width: 58px; height: 34px; }
+.sort-toggle input { position: absolute; inset: 0; width: 100%; height: 100%;
+  margin: 0; opacity: 0; cursor: pointer; z-index: 2; }
+.sort-toggle .sort-track { position: absolute; inset: 0; border-radius: 999px;
+  background: #DEDDD3; border: 1px solid rgba(107,123,74,.20);
+  transition: background var(--transition), border-color var(--transition); }
+.sort-toggle .sort-knob { position: absolute; top: 3px; left: 3px; width: 28px; height: 28px;
+  border-radius: 50%; background: var(--white); box-shadow: 0 1px 4px rgba(28,31,22,.28);
+  transition: transform .24s cubic-bezier(.4,0,.2,1); }
+.sort-toggle input:checked ~ .sort-track {
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+  border-color: var(--gold); }
+.sort-toggle input:checked ~ .sort-knob { transform: translateX(24px); }
+.sort-toggle input:focus-visible ~ .sort-track { box-shadow: 0 0 0 3px var(--neon-soft), 0 0 0 1px var(--olive-light); }
+
+/* ── Palco do sorteio ── */
+.sort-stage { padding: 24px 28px; }
+.sort-btn-big { display: block; width: 100%; padding: 20px 24px;
+  font-family: 'Inter', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: .02em;
+  border-radius: var(--radius-md); color: #3A2E08;
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 48%, var(--gold) 100%);
+  box-shadow: 0 6px 24px rgba(201,168,76,.34); }
+.sort-btn-big:hover { color: #3A2E08; transform: translateY(-2px);
+  background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, var(--gold-light) 100%);
+  box-shadow: 0 10px 32px rgba(201,168,76,.44); }
+.sort-btn-big:disabled { opacity: .45; cursor: not-allowed;
+  transform: none; box-shadow: none; filter: grayscale(.5); }
+.sort-hint { margin-top: 12px; text-align: center; font-size: 13px; color: var(--ink-muted); line-height: 1.5; }
+
+/* ── Área de resultado (roleta + vencedor) ── */
+.sort-result { padding: 0 28px 24px; }
+.sort-rolling { display: flex; align-items: center; justify-content: center; text-align: center;
+  min-height: 150px; padding: 20px; border-radius: var(--radius-md);
+  border: 1px dashed rgba(201,168,76,.55); background: rgba(201,168,76,.06);
+  font-family: 'Cormorant Garamond', serif; font-size: clamp(26px, 7vw, 44px);
+  font-weight: 600; color: var(--olive-dark); line-height: 1.15; overflow: hidden;
+  animation: sortRoll .13s linear infinite alternate; }
+@keyframes sortRoll {
+  from { transform: translateY(-5px); filter: blur(1.4px); opacity: .7; }
+  to   { transform: translateY(5px);  filter: blur(0);     opacity: 1;  }
+}
+
+/* ── Card do vencedor ── */
+.sort-winner { position: relative; overflow: hidden; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 30px 24px; border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #B9963C 0%, var(--gold) 35%, var(--gold-light) 65%, var(--gold) 100%);
+  box-shadow: 0 10px 34px rgba(201,168,76,.40);
+  animation: sortPop .55s cubic-bezier(.2,.8,.3,1) both; }
+.sort-winner::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.42) 50%, transparent 65%);
+  transform: translateX(-120%); animation: sortShine 1.5s ease-out .35s 1 both; }
+.sort-winner .sw-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .18em;
+  text-transform: uppercase; color: rgba(58,46,8,.72); }
+.sort-winner .sw-mono { display: flex; align-items: center; justify-content: center;
+  width: 72px; height: 72px; border-radius: 50%; margin: 4px 0;
+  background: rgba(255,255,255,.90); border: 1px solid rgba(255,255,255,.9);
+  font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 600;
+  color: var(--olive-dark); box-shadow: 0 4px 14px rgba(58,46,8,.20); }
+.sort-winner .sw-name { font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(28px, 7.5vw, 46px); font-weight: 700; line-height: 1.1;
+  color: #2E2506; text-shadow: 0 1px 0 rgba(255,255,255,.30); }
+.sort-winner .sw-sub { font-size: 12.5px; color: rgba(58,46,8,.78); }
+@keyframes sortPop {
+  0%   { opacity: 0; transform: scale(.5); }
+  62%  { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes sortShine { to { transform: translateX(120%); } }
+.sort-result-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.sort-result-actions .btn-sm { flex: 1 1 46%; min-height: 46px; }
+
+/* ── Ganhador já confirmado ── */
+.sort-confirmed { display: flex; flex-direction: column; align-items: center; gap: 6px;
+  text-align: center; padding: 26px 22px; border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 55%, var(--gold) 100%);
+  box-shadow: 0 8px 28px rgba(201,168,76,.34); }
+.sort-confirmed .sc-trophy { font-size: 34px; line-height: 1; }
+.sort-confirmed .sc-label { font-size: 11px; font-weight: 700; letter-spacing: .18em;
+  text-transform: uppercase; color: rgba(58,46,8,.72); }
+.sort-confirmed .sc-name { font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(26px, 7vw, 42px); font-weight: 700; line-height: 1.12; color: #2E2506; }
+.sort-confirmed .sc-when { font-size: 12px; color: rgba(58,46,8,.75); }
+.sort-confirmed .btn-sm { margin-top: 12px; background: rgba(255,255,255,.92);
+  color: var(--olive-dark); box-shadow: none; }
+.sort-confirmed .btn-sm:hover { background: var(--white); color: var(--olive-dark); box-shadow: none; }
+
+/* ── Histórico ── */
+.sort-history { padding: 4px 28px 22px; }
+.sort-hist-title { font-size: 11.5px; font-weight: 700; color: var(--ink-muted);
+  text-transform: uppercase; letter-spacing: .1em; padding: 12px 0 8px;
+  border-top: 1px solid var(--olive-mist); }
+.sort-hist-row { display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; padding: 8px 0; border-bottom: 1px dashed rgba(107,123,74,.16); }
+.sort-hist-row:last-child { border-bottom: none; }
+.sort-hist-row .sh-name { font-size: 13.5px; font-weight: 500; color: var(--ink); }
+.sort-hist-row .sh-meta { font-size: 11.5px; color: var(--ink-faint); white-space: nowrap; }
+
+/* ── Mobile (360–430px) ── */
+@media (max-width: 640px) {
+  .sort-price-row { padding: 4px 18px 18px; }
+  .sort-price-row input.money { max-width: none; font-size: 16px; }
+  .sort-count { padding: 16px 18px; }
+  .sort-count .sc-n { font-size: 32px; }
+  .sort-tools { padding: 14px 18px 10px; }
+  .sort-tools .search-wrap { flex: 1 1 100%; }
+  .sort-tools .btn-sm { flex: 1 1 46%; }
+  .sort-row { padding: 12px 18px; min-height: 64px; }
+  .sort-stage { padding: 20px 18px; }
+  .sort-result { padding: 0 18px 20px; }
+  .sort-history { padding: 4px 18px 18px; }
+  .sort-list { max-height: 56vh; }
+}
+html.is-touch .sort-tools .search-wrap { flex: 1 1 100%; }
+html.is-touch .sort-tools .btn-sm { flex: 1 1 46%; }
+
+/* Respeita quem pediu menos movimento: sem roleta tremendo nem pop. */
+@media (prefers-reduced-motion: reduce) {
+  .sort-rolling { animation: none; filter: none; }
+  .sort-winner { animation: none; }
+  .sort-winner::after { animation: none; display: none; }
+  .sort-toggle .sort-knob { transition: none; }
+}
