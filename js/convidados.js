@@ -845,5 +845,8 @@ function initConvidadosUI(){
   document.querySelectorAll('.nav .tab[data-view], .side-link[data-view]').forEach(t=>t.addEventListener('click',e=>{ e.preventDefault(); switchView(t.dataset.view); }));
   el('btn-pdf').addEventListener('click', ()=>window.__genFinancePDF());
   el('btn-explain').addEventListener('click', explainAll);
-  switchView(location.hash==='#convidados'?'convidados':'orcamento');
+  // Abre a vista do hash (recarregar em #sorteio volta para #sorteio, não para o
+  // Orçamento). Hash desconhecido ou vazio cai no Orçamento, como antes.
+  const h0=(location.hash||'').slice(1);
+  switchView(ALL_VIEWS.includes(h0)?h0:'orcamento');
 }
